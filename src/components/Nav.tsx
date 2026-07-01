@@ -36,11 +36,6 @@ export function Nav() {
               Post Property
             </Link>
           )}
-          {isDeveloper && (
-            <span className="rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
-              Developer
-            </span>
-          )}
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
