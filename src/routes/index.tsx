@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "1HP Portal — Browse condos, hotels & land" },
-      { name: "description", content: "Discover condos, hotels, raw land, and resell properties listed by trusted commissioners on 1HP Portal." },
-      { property: "og:title", content: "1HP Portal" },
-      { property: "og:description", content: "Discover condos, hotels, raw land, and resell properties listed by trusted commissioners." },
+      { title: "One Higala Properties Inc. — Bringing you home, the higala way" },
+      { name: "description", content: "Discover condos, hotels, raw land, and resell properties across the Philippines with One Higala Properties Inc." },
+      { property: "og:title", content: "One Higala Properties Inc." },
+      { property: "og:description", content: "Bringing you home, the higala way — condos, hotels, raw land, and resell properties." },
     ],
   }),
   component: Home,
