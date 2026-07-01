@@ -138,10 +138,13 @@ function Home() {
         )}
       </section>
 
-      <footer className="mt-12 border-t border-border bg-surface">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} 1HP Portal</p>
-          <p>Built for commissioners, buyers, and developers.</p>
+      <footer className="mt-12 border-t border-border bg-gradient-to-b from-background to-primary/5">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-2 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center">
+          <div>
+            <p className="font-display font-semibold text-foreground">One Higala Properties Inc.</p>
+            <p className="italic">Bringing you home, the higala way</p>
+          </div>
+          <p>© {new Date().getFullYear()} One Higala Properties Inc.</p>
         </div>
       </footer>
     </div>
