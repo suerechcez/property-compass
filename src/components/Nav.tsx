@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export function Nav() {
-  const { user, isCommissioner, isDeveloper } = useAuth();
+  const { user, isCommissioner } = useAuth();
   const navigate = useNavigate();
 
   async function signOut() {
@@ -35,11 +35,6 @@ export function Nav() {
             <Link to="/listings/new" className="text-foreground/70 hover:text-foreground">
               Post Property
             </Link>
-          )}
-          {isDeveloper && (
-            <span className="rounded-full bg-gold/20 px-2.5 py-0.5 text-xs font-semibold text-gold-foreground">
-              Developer
-            </span>
           )}
         </nav>
         <div className="flex items-center gap-2">
