@@ -48,20 +48,21 @@ function Home() {
     <div className="min-h-screen">
       <Nav />
       {/* Hero */}
-      <section className="border-b border-border bg-surface">
-        <div className="mx-auto max-w-7xl px-6 py-20 md:py-28">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-            The 1HP Real Estate Portal
+      <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-background to-primary/5">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.15),transparent_60%)]" />
+        <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-28">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-card/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            One Higala Properties Inc.
           </span>
           <h1 className="mt-6 max-w-3xl font-display text-5xl font-semibold leading-[1.05] md:text-7xl">
-            Find your next condo, hotel stay, or piece of land.
+            Bringing you home, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">the higala way.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Curated listings from trusted commissioners — with AI-powered sales tracking
-            and forecasting on the back end.
+            Explore condos, hotels, raw land, and resell properties — no account needed to browse.
+            Sign in when you're ready to save favorites or list your own.
           </p>
-          <div className="mt-10 flex max-w-2xl gap-2 rounded-full border border-border bg-card p-2 shadow-sm">
+          <div className="mt-10 flex max-w-2xl gap-2 rounded-full border border-border bg-card p-2 shadow-lg shadow-primary/5">
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -70,6 +71,9 @@ function Home() {
             />
             <Button className="rounded-full px-6">Search</Button>
           </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Browse freely — <Link to="/auth" className="font-medium text-primary hover:underline">sign in</Link> to save properties or become a commissioner.
+          </p>
         </div>
       </section>
 
