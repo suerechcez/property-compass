@@ -39,7 +39,7 @@ function Dashboard() {
     { id: "listings", label: "My listings", show: isCommissioner },
     { id: "sales", label: "Sales", show: isCommissioner },
     { id: "forecast", label: "AI forecast", show: isCommissioner },
-    { id: "developer", label: "Developer tools", show: isDeveloper },
+    { id: "developer", label: "Developer tools", show: false },
   ];
 
   return (
