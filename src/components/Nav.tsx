@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export function Nav() {
-  const { user, isCommissioner, isDeveloper } = useAuth();
+  const { user, isCommissioner } = useAuth();
   const navigate = useNavigate();
 
   async function signOut() {
