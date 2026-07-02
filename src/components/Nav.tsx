@@ -30,6 +30,7 @@ export function Nav() {
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
           <Link to="/" className="text-foreground/70 hover:text-foreground">Browse</Link>
+          <Link to="/agents" className="text-foreground/70 hover:text-foreground">Agents</Link>
           <Link to="/updates" className="text-foreground/70 hover:text-foreground">Updates</Link>
           {user && (
             <Link to="/dashboard" className="text-foreground/70 hover:text-foreground">

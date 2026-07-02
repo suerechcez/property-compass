@@ -13,9 +13,11 @@ import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
+import { Route as AgentsIdRouteImport } from './routes/agents.$id'
 import { Route as ListingsIdEditRouteImport } from './routes/listings.$id.edit'
 
 const UpdatesRoute = UpdatesRouteImport.update({
@@ -38,6 +40,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -53,6 +60,11 @@ const ListingsNewRoute = ListingsNewRouteImport.update({
   path: '/listings/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentsIdRoute = AgentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
   id: '/listings/$id/edit',
   path: '/listings/$id/edit',
@@ -61,20 +73,24 @@ const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
+  '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
+  '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
@@ -82,10 +98,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
+  '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
@@ -94,30 +112,36 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agents'
     | '/auth'
     | '/dashboard'
     | '/sitemap.xml'
     | '/updates'
+    | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
     | '/listings/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agents'
     | '/auth'
     | '/dashboard'
     | '/sitemap.xml'
     | '/updates'
+    | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
     | '/listings/$id/edit'
   id:
     | '__root__'
     | '/'
+    | '/agents'
     | '/auth'
     | '/dashboard'
     | '/sitemap.xml'
     | '/updates'
+    | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
     | '/listings/$id/edit'
@@ -125,6 +149,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -164,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -185,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents/$id': {
+      id: '/agents/$id'
+      path: '/$id'
+      fullPath: '/agents/$id'
+      preLoaderRoute: typeof AgentsIdRouteImport
+      parentRoute: typeof AgentsRoute
+    }
     '/listings/$id/edit': {
       id: '/listings/$id/edit'
       path: '/listings/$id/edit'
@@ -195,8 +234,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AgentsRouteChildren {
+  AgentsIdRoute: typeof AgentsIdRoute
+}
+
+const AgentsRouteChildren: AgentsRouteChildren = {
+  AgentsIdRoute: AgentsIdRoute,
+}
+
+const AgentsRouteWithChildren =
+  AgentsRoute._addFileChildren(AgentsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
