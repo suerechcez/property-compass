@@ -33,9 +33,10 @@ export function Nav() {
           <Link to="/agents" className="text-foreground/70 hover:text-foreground">Agents</Link>
           <Link to="/updates" className="text-foreground/70 hover:text-foreground">Updates</Link>
           {user && (
-            <Link to="/dashboard" className="text-foreground/70 hover:text-foreground">
-              Dashboard
-            </Link>
+            <>
+              <Link to="/dashboard" className="text-foreground/70 hover:text-foreground">Dashboard</Link>
+              <Link to="/profile" className="text-foreground/70 hover:text-foreground">Profile</Link>
+            </>
           )}
           {isCommissioner && (
             <Link to="/listings/new" className="text-foreground/70 hover:text-foreground">
