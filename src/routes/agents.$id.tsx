@@ -31,7 +31,7 @@ function AgentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, created_at")
+        .select("id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -106,14 +106,21 @@ function AgentProfile() {
                 (profile.full_name ?? "A").slice(0, 1).toUpperCase()
               )}
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-primary">Commissioner</p>
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-wider text-primary">{profile.title ?? "Commissioner"}</p>
               <h1 className="mt-1 font-display text-4xl font-semibold">{profile.full_name ?? "Agent"}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Joined {format(new Date(profile.created_at), "MMMM yyyy")}
-                {profile.phone ? ` · ${profile.phone}` : ""}
+                {profile.years_experience ? ` · ${profile.years_experience}+ years experience` : ""}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">{listings.length} listings on the platform</p>
+              <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {profile.email && <a href={`mailto:${profile.email}`} className="hover:text-primary">{profile.email}</a>}
+                {profile.phone && <a href={`tel:${profile.phone}`} className="hover:text-primary">{profile.phone}</a>}
+                <span>{listings.length} listings</span>
+              </div>
+              {profile.bio && (
+                <p className="mt-4 max-w-2xl leading-relaxed text-foreground/85">{profile.bio}</p>
+              )}
             </div>
           </div>
         </div>

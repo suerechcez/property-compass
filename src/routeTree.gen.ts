@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
@@ -28,6 +29,11 @@ const UpdatesRoute = UpdatesRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/agents': typeof AgentsRouteWithChildren
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/auth'
     | '/dashboard'
+    | '/profile'
     | '/sitemap.xml'
     | '/updates'
     | '/agents/$id'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/auth'
     | '/dashboard'
+    | '/profile'
     | '/sitemap.xml'
     | '/updates'
     | '/agents/$id'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/auth'
     | '/dashboard'
+    | '/profile'
     | '/sitemap.xml'
     | '/updates'
     | '/agents/$id'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   AgentsRoute: typeof AgentsRouteWithChildren
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
+  ProfileRoute: typeof ProfileRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UpdatesRoute: typeof UpdatesRoute
   ListingsNewRoute: typeof ListingsNewRoute
@@ -173,6 +186,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentsRoute: AgentsRouteWithChildren,
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
+  ProfileRoute: ProfileRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UpdatesRoute: UpdatesRoute,
   ListingsNewRoute: ListingsNewRoute,
