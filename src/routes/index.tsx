@@ -11,9 +11,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "One Higala Properties Inc. — Bringing you home, the higala way" },
-      { name: "description", content: "Discover condos, hotels, raw land, and resell properties in Cagayan de Oro with One Higala Properties Inc." },
+      { name: "description", content: "Discover condos, hotels, raw land, and resell properties in Cagayan de Oro City with One Higala Properties Inc." },
       { property: "og:title", content: "One Higala Properties Inc." },
-      { property: "og:description", content: "Bringing you home, the higala way — Cagayan de Oro condos, hotels, raw land, and resell properties." },
+      { property: "og:description", content: "Bringing you home, the higala way — Cagayan de Oro City condos, hotels, raw land, and resell properties." },
     ],
   }),
   component: Home,
