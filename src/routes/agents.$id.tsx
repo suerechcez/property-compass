@@ -31,7 +31,7 @@ function AgentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, created_at")
+        .select("id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
