@@ -59,8 +59,7 @@ function Home() {
             Bringing you home, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">the higala way.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Explore condos, hotels, raw land, and resell properties — no account needed to browse.
-            Sign in when you're ready to save favorites or list your own.
+            Explore condos, hotels, raw land, and resell properties across the Philippines.
           </p>
           <div className="mt-10 flex max-w-2xl gap-2 rounded-full border border-border bg-card p-2 shadow-lg shadow-primary/5">
             <Input
@@ -71,9 +70,9 @@ function Home() {
             />
             <Button className="rounded-full px-6">Search</Button>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Browse freely — <Link to="/auth" className="font-medium text-primary hover:underline">sign in</Link> to save properties or become a commissioner.
-          </p>
+          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+            <Link to="/agents" className="rounded-full border border-border bg-card/70 px-4 py-1.5 font-medium hover:border-primary hover:text-primary">Meet our agents</Link>
+          </div>
         </div>
       </section>
 
