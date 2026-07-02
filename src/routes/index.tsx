@@ -11,9 +11,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "One Higala Properties Inc. — Bringing you home, the higala way" },
-      { name: "description", content: "Discover condos, hotels, raw land, and resell properties across the Philippines with One Higala Properties Inc." },
+      { name: "description", content: "Discover condos, hotels, raw land, and resell properties in Cagayan de Oro with One Higala Properties Inc." },
       { property: "og:title", content: "One Higala Properties Inc." },
-      { property: "og:description", content: "Bringing you home, the higala way — condos, hotels, raw land, and resell properties." },
+      { property: "og:description", content: "Bringing you home, the higala way — Cagayan de Oro condos, hotels, raw land, and resell properties." },
     ],
   }),
   component: Home,
@@ -59,13 +59,13 @@ function Home() {
             Bringing you home, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">the higala way.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Explore condos, hotels, raw land, and resell properties across the Philippines.
+            Explore condos, hotels, raw land, and resell properties across Cagayan de Oro and nearby communities.
           </p>
           <div className="mt-10 flex max-w-2xl gap-2 rounded-full border border-border bg-card p-2 shadow-lg shadow-primary/5">
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by city, neighborhood, or title…"
+              placeholder="Search Cagayan de Oro neighborhoods, subdivisions, or titles…"
               className="rounded-full border-0 bg-transparent text-base focus-visible:ring-0"
             />
             <Button className="rounded-full px-6">Search</Button>
