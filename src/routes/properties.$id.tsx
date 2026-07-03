@@ -9,8 +9,8 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
     meta: [
-      { title: "Property · 1HP Portal" },
-      { name: "description", content: "View this property listing on 1HP Portal." },
+      { title: "Property · One Higala Properties Inc." },
+      { name: "description", content: "View this property listing with One Higala Properties Inc." },
     ],
   }),
   component: PropertyDetail,
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/properties/$id")({
 function PropertyDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { user, isDeveloper } = useAuth();
+  const { user, isDeveloper, isAdmin } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["properties", id],
