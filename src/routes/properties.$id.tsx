@@ -51,7 +51,7 @@ function PropertyDetail() {
     );
   }
 
-  const canEdit = user && (user.id === data.commissioner_id || isDeveloper);
+  const canEdit = user && (user.id === data.commissioner_id || isDeveloper || isAdmin);
 
   return (
     <div className="min-h-screen">
@@ -95,7 +95,7 @@ function PropertyDetail() {
           </div>
         ) : (
           <div className="mt-8 grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
-            1HP
+            H
           </div>
         )}
 

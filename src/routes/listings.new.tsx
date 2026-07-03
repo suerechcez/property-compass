@@ -12,7 +12,7 @@ import { uploadPropertyImage } from "@/lib/storage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/listings/new")({
-  head: () => ({ meta: [{ title: "Post a property · 1HP Portal" }] }),
+  head: () => ({ meta: [{ title: "Post a property · One Higala Properties Inc." }] }),
   component: NewListing,
 });
 
