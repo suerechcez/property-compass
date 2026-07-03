@@ -9,6 +9,7 @@ export interface AuthState {
   user: User | null;
   roles: AppRole[];
   loading: boolean;
+  rolesLoaded: boolean;
   isDeveloper: boolean;
   isCommissioner: boolean;
 }
@@ -17,6 +18,7 @@ export function useAuth(): AuthState {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -32,23 +34,29 @@ export function useAuth(): AuthState {
   useEffect(() => {
     if (!session?.user) {
       setRoles([]);
+      setRolesLoaded(true);
       return;
     }
+    setRolesLoaded(false);
     supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", session.user.id)
       .then(({ data }) => {
         setRoles((data ?? []).map((r) => r.role as AppRole));
+        setRolesLoaded(true);
       });
   }, [session?.user?.id]);
+
+  const isCommissioner = rolesLoaded && roles.includes("commissioner");
 
   return {
     session,
     user: session?.user ?? null,
     roles,
     loading,
-    isDeveloper: roles.includes("developer"),
-    isCommissioner: roles.includes("commissioner") || roles.includes("developer"),
+    rolesLoaded,
+    isDeveloper: rolesLoaded && roles.includes("developer"),
+    isCommissioner,
   };
 }
