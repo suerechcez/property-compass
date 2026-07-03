@@ -79,10 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "1HP Portal — Real estate commissions, listings & forecasts" },
-      { name: "description", content: "1HP Portal helps real estate commissioners list condos, hotels, raw land and resell properties, track sales, and forecast performance with AI." },
+      { title: "One Higala Properties Inc. — Bringing you home, the higala way" },
+      { name: "description", content: "Discover condos, hotels, raw land and resell properties in Cagayan de Oro City with One Higala Properties Inc." },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
