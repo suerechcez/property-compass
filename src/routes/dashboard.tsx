@@ -15,16 +15,43 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · 1HP Portal" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
   component: Dashboard,
 });
 
-type Tab = "overview" | "listings" | "sales" | "forecast" | "developer";
+type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
+
+const GREETINGS = [
+  "Hello",
+  "Welcome back",
+  "Kumusta",
+  "Maayong adlaw",
+  "Good to see you",
+  "Hey there",
+  "Higala",
+];
+
+function pickGreeting(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const dayBucket = Math.floor(Date.now() / (1000 * 60 * 60 * 12));
+  return GREETINGS[(h + dayBucket) % GREETINGS.length];
+}
+
+function friendlyName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
+  const meta = user.user_metadata ?? {};
+  const full = (meta.full_name as string) || (meta.name as string) || "";
+  if (full) return full.split(" ")[0];
+  const email = user.email ?? "";
+  if (email) return email.split("@")[0];
+  return "friend";
+}
 
 function Dashboard() {
-  const { user, loading, isDeveloper, isCommissioner } = useAuth();
+  const { user, loading, isDeveloper, isCommissioner, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
+  const elevated = isAdmin || isDeveloper;
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -34,20 +61,23 @@ function Dashboard() {
     return <div><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
+  const greeting = pickGreeting(user.id);
+  const name = friendlyName(user);
+
   const tabs: { id: Tab; label: string; show: boolean }[] = [
     { id: "overview", label: "Overview", show: true },
     { id: "listings", label: "My listings", show: isCommissioner },
     { id: "sales", label: "Sales", show: isCommissioner },
     { id: "forecast", label: "AI forecast", show: isCommissioner },
-    { id: "developer", label: "Developer tools", show: false },
+    { id: "admin", label: "Admin", show: isAdmin },
   ];
 
   return (
     <div className="min-h-screen">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-4xl font-semibold">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">{user.email}</p>
+        <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
+        <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
 
         <div className="mt-8 flex flex-wrap gap-1 border-b border-border">
           {tabs.filter((t) => t.show).map((t) => (
@@ -66,11 +96,11 @@ function Dashboard() {
         </div>
 
         <div className="mt-8">
-          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={isDeveloper} />}
-          {tab === "listings" && <Listings userId={user.id} isDeveloper={isDeveloper} />}
-          {tab === "sales" && <Sales userId={user.id} isDeveloper={isDeveloper} />}
+          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
+          {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
           {tab === "forecast" && <Forecast />}
-          {tab === "developer" && isDeveloper && <DeveloperTools />}
+          {tab === "admin" && isAdmin && <AdminTools />}
         </div>
       </div>
     </div>
