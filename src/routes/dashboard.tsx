@@ -535,29 +535,3 @@ function CommissionerTracking({ commissioners }: { commissioners: { id: string; 
     </div>
   );
 }
-
-function PostUpdateCard() {
-  const qc = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const post = useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not signed in");
-      const { error } = await supabase.from("developer_updates").insert({ author_id: user.id, title, body });
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Update posted"); setTitle(""); setBody(""); qc.invalidateQueries({ queryKey: ["developer_updates"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-  return (
-    <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Post a developer update</h2>
-      <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); post.mutate(); }}>
-        <Input required placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea required rows={4} className="w-full rounded-md border border-input bg-background p-3 text-sm" placeholder="What's new?" value={body} onChange={(e) => setBody(e.target.value)} />
-        <Button type="submit">Publish update</Button>
-      </form>
-    </div>
-  );
-}
