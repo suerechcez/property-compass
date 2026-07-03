@@ -43,7 +43,7 @@ export function Nav() {
             </Link>
           )}
           {isAdmin && (
-            <Link to="/dashboard" search={{ tab: "admin" }} className="font-semibold text-primary hover:text-primary/80">
+            <Link to="/dashboard" className="font-semibold text-primary hover:text-primary/80">
               Admin
             </Link>
           )}
