@@ -308,7 +308,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v: number) => formatPrice(v)} contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
                 <Line type="monotone" dataKey="total" stroke="var(--color-primary)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-primary)" }} />
               </LineChart>
@@ -399,7 +399,7 @@ function Forecast() {
   );
 }
 
-function DeveloperTools() {
+function AdminTools() {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({
     queryKey: ["all-users"],
