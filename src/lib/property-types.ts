@@ -20,5 +20,5 @@ export function typeLabel(t: string) {
 
 export function formatPrice(n: number | string) {
   const v = typeof n === "string" ? Number(n) : n;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(v);
 }

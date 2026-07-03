@@ -15,16 +15,43 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { format } from "date-fns";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · 1HP Portal" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
   component: Dashboard,
 });
 
-type Tab = "overview" | "listings" | "sales" | "forecast" | "developer";
+type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
+
+const GREETINGS = [
+  "Hello",
+  "Welcome back",
+  "Kumusta",
+  "Maayong adlaw",
+  "Good to see you",
+  "Hey there",
+  "Higala",
+];
+
+function pickGreeting(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const dayBucket = Math.floor(Date.now() / (1000 * 60 * 60 * 12));
+  return GREETINGS[(h + dayBucket) % GREETINGS.length];
+}
+
+function friendlyName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
+  const meta = user.user_metadata ?? {};
+  const full = (meta.full_name as string) || (meta.name as string) || "";
+  if (full) return full.split(" ")[0];
+  const email = user.email ?? "";
+  if (email) return email.split("@")[0];
+  return "friend";
+}
 
 function Dashboard() {
-  const { user, loading, isDeveloper, isCommissioner } = useAuth();
+  const { user, loading, isDeveloper, isCommissioner, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
+  const elevated = isAdmin || isDeveloper;
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -34,20 +61,23 @@ function Dashboard() {
     return <div><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
+  const greeting = pickGreeting(user.id);
+  const name = friendlyName(user);
+
   const tabs: { id: Tab; label: string; show: boolean }[] = [
     { id: "overview", label: "Overview", show: true },
     { id: "listings", label: "My listings", show: isCommissioner },
     { id: "sales", label: "Sales", show: isCommissioner },
     { id: "forecast", label: "AI forecast", show: isCommissioner },
-    { id: "developer", label: "Developer tools", show: false },
+    { id: "admin", label: "Admin", show: isAdmin },
   ];
 
   return (
     <div className="min-h-screen">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-4xl font-semibold">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">{user.email}</p>
+        <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
+        <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
 
         <div className="mt-8 flex flex-wrap gap-1 border-b border-border">
           {tabs.filter((t) => t.show).map((t) => (
@@ -66,11 +96,11 @@ function Dashboard() {
         </div>
 
         <div className="mt-8">
-          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={isDeveloper} />}
-          {tab === "listings" && <Listings userId={user.id} isDeveloper={isDeveloper} />}
-          {tab === "sales" && <Sales userId={user.id} isDeveloper={isDeveloper} />}
+          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
+          {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
           {tab === "forecast" && <Forecast />}
-          {tab === "developer" && isDeveloper && <DeveloperTools />}
+          {tab === "admin" && isAdmin && <AdminTools />}
         </div>
       </div>
     </div>
@@ -278,7 +308,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v: number) => formatPrice(v)} contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
                 <Line type="monotone" dataKey="total" stroke="var(--color-primary)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-primary)" }} />
               </LineChart>
@@ -369,7 +399,7 @@ function Forecast() {
   );
 }
 
-function DeveloperTools() {
+function AdminTools() {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({
     queryKey: ["all-users"],
@@ -387,7 +417,7 @@ function DeveloperTools() {
   });
 
   const grant = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "developer" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "admin" }) => {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
     },
@@ -395,11 +425,13 @@ function DeveloperTools() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const commissioners = users.filter((u) => u.roles.includes("commissioner"));
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="font-display text-xl font-semibold">Users & roles</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has developer access.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has admin access.</p>
         <div className="mt-5 overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -423,8 +455,8 @@ function DeveloperTools() {
                     {!u.roles.includes("commissioner") && (
                       <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>
                     )}
-                    {!u.roles.includes("developer") && (
-                      <Button size="sm" variant="ghost" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "developer" })}>Make developer</Button>
+                    {!u.roles.includes("admin") && (
+                      <Button size="sm" variant="ghost" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>
                     )}
                   </td>
                 </tr>
@@ -434,33 +466,72 @@ function DeveloperTools() {
         </div>
       </div>
 
-      <PostUpdateCard />
+      <CommissionerTracking commissioners={commissioners} />
     </div>
   );
 }
 
-function PostUpdateCard() {
-  const qc = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const post = useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not signed in");
-      const { error } = await supabase.from("developer_updates").insert({ author_id: user.id, title, body });
+function CommissionerTracking({ commissioners }: { commissioners: { id: string; full_name: string | null }[] }) {
+  const { data: sales = [] } = useQuery({
+    queryKey: ["admin-all-sales"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales")
+        .select("commissioner_id, amount, commission, sale_date")
+        .order("sale_date", { ascending: false });
       if (error) throw error;
+      return data ?? [];
     },
-    onSuccess: () => { toast.success("Update posted"); setTitle(""); setBody(""); qc.invalidateQueries({ queryKey: ["developer_updates"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const byAgent = useMemo(() => {
+    const m = new Map<string, { volume: number; commission: number; count: number; last: string | null }>();
+    sales.forEach((s) => {
+      const cur = m.get(s.commissioner_id) ?? { volume: 0, commission: 0, count: 0, last: null };
+      cur.volume += Number(s.amount);
+      cur.commission += Number(s.commission);
+      cur.count += 1;
+      cur.last = cur.last && cur.last > s.sale_date ? cur.last : s.sale_date;
+      m.set(s.commissioner_id, cur);
+    });
+    return m;
+  }, [sales]);
+
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Post a developer update</h2>
-      <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); post.mutate(); }}>
-        <Input required placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea required rows={4} className="w-full rounded-md border border-input bg-background p-3 text-sm" placeholder="What's new?" value={body} onChange={(e) => setBody(e.target.value)} />
-        <Button type="submit">Publish update</Button>
-      </form>
+      <h2 className="font-display text-xl font-semibold">Commissioner tracking</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners.</p>
+      <div className="mt-5 overflow-hidden rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">Agent</th>
+              <th className="px-4 py-3 text-right">Deals</th>
+              <th className="px-4 py-3 text-right">Volume</th>
+              <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3">Last sale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {commissioners.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners yet.</td></tr>
+            ) : commissioners.map((c) => {
+              const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
+              return (
+                <tr key={c.id} className="border-t border-border">
+                  <td className="px-4 py-3">
+                    <Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
+                  </td>
+                  <td className="px-4 py-3 text-right">{s.count}</td>
+                  <td className="px-4 py-3 text-right font-medium">{formatPrice(s.volume)}</td>
+                  <td className="px-4 py-3 text-right text-primary">{formatPrice(s.commission)}</td>
+                  <td className="px-4 py-3">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

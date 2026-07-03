@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 export function Nav() {
-  const { user, isCommissioner } = useAuth();
+  const { user, isCommissioner, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   async function signOut() {
@@ -17,7 +17,7 @@ export function Nav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link to="/" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-lg font-bold shadow-sm">
-            1H
+            H
           </span>
           <span className="flex flex-col leading-tight">
             <span className="font-display text-base font-semibold tracking-tight sm:text-lg">
@@ -31,7 +31,6 @@ export function Nav() {
         <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
           <Link to="/" className="text-foreground/70 hover:text-foreground">Browse</Link>
           <Link to="/agents" className="text-foreground/70 hover:text-foreground">Agents</Link>
-          <Link to="/updates" className="text-foreground/70 hover:text-foreground">Updates</Link>
           {user && (
             <>
               <Link to="/dashboard" className="text-foreground/70 hover:text-foreground">Dashboard</Link>
@@ -41,6 +40,11 @@ export function Nav() {
           {isCommissioner && (
             <Link to="/listings/new" className="text-foreground/70 hover:text-foreground">
               Post Property
+            </Link>
+          )}
+          {isAdmin && (
+            <Link to="/dashboard" className="font-semibold text-primary hover:text-primary/80">
+              Admin
             </Link>
           )}
         </nav>

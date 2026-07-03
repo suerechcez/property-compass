@@ -12,7 +12,7 @@ import { uploadPropertyImage } from "@/lib/storage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/listings/new")({
-  head: () => ({ meta: [{ title: "Post a property · 1HP Portal" }] }),
+  head: () => ({ meta: [{ title: "Post a property · One Higala Properties Inc." }] }),
   component: NewListing,
 });
 
@@ -188,7 +188,7 @@ export function ListingForm({
                   {PROPERTY_STATUS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </Field>
-              <Field label="Price (USD)">
+              <Field label="Price (PHP ₱)">
                 <Input type="number" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
               </Field>
               <Field label="Location">

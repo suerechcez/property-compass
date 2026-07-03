@@ -5,7 +5,7 @@ import { ListingForm } from "./listings.new";
 import { Nav } from "@/components/Nav";
 
 export const Route = createFileRoute("/listings/$id/edit")({
-  head: () => ({ meta: [{ title: "Edit listing · 1HP Portal" }] }),
+  head: () => ({ meta: [{ title: "Edit listing · One Higala Properties Inc." }] }),
   component: EditListing,
 });
 

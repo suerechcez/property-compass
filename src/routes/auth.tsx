@@ -10,8 +10,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · 1HP Portal" },
-      { name: "description", content: "Sign in or create your 1HP Portal account to list properties and track sales." },
+      { title: "Sign in · One Higala Properties Inc." },
+      { name: "description", content: "Sign in or create your One Higala Properties Inc. account to list properties and track sales." },
     ],
   }),
   component: AuthPage,
@@ -52,7 +52,7 @@ function AuthPage() {
             role: "commissioner",
           });
         }
-        toast.success("Account created. Welcome to 1HP Portal.");
+        toast.success("Account created. Welcome to One Higala Properties Inc..");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -82,7 +82,7 @@ function AuthPage() {
     <div className="min-h-screen bg-surface">
       <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
         <div className="hidden md:block">
-          <Link to="/" className="font-display text-2xl font-semibold">1HP Portal</Link>
+          <Link to="/" className="font-display text-2xl font-semibold">One Higala Properties Inc.</Link>
           <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
             List, sell, and forecast — all in one portal.
           </h1>
@@ -99,7 +99,7 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Sign in to manage your listings and sales."
-              : "Join 1HP Portal in less than a minute."}
+              : "Join One Higala Properties Inc. in less than a minute."}
           </p>
 
           <Button variant="outline" className="mt-6 w-full" onClick={google}>

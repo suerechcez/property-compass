@@ -10,13 +10,13 @@ export const predictSales = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const targetId = data.commissionerId ?? context.userId;
-    // Developers can request any commissioner; others only themselves
+    // Admins can request any commissioner; others only themselves
     if (targetId !== context.userId) {
-      const { data: dev } = await context.supabase.rpc("has_role", {
+      const { data: isAdmin } = await context.supabase.rpc("has_role", {
         _user_id: context.userId,
-        _role: "developer",
+        _role: "admin",
       });
-      if (!dev) throw new Error("Forbidden");
+      if (!isAdmin) throw new Error("Forbidden");
     }
 
     const { data: sales } = await context.supabase
@@ -46,7 +46,7 @@ export const predictSales = createServerFn({ method: "POST" })
 
     const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      prompt: `You are a real-estate sales analyst for the 1HP Portal. Given this commissioner's sales log, write a concise 3-paragraph analysis with: 1) recent trend in volume and commission, 2) a projection for the next 3 months in plain numbers (USD), 3) two specific recommendations to improve sales velocity. Be concrete and avoid filler.\n\nSales log:\n${compact}`,
+      prompt: `You are a real-estate sales analyst for One Higala Properties Inc. in Cagayan de Oro City. Given this commissioner's sales log, write a concise 3-paragraph analysis with: 1) recent trend in volume and commission, 2) a projection for the next 3 months in plain numbers (Philippine Pesos, ₱), 3) two specific recommendations to improve sales velocity. Be concrete and avoid filler.\n\nSales log:\n${compact}`,
     });
 
     // Simple linear projection for chart

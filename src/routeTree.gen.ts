@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -21,11 +20,6 @@ import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as AgentsIdRouteImport } from './routes/agents.$id'
 import { Route as ListingsIdEditRouteImport } from './routes/listings.$id.edit'
 
-const UpdatesRoute = UpdatesRouteImport.update({
-  id: '/updates',
-  path: '/updates',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -84,7 +78,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
@@ -97,7 +90,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
@@ -111,7 +103,6 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/updates': typeof UpdatesRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
@@ -126,7 +117,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/sitemap.xml'
-    | '/updates'
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
@@ -139,7 +129,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/sitemap.xml'
-    | '/updates'
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
@@ -152,7 +141,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/sitemap.xml'
-    | '/updates'
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
@@ -166,7 +154,6 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ProfileRoute: typeof ProfileRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  UpdatesRoute: typeof UpdatesRoute
   ListingsNewRoute: typeof ListingsNewRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   ListingsIdEditRoute: typeof ListingsIdEditRoute
@@ -174,13 +161,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/updates': {
-      id: '/updates'
-      path: '/updates'
-      fullPath: '/updates'
-      preLoaderRoute: typeof UpdatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -272,7 +252,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ProfileRoute: ProfileRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  UpdatesRoute: UpdatesRoute,
   ListingsNewRoute: ListingsNewRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   ListingsIdEditRoute: ListingsIdEditRoute,
