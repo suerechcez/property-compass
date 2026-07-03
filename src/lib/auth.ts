@@ -12,6 +12,7 @@ export interface AuthState {
   rolesLoaded: boolean;
   isDeveloper: boolean;
   isCommissioner: boolean;
+  isAdmin: boolean;
 }
 
 export function useAuth(): AuthState {
@@ -49,6 +50,7 @@ export function useAuth(): AuthState {
   }, [session?.user?.id]);
 
   const isCommissioner = rolesLoaded && roles.includes("commissioner");
+  const isAdmin = rolesLoaded && roles.includes("admin");
 
   return {
     session,
@@ -58,5 +60,6 @@ export function useAuth(): AuthState {
     rolesLoaded,
     isDeveloper: rolesLoaded && roles.includes("developer"),
     isCommissioner,
+    isAdmin,
   };
 }
