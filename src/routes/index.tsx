@@ -115,7 +115,7 @@ function Home() {
                     <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover transition group-hover:scale-105" />
                   ) : (
                     <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">
-                      1HP
+                      H
                     </div>
                   )}
                 </div>
