@@ -417,7 +417,7 @@ function AdminTools() {
   });
 
   const grant = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "developer" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "admin" }) => {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
     },
@@ -425,11 +425,13 @@ function AdminTools() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const commissioners = users.filter((u) => u.roles.includes("commissioner"));
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="font-display text-xl font-semibold">Users & roles</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has developer access.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has admin access.</p>
         <div className="mt-5 overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -453,8 +455,8 @@ function AdminTools() {
                     {!u.roles.includes("commissioner") && (
                       <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>
                     )}
-                    {!u.roles.includes("developer") && (
-                      <Button size="sm" variant="ghost" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "developer" })}>Make developer</Button>
+                    {!u.roles.includes("admin") && (
+                      <Button size="sm" variant="ghost" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>
                     )}
                   </td>
                 </tr>
@@ -464,7 +466,72 @@ function AdminTools() {
         </div>
       </div>
 
-      <PostUpdateCard />
+      <CommissionerTracking commissioners={commissioners} />
+    </div>
+  );
+}
+
+function CommissionerTracking({ commissioners }: { commissioners: { id: string; full_name: string | null }[] }) {
+  const { data: sales = [] } = useQuery({
+    queryKey: ["admin-all-sales"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales")
+        .select("commissioner_id, amount, commission, sale_date")
+        .order("sale_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const byAgent = useMemo(() => {
+    const m = new Map<string, { volume: number; commission: number; count: number; last: string | null }>();
+    sales.forEach((s) => {
+      const cur = m.get(s.commissioner_id) ?? { volume: 0, commission: 0, count: 0, last: null };
+      cur.volume += Number(s.amount);
+      cur.commission += Number(s.commission);
+      cur.count += 1;
+      cur.last = cur.last && cur.last > s.sale_date ? cur.last : s.sale_date;
+      m.set(s.commissioner_id, cur);
+    });
+    return m;
+  }, [sales]);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Commissioner tracking</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners.</p>
+      <div className="mt-5 overflow-hidden rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">Agent</th>
+              <th className="px-4 py-3 text-right">Deals</th>
+              <th className="px-4 py-3 text-right">Volume</th>
+              <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3">Last sale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {commissioners.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners yet.</td></tr>
+            ) : commissioners.map((c) => {
+              const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
+              return (
+                <tr key={c.id} className="border-t border-border">
+                  <td className="px-4 py-3">
+                    <Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
+                  </td>
+                  <td className="px-4 py-3 text-right">{s.count}</td>
+                  <td className="px-4 py-3 text-right font-medium">{formatPrice(s.volume)}</td>
+                  <td className="px-4 py-3 text-right text-primary">{formatPrice(s.commission)}</td>
+                  <td className="px-4 py-3">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
