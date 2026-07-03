@@ -213,7 +213,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "developer" | "commissioner" | "buyer"
+      app_role: "developer" | "commissioner" | "buyer" | "admin"
       property_status: "draft" | "published" | "sold" | "rented"
       property_type: "condo" | "hotel" | "raw_land" | "resell"
     }
@@ -343,7 +343,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["developer", "commissioner", "buyer"],
+      app_role: ["developer", "commissioner", "buyer", "admin"],
       property_status: ["draft", "published", "sold", "rented"],
       property_type: ["condo", "hotel", "raw_land", "resell"],
     },
