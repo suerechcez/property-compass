@@ -23,7 +23,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [becomeCommissioner, setBecomeCommissioner] = useState(true);
+  const [requestCommissioner, setRequestCommissioner] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
