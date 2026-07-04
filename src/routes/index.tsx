@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SideBar } from "@/components/SideBar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +48,10 @@ function Home() {
   return (
     <div className="min-h-screen">
       <Nav />
+      <div className="flex">
+        <SideBar query={q} onQueryChange={setQ} />
+        <div className="min-w-0 flex-1">
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-background to-primary/5">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.15),transparent_60%)]" />
@@ -146,6 +151,8 @@ function Home() {
           <p>© {new Date().getFullYear()} One Higala Properties Inc.</p>
         </div>
       </footer>
+        </div>
+      </div>
     </div>
   );
 }

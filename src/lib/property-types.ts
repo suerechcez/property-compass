@@ -1,8 +1,14 @@
 export const PROPERTY_TYPES = [
-  { value: "condo", label: "Condo" },
-  { value: "hotel", label: "Hotel" },
+  { value: "house", label: "Houses" },
+  { value: "townhome", label: "Townhomes" },
+  { value: "multi_family", label: "Multi-family" },
+  { value: "condo", label: "Condos/Co-ops" },
+  { value: "apartment", label: "Apartments" },
+  { value: "lot_land", label: "Lots/Land" },
+  { value: "manufactured", label: "Manufactured" },
+  { value: "hotel", label: "Hotels" },
   { value: "raw_land", label: "Raw Land" },
-  { value: "resell", label: "Resell Property" },
+  { value: "resell", label: "Resell" },
 ] as const;
 
 export type PropertyTypeValue = (typeof PROPERTY_TYPES)[number]["value"];

@@ -28,7 +28,6 @@ const GREETINGS = [
   "Maayong adlaw",
   "Good to see you",
   "Hey there",
-  "Higala",
 ];
 
 function pickGreeting(seed: string) {
@@ -466,7 +465,81 @@ function AdminTools() {
         </div>
       </div>
 
+      <CommissionerRequests />
       <CommissionerTracking commissioners={commissioners} />
+    </div>
+  );
+}
+
+function CommissionerRequests() {
+  const qc = useQueryClient();
+  const { data: requests = [] } = useQuery({
+    queryKey: ["commissioner-requests"],
+    queryFn: async () => {
+      const { data: reqs } = await supabase
+        .from("commissioner_requests")
+        .select("id, user_id, status, created_at, note")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      const ids = Array.from(new Set((reqs ?? []).map((r) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const pm = new Map((profiles ?? []).map((p) => [p.id, p]));
+      return (reqs ?? []).map((r) => ({ ...r, profile: pm.get(r.user_id) ?? null }));
+    },
+  });
+
+  const decide = useMutation({
+    mutationFn: async ({ id, userId, approve }: { id: string; userId: string; approve: boolean }) => {
+      if (approve) {
+        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role: "commissioner" });
+        if (rerr && !rerr.message.includes("duplicate")) throw rerr;
+      }
+      const { error } = await supabase
+        .from("commissioner_requests")
+        .update({ status: approve ? "approved" : "denied", decided_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.approve ? "Commissioner approved" : "Request denied");
+      qc.invalidateQueries({ queryKey: ["commissioner-requests"] });
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Commissioner requests</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Approve or deny users who requested commissioner access.</p>
+      <div className="mt-5 overflow-hidden rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
+          </thead>
+          <tbody>
+            {requests.length === 0 ? (
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
+            ) : requests.map((r) => (
+              <tr key={r.id} className="border-t border-border">
+                <td className="px-4 py-3">
+                  <div className="font-medium">{r.profile?.full_name ?? r.user_id.slice(0, 8)}</div>
+                  <div className="text-xs text-muted-foreground">{r.profile?.email ?? ""}</div>
+                </td>
+                <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                <td className="px-4 py-3 text-right">
+                  <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, approve: true })}>Approve</Button>
+                  <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, approve: false })}>Deny</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
