@@ -131,11 +131,11 @@ function AuthPage() {
               <label className="flex items-start gap-2 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
-                  checked={becomeCommissioner}
-                  onChange={(e) => setBecomeCommissioner(e.target.checked)}
+                  checked={requestCommissioner}
+                  onChange={(e) => setRequestCommissioner(e.target.checked)}
                   className="mt-1"
                 />
-                I'm a commissioner — let me post property listings.
+                Request commissioner access — an admin will review and approve before you can post listings.
               </label>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
