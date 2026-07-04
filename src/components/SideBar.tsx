@@ -1,18 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Newspaper } from "lucide-react";
+import { Newspaper } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 import { formatPrice, typeLabel } from "@/lib/property-types";
 import { formatDistanceToNow } from "date-fns";
 
-export function SideBar({
-  query,
-  onQueryChange,
-}: {
-  query: string;
-  onQueryChange: (v: string) => void;
-}) {
+export function SideBar() {
   const { data: recent = [] } = useQuery({
     queryKey: ["recent-listings"],
     queryFn: async () => {
@@ -29,17 +22,6 @@ export function SideBar({
   return (
     <aside className="hidden w-72 shrink-0 border-r border-border bg-card/40 lg:block">
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 overflow-y-auto p-5">
-        <section>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <Search className="h-3.5 w-3.5" /> Search
-          </div>
-          <Input
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Neighborhood, subdivision…"
-          />
-        </section>
-
         <section>
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Newspaper className="h-3.5 w-3.5" /> Updates
