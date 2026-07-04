@@ -88,23 +88,21 @@ function Dashboard() {
         <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
         <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
 
-        <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
-          <DashboardRail tabs={visibleTabs} active={tab} onChange={setTab} />
+        <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} />
 
-          <div className="min-w-0 flex-1">
-            {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
-            {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
-            {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
-            {tab === "forecast" && <Forecast />}
-            {tab === "admin" && isAdmin && <AdminTools />}
-          </div>
+        <div className="mt-6 min-w-0">
+          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
+          {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
+          {tab === "forecast" && <Forecast />}
+          {tab === "admin" && isAdmin && <AdminTools />}
         </div>
       </div>
     </div>
   );
 }
 
-function DashboardRail({
+function DashboardTopNav({
   tabs,
   active,
   onChange,
@@ -114,7 +112,7 @@ function DashboardRail({
   onChange: (t: Tab) => void;
 }) {
   return (
-    <nav className="flex gap-1.5 overflow-x-auto pb-1 sm:w-24 sm:shrink-0 sm:flex-col sm:gap-1.5 sm:overflow-visible sm:pb-0 sm:border-r sm:border-border sm:pr-3">
+    <nav className="mt-8 flex gap-1 overflow-x-auto border-b border-border pb-2">
       {tabs.map((t) => {
         const Icon = TAB_ICONS[t.id];
         const isActive = active === t.id;
@@ -122,14 +120,14 @@ function DashboardRail({
           <button
             key={t.id}
             onClick={() => onChange(t.id)}
-            className={`flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-center transition sm:w-full ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
               isActive
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
             }`}
           >
-            <Icon className="h-5 w-5" />
-            <span className="text-[11px] font-medium leading-tight">{t.label}</span>
+            <Icon className="h-3.5 w-3.5" />
+            {t.label}
           </button>
         );
       })}
