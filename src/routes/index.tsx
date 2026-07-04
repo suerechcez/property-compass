@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SideBar } from "@/components/SideBar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
