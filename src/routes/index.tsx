@@ -59,7 +59,7 @@ function Home() {
             Bringing you home, <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">the higala way.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City and nearby communities.
+            Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
           </p>
           <div className="mt-10 flex max-w-2xl gap-2 rounded-full border border-border bg-card p-2 shadow-lg shadow-primary/5">
             <Input
