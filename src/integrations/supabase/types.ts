@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      commissioner_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          note: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       developer_updates: {
         Row: {
           author_id: string
@@ -215,7 +245,17 @@ export type Database = {
     Enums: {
       app_role: "developer" | "commissioner" | "buyer" | "admin"
       property_status: "draft" | "published" | "sold" | "rented"
-      property_type: "condo" | "hotel" | "raw_land" | "resell"
+      property_type:
+        | "condo"
+        | "hotel"
+        | "raw_land"
+        | "resell"
+        | "house"
+        | "townhome"
+        | "multi_family"
+        | "apartment"
+        | "manufactured"
+        | "lot_land"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -345,7 +385,18 @@ export const Constants = {
     Enums: {
       app_role: ["developer", "commissioner", "buyer", "admin"],
       property_status: ["draft", "published", "sold", "rented"],
-      property_type: ["condo", "hotel", "raw_land", "resell"],
+      property_type: [
+        "condo",
+        "hotel",
+        "raw_land",
+        "resell",
+        "house",
+        "townhome",
+        "multi_family",
+        "apartment",
+        "manufactured",
+        "lot_land",
+      ],
     },
   },
 } as const
