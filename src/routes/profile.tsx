@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "My Profile · One Higala Properties" }] }),
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, isCommissioner, isAdmin, isDeveloper, rolesLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -145,6 +146,10 @@ function ProfilePage() {
           </div>
         </div>
 
+        {rolesLoaded && !isCommissioner && !isAdmin && !isDeveloper && (
+          <CommissionerApplication userId={user.id} />
+        )}
+
         <form
           className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6"
           onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
@@ -184,6 +189,85 @@ function ProfilePage() {
           <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
         </form>
       </div>
+    </div>
+  );
+}
+
+function CommissionerApplication({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const [note, setNote] = useState("");
+
+  const { data: latestRequest, isLoading } = useQuery({
+    queryKey: ["my-commissioner-request", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("commissioner_requests")
+        .select("id, status, created_at, decided_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const apply = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("commissioner_requests").insert({
+        user_id: userId,
+        status: "pending",
+        note: note || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Request submitted for admin review.");
+      setNote("");
+      qc.invalidateQueries({ queryKey: ["my-commissioner-request", userId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
+  });
+
+  if (isLoading) return null;
+
+  const isPending = latestRequest?.status === "pending";
+  const isDenied = latestRequest?.status === "denied";
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Become a commissioner</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Commissioners can post and manage property listings. Applications are reviewed by an admin.
+      </p>
+
+      {isPending ? (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-gold" />
+          Your request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {isDenied && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Your previous request was not approved. You're welcome to apply again.
+            </p>
+          )}
+          <div>
+            <Label>Note to admin (optional)</Label>
+            <textarea
+              rows={3}
+              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Share your real estate experience or license details…"
+            />
+          </div>
+          <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
+            {apply.isPending ? "Submitting…" : "Apply to become a commissioner"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
