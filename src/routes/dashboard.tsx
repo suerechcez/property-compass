@@ -28,7 +28,6 @@ const GREETINGS = [
   "Maayong adlaw",
   "Good to see you",
   "Hey there",
-  "Higala",
 ];
 
 function pickGreeting(seed: string) {
