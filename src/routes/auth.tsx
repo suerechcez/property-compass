@@ -85,11 +85,11 @@ function AuthPage() {
         <div className="hidden md:block">
           <Link to="/" className="font-display text-2xl font-semibold">One Higala Properties Inc.</Link>
           <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
-            List, sell, and forecast — all in one portal.
+            Sign in, settle in — the higala way.
           </h1>
           <p className="mt-6 max-w-md text-lg text-muted-foreground">
-            Built for real estate commissioners who manage condos, hotels, raw land and resell
-            properties — with AI-assisted sales forecasting.
+            One home for commissioners and buyers across Cagayan de Oro City — post listings,
+            track sales, and find your next place, all in one portal.
           </p>
         </div>
 
