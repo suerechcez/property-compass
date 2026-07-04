@@ -13,6 +13,7 @@ import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
+import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
@@ -20,6 +21,14 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
+
+const TAB_ICONS: Record<Tab, LucideIcon> = {
+  overview: LayoutDashboard,
+  listings: Building2,
+  sales: Wallet,
+  forecast: Sparkles,
+  admin: ShieldCheck,
+};
 
 const GREETINGS = [
   "Hello",
@@ -70,6 +79,7 @@ function Dashboard() {
     { id: "forecast", label: "AI forecast", show: isCommissioner },
     { id: "admin", label: "Admin", show: isAdmin },
   ];
+  const visibleTabs = tabs.filter((t) => t.show);
 
   return (
     <div className="min-h-screen">
@@ -78,31 +88,52 @@ function Dashboard() {
         <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
         <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
 
-        <div className="mt-8 flex flex-wrap gap-1 border-b border-border">
-          {tabs.filter((t) => t.show).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-                tab === t.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-8">
+          <DashboardRail tabs={visibleTabs} active={tab} onChange={setTab} />
 
-        <div className="mt-8">
-          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
-          {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
-          {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
-          {tab === "forecast" && <Forecast />}
-          {tab === "admin" && isAdmin && <AdminTools />}
+          <div className="min-w-0 flex-1">
+            {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
+            {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
+            {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
+            {tab === "forecast" && <Forecast />}
+            {tab === "admin" && isAdmin && <AdminTools />}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function DashboardRail({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: { id: Tab; label: string }[];
+  active: Tab;
+  onChange: (t: Tab) => void;
+}) {
+  return (
+    <nav className="flex gap-1.5 overflow-x-auto pb-1 sm:w-24 sm:shrink-0 sm:flex-col sm:gap-1.5 sm:overflow-visible sm:pb-0 sm:border-r sm:border-border sm:pr-3">
+      {tabs.map((t) => {
+        const Icon = TAB_ICONS[t.id];
+        const isActive = active === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => onChange(t.id)}
+            className={`flex shrink-0 flex-col items-center gap-1.5 rounded-xl px-3 py-3 text-center transition sm:w-full ${
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+            <span className="text-[11px] font-medium leading-tight">{t.label}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -529,6 +560,7 @@ function CommissionerRequests() {
                 <td className="px-4 py-3">
                   <div className="font-medium">{r.profile?.full_name ?? r.user_id.slice(0, 8)}</div>
                   <div className="text-xs text-muted-foreground">{r.profile?.email ?? ""}</div>
+                  {r.note && <div className="mt-1 max-w-sm text-xs italic text-muted-foreground">"{r.note}"</div>}
                 </td>
                 <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
                 <td className="px-4 py-3 text-right">
