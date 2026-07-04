@@ -46,11 +46,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        if (data.user && becomeCommissioner) {
-          await supabase.from("user_roles").insert({
+        if (data.user && requestCommissioner) {
+          await supabase.from("commissioner_requests").insert({
             user_id: data.user.id,
-            role: "commissioner",
+            status: "pending",
           });
+          toast.info("Commissioner request submitted for admin review.");
         }
         toast.success("Account created. Welcome to One Higala Properties Inc..");
       } else {
