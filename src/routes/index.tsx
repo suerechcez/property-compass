@@ -7,6 +7,7 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SideBar } from "@/components/SideBar";
+import { ExploreOptions } from "@/components/ExploreOptions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState("");
+  const [forRentOnly, setForRentOnly] = useState(false);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties", "list", type],
@@ -39,17 +41,23 @@ function Home() {
     },
   });
 
-  const filtered = properties.filter((p) =>
-    q
+  const filtered = properties.filter((p) => {
+    const matchesQuery = q
       ? (p.title + " " + (p.location ?? "")).toLowerCase().includes(q.toLowerCase())
-      : true,
-  );
+      : true;
+    const matchesRent = forRentOnly ? p.for_rent : true;
+    return matchesQuery && matchesRent;
+  });
+
+  const scrollToListings = () => {
+    document.getElementById("listings")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen">
       <Nav />
       <div className="flex">
-        <SideBar query={q} onQueryChange={setQ} />
+        <SideBar />
         <div className="min-w-0 flex-1">
 
       {/* Hero */}
@@ -73,13 +81,25 @@ function Home() {
               placeholder="Search by neighborhood, subdivision, or title…"
               className="rounded-full border-0 bg-transparent text-base focus-visible:ring-0"
             />
-            <Button className="rounded-full px-6">Search</Button>
+            <Button className="rounded-full px-6" onClick={scrollToListings}>Search</Button>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 text-sm">
             <Link to="/agents" className="rounded-full border border-border bg-card/70 px-4 py-1.5 font-medium hover:border-primary hover:text-primary">Meet our agents</Link>
           </div>
         </div>
       </section>
+
+      {/* Buy / Rent / Sell */}
+      <ExploreOptions
+        onBuyClick={() => {
+          setForRentOnly(false);
+          scrollToListings();
+        }}
+        onRentClick={() => {
+          setForRentOnly(true);
+          scrollToListings();
+        }}
+      />
 
       {/* Filters */}
       <section className="border-b border-border">
@@ -90,11 +110,16 @@ function Home() {
               {t.label}
             </FilterChip>
           ))}
+          {forRentOnly && (
+            <FilterChip active onClick={() => setForRentOnly(false)}>
+              For Rent ✕
+            </FilterChip>
+          )}
         </div>
       </section>
 
       {/* Listings */}
-      <section className="mx-auto max-w-7xl px-6 py-12">
+      <section id="listings" className="mx-auto max-w-7xl px-6 py-12 scroll-mt-16">
         {isLoading ? (
           <p className="text-muted-foreground">Loading listings…</p>
         ) : filtered.length === 0 ? (
