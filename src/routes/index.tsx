@@ -151,6 +151,8 @@ function Home() {
           <p>© {new Date().getFullYear()} One Higala Properties Inc.</p>
         </div>
       </footer>
+        </div>
+      </div>
     </div>
   );
 }
