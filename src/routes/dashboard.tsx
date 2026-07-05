@@ -13,6 +13,7 @@ import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
+import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
@@ -20,6 +21,14 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
+
+const TAB_ICONS: Record<Tab, LucideIcon> = {
+  overview: LayoutDashboard,
+  listings: Building2,
+  sales: Wallet,
+  forecast: Sparkles,
+  admin: ShieldCheck,
+};
 
 const GREETINGS = [
   "Hello",
@@ -70,6 +79,7 @@ function Dashboard() {
     { id: "forecast", label: "AI forecast", show: isCommissioner },
     { id: "admin", label: "Admin", show: isAdmin },
   ];
+  const visibleTabs = tabs.filter((t) => t.show);
 
   return (
     <div className="min-h-screen">
@@ -78,23 +88,9 @@ function Dashboard() {
         <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
         <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
 
-        <div className="mt-8 flex flex-wrap gap-1 border-b border-border">
-          {tabs.filter((t) => t.show).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-                tab === t.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} />
 
-        <div className="mt-8">
+        <div className="mt-6 min-w-0">
           {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
           {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
           {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
@@ -103,6 +99,39 @@ function Dashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function DashboardTopNav({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: { id: Tab; label: string }[];
+  active: Tab;
+  onChange: (t: Tab) => void;
+}) {
+  return (
+    <nav className="mt-8 flex gap-1 overflow-x-auto border-b border-border pb-2">
+      {tabs.map((t) => {
+        const Icon = TAB_ICONS[t.id];
+        const isActive = active === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => onChange(t.id)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {t.label}
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -529,6 +558,7 @@ function CommissionerRequests() {
                 <td className="px-4 py-3">
                   <div className="font-medium">{r.profile?.full_name ?? r.user_id.slice(0, 8)}</div>
                   <div className="text-xs text-muted-foreground">{r.profile?.email ?? ""}</div>
+                  {r.note && <div className="mt-1 max-w-sm text-xs italic text-muted-foreground">"{r.note}"</div>}
                 </td>
                 <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
                 <td className="px-4 py-3 text-right">
