@@ -48,8 +48,11 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
-        {/* Left nav group */}
-        <nav className="hidden items-center gap-7 text-base font-medium md:flex">
+        {/* Left nav group — all primary links live here now */}
+        <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+          <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+          <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
+          <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
           <Link to="/profile" className={NAV_LINK_CLASS}>Sell</Link>
           <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
         </nav>
@@ -78,14 +81,8 @@ export function Nav() {
           </span>
         </Link>
 
-        {/* Right nav group + profile/sign-in */}
-        <div className="col-start-3 flex items-center justify-end gap-7">
-          <nav className="hidden items-center gap-7 text-base font-medium md:flex">
-            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-            <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
-            <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
-          </nav>
-
+        {/* Right side — just profile/sign-in now */}
+        <div className="col-start-3 flex items-center justify-end">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
