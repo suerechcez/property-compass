@@ -18,7 +18,7 @@ import {
 // Brand mark (the "1H" logo), stored at /public/brand-icon.png.
 const BRAND_ICON_URL = "/brand-icon.png";
 
-const NAV_LINK_CLASS = "text-foreground/70 hover:text-foreground";
+const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 export function Nav() {
   const { user, isCommissioner, isAdmin } = useAuth();
@@ -47,12 +47,11 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3 sm:px-8">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
         {/* Left nav group */}
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-          <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
-          <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
+        <nav className="hidden items-center gap-7 text-base font-medium md:flex">
+          <Link to="/profile" className={NAV_LINK_CLASS}>Sell</Link>
+          <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
         </nav>
 
         {/* Centered brand — clicking it goes home */}
@@ -61,38 +60,39 @@ export function Nav() {
             <img
               src={BRAND_ICON_URL}
               alt="One Higala Properties Inc."
-              className="h-10 w-10 object-contain"
+              className="h-12 w-12 object-contain"
               onError={() => setIconOk(false)}
             />
           ) : (
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-lg font-bold shadow-sm">
+            <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-xl font-bold shadow-sm">
               H
             </span>
           )}
           <span className="hidden flex-col leading-tight sm:flex">
-            <span className="font-display text-base font-semibold tracking-tight sm:text-lg">
+            <span className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
               One Higala Properties Inc.
             </span>
-            <span className="text-[11px] italic text-muted-foreground">
+            <span className="text-xs italic text-muted-foreground">
               Bringing you home, the higala way
             </span>
           </span>
         </Link>
 
         {/* Right nav group + profile/sign-in */}
-        <div className="col-start-3 flex items-center justify-end gap-6">
-          <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-            <Link to="/profile" className={NAV_LINK_CLASS}>Sell</Link>
-            <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+        <div className="col-start-3 flex items-center justify-end gap-7">
+          <nav className="hidden items-center gap-7 text-base font-medium md:flex">
+            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+            <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
+            <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
           </nav>
 
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-10 w-10 border border-border">
+                  <Avatar className="h-12 w-12 border border-border">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-semibold text-primary-foreground">
                       {initial}
                     </AvatarFallback>
                   </Avatar>
