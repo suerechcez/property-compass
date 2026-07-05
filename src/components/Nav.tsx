@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-// Brand mark (the "1H" logo). Upload the icon to /public/brand-icon.png in the
-// repo (e.g. via GitHub's "Add file" or Lovable's asset uploader) and it will
-// appear automatically. Until then this falls back to a plain "H" monogram.
+// Brand mark (the "1H" logo), stored at /public/brand-icon.png.
 const BRAND_ICON_URL = "/brand-icon.png";
+
+const NAV_LINK_CLASS = "text-foreground/70 hover:text-foreground";
 
 export function Nav() {
   const { user, isCommissioner, isAdmin } = useAuth();
@@ -47,8 +47,16 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="flex w-full items-center justify-between px-4 py-3 sm:px-8">
-        <Link to="/" className="flex items-center gap-3">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3 sm:px-8">
+        {/* Left nav group */}
+        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+          <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+          <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
+          <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
+        </nav>
+
+        {/* Centered brand — clicking it goes home */}
+        <Link to="/" className="col-start-2 flex items-center justify-center gap-3 justify-self-center">
           {iconOk ? (
             <img
               src={BRAND_ICON_URL}
@@ -61,35 +69,23 @@ export function Nav() {
               H
             </span>
           )}
-          <span className="flex flex-col leading-tight">
+          <span className="hidden flex-col leading-tight sm:flex">
             <span className="font-display text-base font-semibold tracking-tight sm:text-lg">
               One Higala Properties Inc.
             </span>
-            <span className="hidden text-[11px] italic text-muted-foreground sm:block">
+            <span className="text-[11px] italic text-muted-foreground">
               Bringing you home, the higala way
             </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
-          <Link to="/" className="text-foreground/70 hover:text-foreground">Browse</Link>
-          <Link to="/agents" className="text-foreground/70 hover:text-foreground">Agents</Link>
-          {user && (
-            <Link to="/dashboard" className="text-foreground/70 hover:text-foreground">Dashboard</Link>
-          )}
-          {isCommissioner && (
-            <Link to="/listings/new" className="text-foreground/70 hover:text-foreground">
-              Post Property
-            </Link>
-          )}
-          {isAdmin && (
-            <Link to="/dashboard" className="font-semibold text-primary hover:text-primary/80">
-              Admin
-            </Link>
-          )}
-        </nav>
+        {/* Right nav group + profile/sign-in */}
+        <div className="col-start-3 flex items-center justify-end gap-6">
+          <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+            <Link to="/profile" className={NAV_LINK_CLASS}>Sell</Link>
+            <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+          </nav>
 
-        <div className="flex items-center gap-2">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -106,6 +102,29 @@ export function Nav() {
                 <DropdownMenuLabel className="truncate">
                   {profile?.full_name || user.email}
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="cursor-pointer">
+                      <ShieldCheck className="h-4 w-4" />
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                {isCommissioner && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/listings/new" className="cursor-pointer">
+                      <Building2 className="h-4 w-4" />
+                      Post Property
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="cursor-pointer">
