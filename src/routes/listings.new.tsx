@@ -43,7 +43,7 @@ export function ListingForm({
   };
 }) {
   const navigate = useNavigate();
-  const { user, isCommissioner, loading } = useAuth();
+  const { user, isCommissioner, loading, rolesLoaded } = useAuth();
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [type, setType] = useState<PropertyTypeValue>(initial?.property_type ?? "condo");
@@ -61,10 +61,18 @@ export function ListingForm({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-    if (!loading && user && !isCommissioner)
+    if (!loading && !user) {
+      navigate({ to: "/auth" });
+      return;
+    }
+    // Wait for both the session AND the roles fetch to finish before judging
+    // whether this user is a commissioner — checking `loading` alone races
+    // ahead of the roles query and produces a false-negative toast.
+    if (!loading && rolesLoaded && user && !isCommissioner) {
       toast.error("You need a commissioner role to post listings.");
-  }, [loading, user, isCommissioner, navigate]);
+      navigate({ to: "/dashboard" });
+    }
+  }, [loading, rolesLoaded, user, isCommissioner, navigate]);
 
   async function onFiles(files: FileList | null) {
     if (!files || !user) return;
@@ -122,6 +130,17 @@ export function ListingForm({
     } finally {
       setSaving(false);
     }
+  }
+
+  // Don't render the form until we actually know the user's roles —
+  // avoids a flash of the form for non-commissioners before the redirect above fires.
+  if (loading || !rolesLoaded) {
+    return (
+      <div className="min-h-screen">
+        <Nav />
+        <div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div>
+      </div>
+    );
   }
 
   return (
