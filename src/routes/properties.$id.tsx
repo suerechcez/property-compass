@@ -45,7 +45,7 @@ function PropertyDetail() {
         <Nav />
         <div className="mx-auto max-w-5xl px-6 py-20 text-center">
           <h1 className="font-display text-3xl font-semibold">Listing not found</h1>
-          <Button asChild className="mt-6"><Link to="/">Back to listings</Link></Button>
+          <Button asChild className="mt-6"><Link to="/browse">Back to listings</Link></Button>
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ function PropertyDetail() {
     <div className="min-h-screen">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">← Back to listings</Link>
+        <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground">← Back to listings</Link>
 
         <header className="mt-6 flex flex-wrap items-start justify-between gap-6">
           <div>
