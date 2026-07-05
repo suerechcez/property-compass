@@ -15,7 +15,6 @@ This project is a TanStack Start SSR app. To deploy on Vercel:
    - `SUPABASE_URL`
    - `SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `LOVABLE_API_KEY` (for AI forecast)
 
    Copy the values from the project `.env` in Lovable (Backend → Secrets).
 
