@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateText } from "ai";
 
 export const predictSales = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -10,7 +9,6 @@ export const predictSales = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const targetId = data.commissionerId ?? context.userId;
-    // Admins can request any commissioner; others only themselves
     if (targetId !== context.userId) {
       const { data: isAdmin } = await context.supabase.rpc("has_role", {
         _user_id: context.userId,
@@ -29,34 +27,23 @@ export const predictSales = createServerFn({ method: "POST" })
     if (rows.length < 2) {
       return {
         summary:
-          "Not enough sales data yet. Log at least 2 sales to receive an AI forecast and recommendations.",
+          "Not enough sales data yet. Log at least 2 sales to see a forecast.",
         forecast: [] as { month: string; projected: number }[],
       };
     }
 
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
-    const gateway = createLovableAiGatewayProvider(key);
-
-    const compact = rows
-      .map((r) => `${r.sale_date}: amount=${r.amount}, commission=${r.commission}`)
-      .join("\n");
-
-    const { text } = await generateText({
-      model: gateway("google/gemini-3-flash-preview"),
-      prompt: `You are a real-estate sales analyst for One Higala Properties Inc. in Cagayan de Oro City. Given this commissioner's sales log, write a concise 3-paragraph analysis with: 1) recent trend in volume and commission, 2) a projection for the next 3 months in plain numbers (Philippine Pesos, ₱), 3) two specific recommendations to improve sales velocity. Be concrete and avoid filler.\n\nSales log:\n${compact}`,
-    });
-
-    // Simple linear projection for chart
-    const byMonth = new Map<string, number>();
+    // Aggregate by month
+    const byMonth = new Map<string, { amount: number; commission: number }>();
     for (const r of rows) {
       const m = r.sale_date.slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(r.amount));
+      const prev = byMonth.get(m) ?? { amount: 0, commission: 0 };
+      byMonth.set(m, {
+        amount: prev.amount + Number(r.amount),
+        commission: prev.commission + Number(r.commission),
+      });
     }
     const months = [...byMonth.entries()].sort();
-    const vals = months.map(([, v]) => v);
+    const vals = months.map(([, v]) => v.amount);
     const n = vals.length;
     const meanX = (n - 1) / 2;
     const meanY = vals.reduce((a, b) => a + b, 0) / n;
@@ -68,6 +55,7 @@ export const predictSales = createServerFn({ method: "POST" })
     });
     const slope = den === 0 ? 0 : num / den;
     const intercept = meanY - slope * meanX;
+
     const lastMonth = months[months.length - 1][0];
     const [ly, lm] = lastMonth.split("-").map(Number);
     const forecast: { month: string; projected: number }[] = [];
@@ -80,5 +68,13 @@ export const predictSales = createServerFn({ method: "POST" })
       });
     }
 
-    return { summary: text, forecast };
+    const total = vals.reduce((a, b) => a + b, 0);
+    const avg = total / n;
+    const last = vals[vals.length - 1];
+    const trend = slope > 0 ? "trending up" : slope < 0 ? "trending down" : "flat";
+    const projTotal = forecast.reduce((a, f) => a + f.projected, 0);
+
+    const summary = `Over the last ${n} month${n === 1 ? "" : "s"}, sales totaled ₱${total.toLocaleString()} (average ₱${Math.round(avg).toLocaleString()}/month), with the most recent month at ₱${last.toLocaleString()}. The trend is ${trend}. Projected next 3 months: ₱${projTotal.toLocaleString()} combined, based on a linear fit of your logged sales.`;
+
+    return { summary, forecast };
   });

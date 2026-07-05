@@ -393,7 +393,7 @@ function Forecast() {
           <div>
             <h2 className="font-display text-xl font-semibold">AI sales forecast</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Analyze your logged sales and project the next three months with Lovable AI.
+              Analyze your logged sales and project the next three months.
             </p>
           </div>
           <Button onClick={run} disabled={loading}>
