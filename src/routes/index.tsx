@@ -22,8 +22,8 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-// CDO aerial photo — replace the URL with your own hosted image once uploaded to Supabase Storage or any CDN.
-// To upload: go to your Supabase project → Storage → create bucket "assets" → upload hero-cdo.jpg → paste the public URL here.
+// CDO aerial photo. If this file hasn't been uploaded to /public yet, the <img>
+// below will silently fail and fall back to the gradient background.
 const HERO_IMAGE_URL =
   "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/hero-cdo.jpg";
 
@@ -31,6 +31,7 @@ function Home() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState("");
   const [forRentOnly, setForRentOnly] = useState(false);
+  const [heroImageOk, setHeroImageOk] = useState(true);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties", "list", type],
@@ -67,14 +68,16 @@ function Home() {
         <div className="min-w-0 flex-1">
 
           {/* ── Hero (Zillow-style full-bleed with CDO aerial photo) ── */}
-          <section className="relative h-[520px] overflow-hidden md:h-[600px]">
-            {/* Background image */}
-            <img
-              src={HERO_IMAGE_URL}
-              alt="Cagayan de Oro City aerial view"
-              className="absolute inset-0 h-full w-full object-cover object-center"
-              loading="eager"
-            />
+          <section className="relative h-[520px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[600px]">
+            {heroImageOk && (
+              <img
+                src={HERO_IMAGE_URL}
+                alt="Cagayan de Oro City aerial view"
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                loading="eager"
+                onError={() => setHeroImageOk(false)}
+              />
+            )}
             {/* Dark gradient overlay so text is legible */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/40 to-black/20" />
 
