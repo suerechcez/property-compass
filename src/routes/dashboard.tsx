@@ -13,7 +13,7 @@ import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
-import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, Plus, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
@@ -85,8 +85,20 @@ function Dashboard() {
     <div className="min-h-screen">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
-        <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
+            <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
+          </div>
+          {isCommissioner && (
+            <Button asChild>
+              <Link to="/listings/new">
+                <Plus className="h-4 w-4" />
+                Post Property
+              </Link>
+            </Button>
+          )}
+        </div>
 
         <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} />
 
@@ -168,7 +180,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
           <h2 className="font-display text-xl font-semibold">Quick actions</h2>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button asChild><Link to="/listings/new">Post a new property</Link></Button>
-            <Button variant="outline" asChild><Link to="/">Browse listings</Link></Button>
+            <Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button>
           </div>
         </div>
       )}
