@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { PROPERTY_TYPES, CDO_AREAS } from "@/lib/property-types";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "My Profile · One Higala Properties" }] }),
@@ -43,6 +44,14 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Agent credibility fields
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [agencyName, setAgencyName] = useState("");
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<string[]>([]);
+  const [languages, setLanguages] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+
   useEffect(() => {
     if (!profile) return;
     setFullName(profile.full_name ?? "");
@@ -52,6 +61,12 @@ function ProfilePage() {
     setYears(profile.years_experience ? String(profile.years_experience) : "");
     setBio(profile.bio ?? "");
     setAvatarUrl(profile.avatar_url ?? null);
+    setLicenseNumber(profile.license_number ?? "");
+    setAgencyName(profile.agency_name ?? "");
+    setSpecialties(profile.specialties ?? []);
+    setServiceAreas(profile.service_areas ?? []);
+    setLanguages(profile.languages ?? "");
+    setFacebookUrl(profile.facebook_url ?? "");
   }, [profile, user?.email]);
 
   const save = useMutation({
@@ -66,6 +81,12 @@ function ProfilePage() {
           years_experience: years ? Number(years) : null,
           bio: bio || null,
           avatar_url: avatarUrl,
+          license_number: licenseNumber || null,
+          agency_name: agencyName || null,
+          specialties,
+          service_areas: serviceAreas,
+          languages: languages || null,
+          facebook_url: facebookUrl || null,
         })
         .eq("id", user!.id);
       if (error) throw error;
@@ -94,6 +115,12 @@ function ProfilePage() {
       e.target.value = "";
     }
   }
+
+  function toggle(list: string[], setList: (v: string[]) => void, value: string) {
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  }
+
+  const isAgent = isCommissioner || isAdmin || isDeveloper;
 
   if (loading || !user) {
     return <div><Nav /><div className="mx-auto max-w-3xl p-10 text-muted-foreground">Loading…</div></div>;
@@ -151,45 +178,162 @@ function ProfilePage() {
         )}
 
         <form
-          className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6"
+          className="mt-6 space-y-6"
           onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Full name</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Juan Dela Cruz" />
+          <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
+            <h2 className="font-display text-xl font-semibold">Basic info</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Full name</Label>
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Juan Dela Cruz" />
+              </div>
+              <div>
+                <Label>Job title</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Licensed Real Estate Broker" />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+63 …" />
+              </div>
+              <div>
+                <Label>Years of experience</Label>
+                <Input type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />
+              </div>
             </div>
             <div>
-              <Label>Job title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Licensed Real Estate Broker" />
+              <Label>Bio</Label>
+              <textarea
+                rows={5}
+                className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell buyers about your specialties, neighborhoods you serve in Cagayan de Oro City, and what makes working with you different."
+              />
             </div>
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+63 …" />
-            </div>
-            <div>
-              <Label>Years of experience</Label>
-              <Input type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <Label>Bio</Label>
-            <textarea
-              rows={5}
-              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell buyers about your specialties, neighborhoods you serve in Cagayan de Oro City, and what makes working with you different."
-            />
-          </div>
+          </section>
+
+          {isAgent && (
+            <>
+              <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
+                <div>
+                  <h2 className="font-display text-xl font-semibold">Credentials</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Builds buyer trust — a visible PRC license number is one of the strongest signals a client looks for.
+                  </p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>PRC license number</Label>
+                    <Input
+                      value={licenseNumber}
+                      onChange={(e) => setLicenseNumber(e.target.value)}
+                      placeholder="e.g. 0012345"
+                    />
+                  </div>
+                  <div>
+                    <Label>Agency / brokerage</Label>
+                    <Input
+                      value={agencyName}
+                      onChange={(e) => setAgencyName(e.target.value)}
+                      placeholder="e.g. One Higala Properties Inc."
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Languages spoken</Label>
+                    <Input
+                      value={languages}
+                      onChange={(e) => setLanguages(e.target.value)}
+                      placeholder="English, Cebuano, Tagalog"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Facebook page or profile</Label>
+                    <Input
+                      value={facebookUrl}
+                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      placeholder="https://facebook.com/yourpage"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+                <div>
+                  <h2 className="font-display text-xl font-semibold">Specialties</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Property types you focus on. Helps buyers find the right agent for what they need.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PROPERTY_TYPES.map((t) => (
+                    <Chip
+                      key={t.value}
+                      active={specialties.includes(t.value)}
+                      onClick={() => toggle(specialties, setSpecialties, t.value)}
+                    >
+                      {t.label}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+
+              <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+                <div>
+                  <h2 className="font-display text-xl font-semibold">Service areas</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Barangays across Cagayan de Oro City you actively serve.
+                    {serviceAreas.length > 0 && ` (${serviceAreas.length} selected)`}
+                  </p>
+                </div>
+                <div className="max-h-72 space-y-4 overflow-y-auto rounded-lg border border-border p-4">
+                  {CDO_AREAS.map((group) => (
+                    <div key={group.group}>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {group.group}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.areas.map((area) => (
+                          <Chip
+                            key={area}
+                            active={serviceAreas.includes(area)}
+                            onClick={() => toggle(serviceAreas, setServiceAreas, area)}
+                          >
+                            {area}
+                          </Chip>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+
           <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save profile"}</Button>
         </form>
       </div>
     </div>
+  );
+}
+
+function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-xs transition ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground/70 hover:bg-accent"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
