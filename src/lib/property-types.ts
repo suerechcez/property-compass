@@ -28,3 +28,63 @@ export function formatPrice(n: number | string) {
   const v = typeof n === "string" ? Number(n) : n;
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(v);
 }
+
+// All 80 barangays of Cagayan de Oro City, grouped by congressional district
+// (1st district = west of the Cagayan River, 2nd district = east, including
+// the 40 numbered Poblacion barangays downtown).
+export const CDO_AREAS: { group: string; areas: string[] }[] = [
+  {
+    group: "Poblacion (Downtown, Barangays 1–40)",
+    areas: Array.from({ length: 40 }, (_, i) => `Barangay ${i + 1} (Poblacion)`),
+  },
+  {
+    group: "2nd District",
+    areas: [
+      "Agusan",
+      "Balubal",
+      "Bugo",
+      "Camaman-an",
+      "Consolacion",
+      "Cugman",
+      "F.S. Catanico",
+      "Gusa",
+      "Indahag",
+      "Lapasan",
+      "Macabalan",
+      "Macasandig",
+      "Nazareth",
+      "Puerto",
+      "Puntod",
+      "Tablon",
+    ],
+  },
+  {
+    group: "1st District",
+    areas: [
+      "Baikingon",
+      "Balulang",
+      "Bayabas",
+      "Bayanga",
+      "Besigan",
+      "Bonbon",
+      "Bulua",
+      "Canitoan",
+      "Carmen",
+      "Dansolihon",
+      "Iponan",
+      "Kauswagan",
+      "Lumbia",
+      "Mambuaya",
+      "Pagalungan",
+      "Pagatpat",
+      "Patag",
+      "Pigsag-an",
+      "San Simon",
+      "Taglimao",
+      "Tagpangi",
+      "Tignapoloan",
+      "Tuburan",
+      "Tumpagon",
+    ],
+  },
+];
