@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { SideBar } from "@/components/SideBar";
@@ -26,10 +26,22 @@ export const Route = createFileRoute("/browse")({
 });
 
 function Browse() {
-  const { filter: initialFilter, q: initialQ } = Route.useSearch();
+  const { filter: urlFilter, q: urlQ } = Route.useSearch();
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
-  const [q, setQ] = useState(initialQ);
-  const [listingFilter, setListingFilter] = useState<ListingFilter>(initialFilter);
+  const [q, setQ] = useState(urlQ);
+  const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
+
+  // Buy/Rent/Browse all route to this same "/browse" path with different search
+  // params, so the component doesn't remount between them — only re-sync local
+  // state here when the URL's filter/q actually changes (e.g. clicking Buy then
+  // Rent), without clobbering the user's own in-page chip/search edits otherwise.
+  useEffect(() => {
+    setListingFilter(urlFilter);
+  }, [urlFilter]);
+
+  useEffect(() => {
+    setQ(urlQ);
+  }, [urlQ]);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties", "list", type],
