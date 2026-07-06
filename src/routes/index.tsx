@@ -17,10 +17,11 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-// CDO aerial photo. If this file hasn't been uploaded to /public yet, the <img>
+// Hero photo. Upload the file to /public/hero-oh.jpg in the repo and it
+// will appear here automatically. If it hasn't been uploaded yet, the <img>
 // below will silently fail and fall back to the gradient background.
 const HERO_IMAGE_URL =
-  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/hero-cdo.jpg";
+  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/hero-oh.jpg";
 
 function Home() {
   const [q, setQ] = useState("");
@@ -35,7 +36,7 @@ function Home() {
         {heroImageOk && (
           <img
             src={HERO_IMAGE_URL}
-            alt="Cagayan de Oro City aerial view"
+            alt="One Higala Properties hero"
             className="absolute inset-0 h-full w-full object-cover object-center"
             loading="eager"
             onError={() => setHeroImageOk(false)}
