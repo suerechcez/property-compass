@@ -17,11 +17,9 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-// Hero photo. Upload the file to /public/hero-oh.jpg in the repo and it
-// will appear here automatically. If it hasn't been uploaded yet, the <img>
-// below will silently fail and fall back to the gradient background.
-const HERO_IMAGE_URL =
-  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/hero-oh.jpg";
+// Hero photo, stored at /public/hero-oh.jpg in this repo and served
+// directly from the site's own domain at build/deploy time.
+const HERO_IMAGE_URL = "/hero-oh.jpg";
 
 function Home() {
   const [q, setQ] = useState("");
