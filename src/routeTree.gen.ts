@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -24,6 +25,11 @@ import { Route as ListingsIdEditRouteImport } from './routes/listings.$id.edit'
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellRoute = SellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/dashboard'
     | '/profile'
+    | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
     | '/listings/new'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/dashboard'
     | '/profile'
+    | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
     | '/listings/new'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/dashboard'
     | '/profile'
+    | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
     | '/listings/new'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   DashboardRoute: typeof DashboardRoute
   ProfileRoute: typeof ProfileRoute
+  SellRoute: typeof SellRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ListingsNewRoute: typeof ListingsNewRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
@@ -179,6 +192,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell': {
+      id: '/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof SellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   DashboardRoute: DashboardRoute,
   ProfileRoute: ProfileRoute,
+  SellRoute: SellRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ListingsNewRoute: ListingsNewRoute,
   PropertiesIdRoute: PropertiesIdRoute,
