@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { Home, KeyRound, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Illustration images. Upload these three files to /public in the repo
+// (buy-icon.png, rent-icon.png, sell-icon.png) and they'll appear here
+// automatically. If a file hasn't been uploaded yet, that image will
+// simply fail to load.
+const BUY_IMAGE_URL =
+  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/buy-icon.png";
+const RENT_IMAGE_URL =
+  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/rent-icon.png";
+const SELL_IMAGE_URL =
+  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/sell-icon.png";
 
 export function ExploreOptions() {
   return (
@@ -8,9 +18,8 @@ export function ExploreOptions() {
       <div className="mx-auto max-w-7xl px-6 py-16">
         <div className="grid gap-6 md:grid-cols-3">
           <OptionCard
-            iconBg="bg-primary/10"
-            iconColor="text-primary"
-            icon={<Home className="h-9 w-9" />}
+            image={BUY_IMAGE_URL}
+            alt="Buy a home"
             title="Buy a home"
             description="Browse condos, land, and resale properties across Cagayan de Oro City with clear pricing so there are no surprises."
           >
@@ -20,9 +29,8 @@ export function ExploreOptions() {
           </OptionCard>
 
           <OptionCard
-            iconBg="bg-gold/20"
-            iconColor="text-gold-foreground"
-            icon={<KeyRound className="h-9 w-9" />}
+            image={RENT_IMAGE_URL}
+            alt="Rent a home"
             title="Rent a home"
             description="Explore rent-ready condos and units across the city, from move-in ready studios to family-sized suites."
           >
@@ -32,9 +40,8 @@ export function ExploreOptions() {
           </OptionCard>
 
           <OptionCard
-            iconBg="bg-accent/60"
-            iconColor="text-accent-foreground"
-            icon={<Handshake className="h-9 w-9" />}
+            image={SELL_IMAGE_URL}
+            alt="Sell a home"
             title="Sell a home"
             description="Whatever path you take to sell, our commissioners can help you list your property and close a successful sale."
           >
@@ -49,24 +56,22 @@ export function ExploreOptions() {
 }
 
 function OptionCard({
-  icon,
-  iconBg,
-  iconColor,
+  image,
+  alt,
   title,
   description,
   children,
 }: {
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
+  image: string;
+  alt: string;
   title: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-      <div className={`grid h-24 w-24 place-items-center rounded-full ${iconBg} ${iconColor}`}>
-        {icon}
+      <div className="grid h-24 w-24 place-items-center">
+        <img src={image} alt={alt} className="h-full w-full object-contain" />
       </div>
       <h3 className="mt-6 font-display text-xl font-semibold">{title}</h3>
       <p className="mt-3 max-w-xs text-sm text-muted-foreground">{description}</p>
