@@ -28,8 +28,7 @@ function Home() {
   const [heroImageOk, setHeroImageOk] = useState(true);
 
   return (
-    // TEST STYLE — revert to className="min-h-screen" when done testing
-    <div className="min-h-screen bg-yellow-400">
+    <div className="min-h-screen">
       <Nav />
 
       {/* ── Hero (Zillow-style full-bleed with CDO aerial photo) ── */}
@@ -55,7 +54,7 @@ function Home() {
 
           <h1 className="max-w-2xl font-display text-4xl font-bold leading-tight text-white drop-shadow-lg md:text-6xl">
             Bringing you home,{" "}
-            <span className="text-primary">the higala way.</span>
+            <span className="text-blue-400">the higala way.</span>
           </h1>
 
           <p className="mt-4 max-w-xl text-base text-white/85 drop-shadow md:text-lg">
