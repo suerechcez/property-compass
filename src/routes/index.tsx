@@ -40,8 +40,6 @@ function Home() {
             onError={() => setHeroImageOk(false)}
           />
         )}
-        {/* Dark gradient overlay so text is legible */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/40 to-black/20" />
 
         {/* Content */}
         <div className="relative flex h-full flex-col items-start justify-center px-6 md:px-16 lg:px-24">
@@ -52,7 +50,9 @@ function Home() {
 
           <h1 className="max-w-2xl font-display text-4xl font-bold leading-tight text-white drop-shadow-lg md:text-6xl">
             Bringing you home,{" "}
-            <span className="text-blue-400">the higala way.</span>
+            <span className="text-blue-800">the </span>
+            <span className="text-yellow-400">higala</span>
+            <span className="text-blue-800"> way.</span>
           </h1>
 
           <p className="mt-4 max-w-xl text-base text-white/85 drop-shadow md:text-lg">
