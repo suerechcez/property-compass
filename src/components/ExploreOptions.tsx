@@ -1,16 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 
-// Illustration images. Upload these three files to /public in the repo
-// (buy-icon.png, rent-icon.png, sell-icon.png) and they'll appear here
-// automatically. If a file hasn't been uploaded yet, that image will
-// simply fail to load.
-const BUY_IMAGE_URL =
-  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/buy-icon.png";
-const RENT_IMAGE_URL =
-  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/rent-icon.png";
-const SELL_IMAGE_URL =
-  "https://raw.githubusercontent.com/suerechcez/property-compass/main/public/sell-icon.png";
+// Illustration images, stored at /public/*.png in this repo and served
+// directly from the site's own domain at build/deploy time.
+const BUY_IMAGE_URL = "/buy-icon.png";
+const RENT_IMAGE_URL = "/rent-icon.png";
+const SELL_IMAGE_URL = "/sell-icon.png";
 
 export function ExploreOptions() {
   return (
