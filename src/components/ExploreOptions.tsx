@@ -15,7 +15,7 @@ export function ExploreOptions() {
             description="Browse condos, land, and resale properties across Cagayan de Oro City with clear pricing so there are no surprises."
           >
             <Button variant="outline" className="rounded-full px-6" asChild>
-              <Link to="/browse">Browse listings</Link>
+              <Link to="/browse" search={{ filter: "sale" }}>Browse listings</Link>
             </Button>
           </OptionCard>
 
@@ -27,7 +27,7 @@ export function ExploreOptions() {
             description="Explore rent-ready condos and units across the city, from move-in ready studios to family-sized suites."
           >
             <Button variant="outline" className="rounded-full px-6" asChild>
-              <Link to="/browse" search={{ rent: true }}>Find rentals</Link>
+              <Link to="/browse" search={{ filter: "rent" }}>Find rentals</Link>
             </Button>
           </OptionCard>
 
@@ -39,7 +39,7 @@ export function ExploreOptions() {
             description="Whatever path you take to sell, our commissioners can help you list your property and close a successful sale."
           >
             <Button variant="outline" className="rounded-full px-6" asChild>
-              <Link to="/profile">List your property</Link>
+              <Link to="/sell">List your property</Link>
             </Button>
           </OptionCard>
         </div>
