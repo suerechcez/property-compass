@@ -46,7 +46,8 @@ export function Nav() {
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
+    // TEST STYLE — revert to "border-b border-border/60 bg-background/85 backdrop-blur" when done testing
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-blue-600 backdrop-blur">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
         {/* Left nav group — all primary links live here now */}
         <nav className="hidden items-center gap-6 text-base font-medium md:flex">
