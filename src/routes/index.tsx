@@ -28,7 +28,8 @@ function Home() {
   const [heroImageOk, setHeroImageOk] = useState(true);
 
   return (
-    <div className="min-h-screen">
+    // TEST STYLE — revert to className="min-h-screen" when done testing
+    <div className="min-h-screen bg-yellow-400">
       <Nav />
 
       {/* ── Hero (Zillow-style full-bleed with CDO aerial photo) ── */}
