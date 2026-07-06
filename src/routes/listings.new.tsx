@@ -49,6 +49,8 @@ export function ListingForm({
     features: string[];
     for_rent: boolean;
     commissioner_id: string;
+    contact_phone?: string | null;
+    contact_email?: string | null;
   };
 }) {
   const navigate = useNavigate();
@@ -66,15 +68,15 @@ export function ListingForm({
   const [features, setFeatures] = useState((initial?.features ?? []).join(", "));
   const [forRent, setForRent] = useState(initial?.for_rent ?? false);
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState(initial?.contact_phone ?? "");
+  const [contactEmail, setContactEmail] = useState(initial?.contact_email ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Prefill contact info from the commissioner's own profile, so they don't
-  // have to retype it for every listing — still editable per listing below.
+  // Prefill contact info from the commissioner's own profile on a brand-new
+  // listing (not when editing an existing one, which already has its own values).
   useEffect(() => {
-    if (!user) return;
+    if (!user || mode === "edit") return;
     supabase
       .from("profiles")
       .select("phone, email")
@@ -86,7 +88,7 @@ export function ListingForm({
           setContactEmail((prev) => prev || data.email || user.email || "");
         }
       });
-  }, [user]);
+  }, [user, mode]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -122,17 +124,10 @@ export function ListingForm({
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const contactNote = [
-      contactPhone && `Phone: ${contactPhone}`,
-      contactEmail && `Email: ${contactEmail}`,
-    ].filter(Boolean).join(" · ");
-    const fullDescription = contactNote
-      ? `${description}\n\n---\nContact: ${contactNote}`
-      : description;
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
       title,
-      description: fullDescription || null,
+      description: description || null,
       property_type: type,
       status,
       price: Number(price) || 0,
@@ -143,6 +138,8 @@ export function ListingForm({
       images,
       features: features.split(",").map((s) => s.trim()).filter(Boolean),
       for_rent: forRent,
+      contact_phone: contactPhone || null,
+      contact_email: contactEmail || null,
     };
     try {
       if (mode === "edit" && initial) {
