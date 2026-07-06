@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 
+type ListingFilter = "all" | "sale" | "rent";
+
 export const Route = createFileRoute("/browse")({
   validateSearch: (search: Record<string, unknown>) => ({
-    rent: search.rent === true || search.rent === "true",
+    filter: (search.filter === "sale" || search.filter === "rent" ? search.filter : "all") as ListingFilter,
     q: typeof search.q === "string" ? search.q : "",
   }),
   head: () => ({
@@ -24,10 +26,10 @@ export const Route = createFileRoute("/browse")({
 });
 
 function Browse() {
-  const { rent, q: initialQ } = Route.useSearch();
+  const { filter: initialFilter, q: initialQ } = Route.useSearch();
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(initialQ);
-  const [forRentOnly, setForRentOnly] = useState(rent);
+  const [listingFilter, setListingFilter] = useState<ListingFilter>(initialFilter);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties", "list", type],
@@ -48,9 +50,13 @@ function Browse() {
     const matchesQuery = q
       ? (p.title + " " + (p.location ?? "")).toLowerCase().includes(q.toLowerCase())
       : true;
-    const matchesRent = forRentOnly ? p.for_rent : true;
-    return matchesQuery && matchesRent;
+    const matchesListing =
+      listingFilter === "rent" ? p.for_rent : listingFilter === "sale" ? !p.for_rent : true;
+    return matchesQuery && matchesListing;
   });
+
+  const heading =
+    listingFilter === "rent" ? "For rent" : listingFilter === "sale" ? "For sale" : "Browse listings";
 
   return (
     <div className="min-h-screen">
@@ -61,7 +67,7 @@ function Browse() {
           {/* ── Search + heading ── */}
           <section className="border-b border-border bg-surface">
             <div className="mx-auto max-w-7xl px-6 py-8">
-              <h1 className="font-display text-3xl font-semibold">Browse listings</h1>
+              <h1 className="font-display text-3xl font-semibold">{heading}</h1>
               <p className="mt-1 text-muted-foreground">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
@@ -77,18 +83,25 @@ function Browse() {
             </div>
           </section>
 
-          {/* ── Property-type filter chips ── */}
+          {/* ── Buy / Rent / All + property-type filter chips ── */}
           <section className="border-b border-border">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-5">
-              <FilterChip active={type === "all"} onClick={() => setType("all")}>All</FilterChip>
+              <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>
+                All listings
+              </FilterChip>
+              <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>
+                For Sale
+              </FilterChip>
+              <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>
+                For Rent
+              </FilterChip>
+              <span className="mx-1 h-5 w-px bg-border" />
+              <FilterChip active={type === "all"} onClick={() => setType("all")}>All types</FilterChip>
               {PROPERTY_TYPES.map((t) => (
                 <FilterChip key={t.value} active={type === t.value} onClick={() => setType(t.value)}>
                   {t.label}
                 </FilterChip>
               ))}
-              <FilterChip active={forRentOnly} onClick={() => setForRentOnly((v) => !v)}>
-                {forRentOnly ? "For Rent ✕" : "For Rent only"}
-              </FilterChip>
             </div>
           </section>
 
