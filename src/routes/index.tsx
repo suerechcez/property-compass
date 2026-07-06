@@ -40,6 +40,8 @@ function Home() {
             onError={() => setHeroImageOk(false)}
           />
         )}
+        {/* Dark gradient overlay so text is legible — slightly darker than before */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/50 to-black/30" />
 
         {/* Content */}
         <div className="relative flex h-full flex-col items-start justify-center px-6 md:px-16 lg:px-24">
