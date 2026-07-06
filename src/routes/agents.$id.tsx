@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { formatPrice, typeLabel } from "@/lib/property-types";
 import { format } from "date-fns";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { BadgeCheck, Facebook } from "lucide-react";
 
 export const Route = createFileRoute("/agents/$id")({
   head: ({ params }) => ({
@@ -31,7 +32,9 @@ function AgentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at")
+        .select(
+          "id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at, license_number, agency_name, specialties, service_areas, languages, facebook_url",
+        )
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -109,17 +112,73 @@ function AgentProfile() {
             <div className="flex-1">
               <p className="text-xs uppercase tracking-wider text-primary">{profile.title ?? "Commissioner"}</p>
               <h1 className="mt-1 font-display text-4xl font-semibold">{profile.full_name ?? "Agent"}</h1>
+              {profile.agency_name && (
+                <p className="mt-0.5 text-sm text-muted-foreground">{profile.agency_name}</p>
+              )}
               <p className="mt-2 text-sm text-muted-foreground">
                 Joined {format(new Date(profile.created_at), "MMMM yyyy")}
                 {profile.years_experience ? ` · ${profile.years_experience}+ years experience` : ""}
               </p>
-              <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {profile.license_number && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    PRC License #{profile.license_number}
+                  </span>
+                )}
+                {profile.facebook_url && (
+                  <a
+                    href={profile.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium hover:border-primary hover:text-primary"
+                  >
+                    <Facebook className="h-3.5 w-3.5" />
+                    Facebook
+                  </a>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
                 {profile.email && <a href={`mailto:${profile.email}`} className="hover:text-primary">{profile.email}</a>}
                 {profile.phone && <a href={`tel:${profile.phone}`} className="hover:text-primary">{profile.phone}</a>}
                 <span>{listings.length} listings</span>
               </div>
+
+              {profile.languages && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground/80">Speaks:</span> {profile.languages}
+                </p>
+              )}
+
               {profile.bio && (
                 <p className="mt-4 max-w-2xl leading-relaxed text-foreground/85">{profile.bio}</p>
+              )}
+
+              {(profile.specialties?.length > 0 || profile.service_areas?.length > 0) && (
+                <div className="mt-5 space-y-3">
+                  {profile.specialties?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Specialties</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {profile.specialties.map((s: string) => (
+                          <span key={s} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">{typeLabel(s)}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {profile.service_areas?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Service areas</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {profile.service_areas.map((a: string) => (
+                          <span key={a} className="rounded-full border border-border px-2.5 py-0.5 text-xs">{a}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
