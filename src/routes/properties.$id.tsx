@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
+import { Phone, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
@@ -24,13 +26,24 @@ function PropertyDetail() {
   const { data, isLoading } = useQuery({
     queryKey: ["properties", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: property, error } = await supabase
         .from("properties")
-        .select("*, profiles!properties_commissioner_id_fkey(full_name, avatar_url)")
+        .select("*")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!property) return null;
+
+      // Fetch the commissioner's public profile separately — properties.commissioner_id
+      // references auth.users (not profiles) directly, so there's no FK for PostgREST
+      // to auto-embed profiles through in a single select.
+      const { data: agent } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url, title, phone, email")
+        .eq("id", property.commissioner_id)
+        .maybeSingle();
+
+      return { ...property, agent };
     },
   });
 
@@ -52,6 +65,8 @@ function PropertyDetail() {
   }
 
   const canEdit = user && (user.id === data.commissioner_id || isDeveloper || isAdmin);
+  const contactPhone = data.contact_phone || data.agent?.phone;
+  const contactEmail = data.contact_email || data.agent?.email;
 
   return (
     <div className="min-h-screen">
@@ -116,16 +131,65 @@ function PropertyDetail() {
               </div>
             )}
           </div>
-          <aside className="rounded-2xl border border-border bg-card p-6">
-            <h3 className="font-display text-lg font-semibold">Quick facts</h3>
-            <dl className="mt-4 space-y-3 text-sm">
-              {data.bedrooms != null && <Fact label="Bedrooms" value={String(data.bedrooms)} />}
-              {data.bathrooms != null && <Fact label="Bathrooms" value={String(data.bathrooms)} />}
-              {data.area_sqm != null && <Fact label="Area" value={`${data.area_sqm} m²`} />}
-              <Fact label="Type" value={typeLabel(data.property_type)} />
-              <Fact label="Listed by" value={(data as { profiles?: { full_name?: string } }).profiles?.full_name ?? "Commissioner"} />
-            </dl>
-          </aside>
+
+          <div className="space-y-6">
+            <aside className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="font-display text-lg font-semibold">Quick facts</h3>
+              <dl className="mt-4 space-y-3 text-sm">
+                {data.bedrooms != null && <Fact label="Bedrooms" value={String(data.bedrooms)} />}
+                {data.bathrooms != null && <Fact label="Bathrooms" value={String(data.bathrooms)} />}
+                {data.area_sqm != null && <Fact label="Area" value={`${data.area_sqm} m²`} />}
+                <Fact label="Type" value={typeLabel(data.property_type)} />
+              </dl>
+            </aside>
+
+            {/* ── Agent / contact card ── */}
+            <aside className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="font-display text-lg font-semibold">Listed by</h3>
+              <Link
+                to="/agents/$id"
+                params={{ id: data.commissioner_id }}
+                className="mt-4 flex items-center gap-3 rounded-lg -mx-2 p-2 transition hover:bg-accent"
+              >
+                <Avatar className="h-12 w-12 border border-border">
+                  {data.agent?.avatar_url && <AvatarImage src={data.agent.avatar_url} alt={data.agent.full_name ?? "Agent"} />}
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">
+                    {(data.agent?.full_name ?? "A").slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{data.agent?.full_name ?? "One Higala commissioner"}</p>
+                  {data.agent?.title && <p className="truncate text-xs text-muted-foreground">{data.agent.title}</p>}
+                </div>
+              </Link>
+
+              <div className="mt-4 space-y-2">
+                {contactPhone && (
+                  <a
+                    href={`tel:${contactPhone}`}
+                    className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary hover:text-primary"
+                  >
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{contactPhone}</span>
+                  </a>
+                )}
+                {contactEmail && (
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary hover:text-primary"
+                  >
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{contactEmail}</span>
+                  </a>
+                )}
+                {!contactPhone && !contactEmail && (
+                  <p className="text-sm text-muted-foreground">
+                    No contact info provided yet — visit the agent's profile for more ways to reach them.
+                  </p>
+                )}
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
     </div>
