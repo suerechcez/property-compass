@@ -51,9 +51,9 @@ export function Nav() {
         {/* Left nav group — all primary links live here now */}
         <nav className="hidden items-center gap-6 text-base font-medium md:flex">
           <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-          <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
-          <Link to="/browse" search={{ rent: true }} className={NAV_LINK_CLASS}>Rent</Link>
-          <Link to="/profile" className={NAV_LINK_CLASS}>Sell</Link>
+          <Link to="/browse" search={{ filter: "sale" }} className={NAV_LINK_CLASS}>Buy</Link>
+          <Link to="/browse" search={{ filter: "rent" }} className={NAV_LINK_CLASS}>Rent</Link>
+          <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
           <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
         </nav>
 
