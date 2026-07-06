@@ -7,7 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PROPERTY_TYPES, PROPERTY_STATUS, type PropertyTypeValue } from "@/lib/property-types";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectLabel,
+  SelectItem,
+} from "@/components/ui/select";
+import { PROPERTY_TYPES, PROPERTY_STATUS, CDO_AREAS, type PropertyTypeValue } from "@/lib/property-types";
 import { uploadPropertyImage } from "@/lib/storage";
 import { toast } from "sonner";
 
@@ -57,8 +66,27 @@ export function ListingForm({
   const [features, setFeatures] = useState((initial?.features ?? []).join(", "));
   const [forRent, setForRent] = useState(initial?.for_rent ?? false);
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Prefill contact info from the commissioner's own profile, so they don't
+  // have to retype it for every listing — still editable per listing below.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("phone, email")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setContactPhone((prev) => prev || data.phone || "");
+          setContactEmail((prev) => prev || data.email || user.email || "");
+        }
+      });
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -94,10 +122,17 @@ export function ListingForm({
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+    const contactNote = [
+      contactPhone && `Phone: ${contactPhone}`,
+      contactEmail && `Email: ${contactEmail}`,
+    ].filter(Boolean).join(" · ");
+    const fullDescription = contactNote
+      ? `${description}\n\n---\nContact: ${contactNote}`
+      : description;
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
       title,
-      description: description || null,
+      description: fullDescription || null,
       property_type: type,
       status,
       price: Number(price) || 0,
@@ -187,7 +222,7 @@ export function ListingForm({
           <Section title="Basics">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Title" full>
-                <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sunset Penthouse — Makati" />
+                <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sunset Penthouse — Cagayan de Oro" />
               </Field>
               <Field label="Type">
                 <select
@@ -210,8 +245,22 @@ export function ListingForm({
               <Field label="Price (PHP ₱)">
                 <Input type="number" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
               </Field>
-              <Field label="Location">
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Cebu City, Philippines" />
+              <Field label="Location (Barangay, Cagayan de Oro City)" full>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a barangay in Cagayan de Oro City…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CDO_AREAS.map((group) => (
+                      <SelectGroup key={group.group}>
+                        <SelectLabel>{group.group}</SelectLabel>
+                        {group.areas.map((area) => (
+                          <SelectItem key={area} value={area}>{area}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
@@ -221,6 +270,30 @@ export function ListingForm({
                   <input type="checkbox" checked={forRent} onChange={(e) => setForRent(e.target.checked)} />
                   Available for rent (hotels, condos)
                 </label>
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Contact information">
+            <p className="text-sm text-muted-foreground">
+              Shown to buyers and renters on this listing so they can reach you directly.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Field label="Phone number">
+                <Input
+                  type="tel"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  placeholder="+63 9XX XXX XXXX"
+                />
+              </Field>
+              <Field label="Email (Gmail or other)">
+                <Input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="you@gmail.com"
+                />
               </Field>
             </div>
           </Section>
