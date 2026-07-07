@@ -43,6 +43,21 @@ function AgentProfile() {
     },
   });
 
+  // Determine whether this person is registered as a Commissioner, an Agent,
+  // or both — used as the fallback label when they haven't set a custom job title.
+  const { data: roleRows = [] } = useQuery({
+    queryKey: ["agent-roles", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", id)
+        .in("role", ["commissioner", "agent"]);
+      return data ?? [];
+    },
+  });
+  const roleLabel = roleRows.some((r) => r.role === "agent") ? "Agent" : "Commissioner";
+
   const { data: sales = [] } = useQuery({
     queryKey: ["agent-sales", id],
     queryFn: async () => {
@@ -110,7 +125,7 @@ function AgentProfile() {
               )}
             </div>
             <div className="flex-1">
-              <p className="text-xs uppercase tracking-wider text-primary">{profile.title ?? "Commissioner"}</p>
+              <p className="text-xs uppercase tracking-wider text-primary">{profile.title ?? roleLabel}</p>
               <h1 className="mt-1 font-display text-4xl font-semibold">{profile.full_name ?? "Agent"}</h1>
               {profile.agency_name && (
                 <p className="mt-0.5 text-sm text-muted-foreground">{profile.agency_name}</p>
