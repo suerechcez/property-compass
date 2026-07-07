@@ -14,8 +14,9 @@ type ListingFilter = "all" | "sale" | "rent";
 // Hero banner shown above the heading on every /browse view (All listings,
 // For Sale, and For Rent alike). Upload the file to /public/hero-browse.jpg
 // (or .png — either extension works, the <img> below tries .jpg first and
-// falls back to .png automatically) and it appears here at its own natural
-// size — no cropping/resizing is applied.
+// falls back to .png automatically). It's shown inside a fixed-height banner
+// box and cropped to fill it (object-cover), so any image you drop in — at
+// whatever resolution it happens to be — always fits this same banner size.
 const HERO_BROWSE_JPG = "/hero-browse.jpg";
 const HERO_BROWSE_PNG = "/hero-browse.png";
 
@@ -190,15 +191,17 @@ function HeroBanner() {
   if (hidden) return null;
 
   return (
-    <img
-      src={src}
-      alt=""
-      className="mb-6 w-full"
-      onError={() => {
-        if (src === HERO_BROWSE_JPG) setSrc(HERO_BROWSE_PNG);
-        else setHidden(true);
-      }}
-    />
+    <div className="mb-6 h-40 w-full overflow-hidden rounded-xl sm:h-48 md:h-56">
+      <img
+        src={src}
+        alt=""
+        className="h-full w-full object-cover"
+        onError={() => {
+          if (src === HERO_BROWSE_JPG) setSrc(HERO_BROWSE_PNG);
+          else setHidden(true);
+        }}
+      />
+    </div>
   );
 }
 
