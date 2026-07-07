@@ -11,10 +11,11 @@ import { Search } from "lucide-react";
 
 type ListingFilter = "all" | "sale" | "rent";
 
-// Hero banner shown above the "For Sale" / "For Rent" heading. Upload the file
-// to /public/hero-browse.jpg (or .jpg — either extension works, the <img> below
-// tries .jpg first and falls back to .png automatically) and it appears here
-// at its own natural size — no cropping/resizing is applied.
+// Hero banner shown above the heading on every /browse view (All listings,
+// For Sale, and For Rent alike). Upload the file to /public/hero-browse.jpg
+// (or .png — either extension works, the <img> below tries .jpg first and
+// falls back to .png automatically) and it appears here at its own natural
+// size — no cropping/resizing is applied.
 const HERO_BROWSE_JPG = "/hero-browse.jpg";
 const HERO_BROWSE_PNG = "/hero-browse.png";
 
@@ -86,9 +87,7 @@ function Browse() {
           {/* ── Search + heading ── */}
           <section className="border-b border-border bg-surface">
             <div className="mx-auto max-w-7xl px-6 py-8">
-              {(listingFilter === "sale" || listingFilter === "rent") && (
-                <HeroBanner />
-              )}
+              <HeroBanner />
               <h1 className="font-display text-3xl font-semibold">{heading}</h1>
               <p className="mt-1 text-muted-foreground">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
