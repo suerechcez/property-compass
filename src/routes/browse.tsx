@@ -125,9 +125,9 @@ function Browse() {
               <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
                 <h3 className="font-display text-2xl font-semibold">No listings yet</h3>
                 <p className="mt-2 text-muted-foreground">
-                  When commissioners post properties, they'll appear here.
+                  When commissioners and agents post properties, they'll appear here.
                 </p>
-                <Button asChild className="mt-6"><Link to="/profile">Become a commissioner</Link></Button>
+                <Button asChild className="mt-6"><Link to="/profile">Become a Commissioner / Agent</Link></Button>
               </div>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
