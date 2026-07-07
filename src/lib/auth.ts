@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-export type AppRole = "developer" | "commissioner" | "buyer" | "admin";
+export type AppRole = "developer" | "commissioner" | "agent" | "buyer" | "admin";
 
 export interface AuthState {
   session: Session | null;
@@ -12,6 +12,7 @@ export interface AuthState {
   rolesLoaded: boolean;
   isDeveloper: boolean;
   isCommissioner: boolean;
+  isAgent: boolean;
   isAdmin: boolean;
 }
 
@@ -50,6 +51,7 @@ export function useAuth(): AuthState {
   }, [session?.user?.id]);
 
   const isCommissioner = rolesLoaded && roles.includes("commissioner");
+  const isAgent = rolesLoaded && roles.includes("agent");
   const isAdmin = rolesLoaded && roles.includes("admin");
 
   return {
@@ -60,6 +62,7 @@ export function useAuth(): AuthState {
     rolesLoaded,
     isDeveloper: rolesLoaded && roles.includes("developer"),
     isCommissioner,
+    isAgent,
     isAdmin,
   };
 }
