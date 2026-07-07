@@ -171,7 +171,12 @@ function ProfilePage() {
         </div>
 
         {rolesLoaded && !isCommissioner && !isAgent && !isAdmin && !isDeveloper && (
-          <CommissionerApplication userId={user.id} />
+          <CommissionerApplication
+            userId={user.id}
+            defaultName={fullName}
+            defaultPhone={phone}
+            defaultEmail={email || user.email || ""}
+          />
         )}
 
         <form
@@ -304,9 +309,29 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
-function CommissionerApplication({ userId }: { userId: string }) {
+function CommissionerApplication({
+  userId,
+  defaultName,
+  defaultPhone,
+  defaultEmail,
+}: {
+  userId: string;
+  defaultName: string;
+  defaultPhone: string;
+  defaultEmail: string;
+}) {
   const qc = useQueryClient();
-  const [note, setNote] = useState("");
+  const [applicantName, setApplicantName] = useState(defaultName);
+  const [applicantPhone, setApplicantPhone] = useState(defaultPhone);
+  const [applicantEmail, setApplicantEmail] = useState(defaultEmail);
+  const [reason, setReason] = useState("");
+
+  // Keep the fields synced if the profile finishes loading after this
+  // component first mounts (e.g. slow network) — but don't clobber anything
+  // the person has already started typing.
+  useEffect(() => { setApplicantName((v) => v || defaultName); }, [defaultName]);
+  useEffect(() => { setApplicantPhone((v) => v || defaultPhone); }, [defaultPhone]);
+  useEffect(() => { setApplicantEmail((v) => v || defaultEmail); }, [defaultEmail]);
 
   const { data: latestRequest, isLoading } = useQuery({
     queryKey: ["my-commissioner-request", userId],
@@ -325,16 +350,22 @@ function CommissionerApplication({ userId }: { userId: string }) {
 
   const apply = useMutation({
     mutationFn: async () => {
+      if (!applicantName.trim() || !applicantPhone.trim() || !applicantEmail.trim() || !reason.trim()) {
+        throw new Error("Please fill in your name, phone, email, and reason for applying.");
+      }
       const { error } = await supabase.from("commissioner_requests").insert({
         user_id: userId,
         status: "pending",
-        note: note || null,
+        full_name: applicantName.trim(),
+        phone: applicantPhone.trim(),
+        email: applicantEmail.trim(),
+        reason: reason.trim(),
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Request submitted for admin review.");
-      setNote("");
+      setReason("");
       qc.invalidateQueries({ queryKey: ["my-commissioner-request", userId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
@@ -358,20 +389,50 @@ function CommissionerApplication({ userId }: { userId: string }) {
           Your request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
         </div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-4">
           {isDenied && (
             <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               Your previous request was not approved. You're welcome to apply again.
             </p>
           )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Full name</Label>
+              <Input
+                required
+                value={applicantName}
+                onChange={(e) => setApplicantName(e.target.value)}
+                placeholder="Juan Dela Cruz"
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input
+                required
+                value={applicantPhone}
+                onChange={(e) => setApplicantPhone(e.target.value)}
+                placeholder="+63 …"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Email</Label>
+              <Input
+                required
+                type="email"
+                value={applicantEmail}
+                onChange={(e) => setApplicantEmail(e.target.value)}
+              />
+            </div>
+          </div>
           <div>
-            <Label>Note to admin (optional)</Label>
+            <Label>Reason for applying</Label>
             <textarea
-              rows={3}
+              required
+              rows={4}
               className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Share your real estate experience or license details…"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Tell the admin why you'd like to become a Commissioner or Agent — your real estate experience, license details, or what you're hoping to do on the platform…"
             />
           </div>
           <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
