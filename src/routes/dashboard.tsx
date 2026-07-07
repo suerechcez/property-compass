@@ -56,10 +56,11 @@ function friendlyName(user: { email?: string | null; user_metadata?: Record<stri
 }
 
 function Dashboard() {
-  const { user, loading, isDeveloper, isCommissioner, isAdmin } = useAuth();
+  const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
   const elevated = isAdmin || isDeveloper;
+  const canManageListings = isCommissioner || isAgent;
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -74,9 +75,9 @@ function Dashboard() {
 
   const tabs: { id: Tab; label: string; show: boolean }[] = [
     { id: "overview", label: "Overview", show: true },
-    { id: "listings", label: "My listings", show: isCommissioner },
-    { id: "sales", label: "Sales", show: isCommissioner },
-    { id: "forecast", label: "AI forecast", show: isCommissioner },
+    { id: "listings", label: "My listings", show: canManageListings },
+    { id: "sales", label: "Sales", show: canManageListings },
+    { id: "forecast", label: "AI forecast", show: canManageListings },
     { id: "admin", label: "Admin", show: isAdmin },
   ];
   const visibleTabs = tabs.filter((t) => t.show);
@@ -90,7 +91,7 @@ function Dashboard() {
             <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
             <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
           </div>
-          {isCommissioner && (
+          {canManageListings && (
             <Button asChild>
               <Link to="/listings/new">
                 <Plus className="h-4 w-4" />
@@ -103,7 +104,7 @@ function Dashboard() {
         <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} />
 
         <div className="mt-6 min-w-0">
-          {tab === "overview" && <Overview userId={user.id} isCommissioner={isCommissioner} isDeveloper={elevated} />}
+          {tab === "overview" && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
           {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
           {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
           {tab === "forecast" && <Forecast />}
@@ -457,7 +458,7 @@ function AdminTools() {
   });
 
   const grant = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "admin" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "agent" | "admin" }) => {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
     },
@@ -465,7 +466,7 @@ function AdminTools() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const commissioners = users.filter((u) => u.roles.includes("commissioner"));
+  const commissionersAndAgents = users.filter((u) => u.roles.includes("commissioner") || u.roles.includes("agent"));
 
   return (
     <div className="space-y-6">
@@ -495,6 +496,9 @@ function AdminTools() {
                     {!u.roles.includes("commissioner") && (
                       <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>
                     )}
+                    {!u.roles.includes("agent") && (
+                      <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>
+                    )}
                     {!u.roles.includes("admin") && (
                       <Button size="sm" variant="ghost" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>
                     )}
@@ -507,7 +511,7 @@ function AdminTools() {
       </div>
 
       <CommissionerRequests />
-      <CommissionerTracking commissioners={commissioners} />
+      <CommissionerTracking commissioners={commissionersAndAgents} />
     </div>
   );
 }
@@ -534,19 +538,19 @@ function CommissionerRequests() {
   });
 
   const decide = useMutation({
-    mutationFn: async ({ id, userId, approve }: { id: string; userId: string; approve: boolean }) => {
-      if (approve) {
-        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role: "commissioner" });
+    mutationFn: async ({ id, userId, role }: { id: string; userId: string; role: "commissioner" | "agent" | null }) => {
+      if (role) {
+        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role });
         if (rerr && !rerr.message.includes("duplicate")) throw rerr;
       }
       const { error } = await supabase
         .from("commissioner_requests")
-        .update({ status: approve ? "approved" : "denied", decided_at: new Date().toISOString() })
+        .update({ status: role ? "approved" : "denied", decided_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
-      toast.success(v.approve ? "Commissioner approved" : "Request denied");
+      toast.success(v.role ? `Approved as ${v.role}` : "Request denied");
       qc.invalidateQueries({ queryKey: ["commissioner-requests"] });
       qc.invalidateQueries({ queryKey: ["all-users"] });
     },
@@ -555,8 +559,8 @@ function CommissionerRequests() {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner requests</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Approve or deny users who requested commissioner access.</p>
+      <h2 className="font-display text-xl font-semibold">Commissioner / Agent requests</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Approve or deny users who requested Commissioner / Agent access, and choose which role to grant.</p>
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -574,8 +578,9 @@ function CommissionerRequests() {
                 </td>
                 <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, approve: true })}>Approve</Button>
-                  <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, approve: false })}>Deny</Button>
+                  <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
+                  <Button size="sm" variant="outline" className="ml-2" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
+                  <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
                 </td>
               </tr>
             ))}
@@ -614,8 +619,8 @@ function CommissionerTracking({ commissioners }: { commissioners: { id: string; 
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner tracking</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners.</p>
+      <h2 className="font-display text-xl font-semibold">Commissioner / Agent tracking</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners and agents.</p>
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
@@ -629,7 +634,7 @@ function CommissionerTracking({ commissioners }: { commissioners: { id: string; 
           </thead>
           <tbody>
             {commissioners.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners yet.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
             ) : commissioners.map((c) => {
               const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
               return (
