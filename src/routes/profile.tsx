@@ -18,7 +18,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
-  const { user, loading, isCommissioner, isAdmin, isDeveloper, rolesLoaded } = useAuth();
+  const { user, loading, isCommissioner, isAgent, isAdmin, isDeveloper, rolesLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -120,7 +120,7 @@ function ProfilePage() {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
-  const isAgent = isCommissioner || isAdmin || isDeveloper;
+  const showProfessionalFields = isCommissioner || isAgent || isAdmin || isDeveloper;
 
   if (loading || !user) {
     return <div><Nav /><div className="mx-auto max-w-3xl p-10 text-muted-foreground">Loading…</div></div>;
@@ -173,7 +173,7 @@ function ProfilePage() {
           </div>
         </div>
 
-        {rolesLoaded && !isCommissioner && !isAdmin && !isDeveloper && (
+        {rolesLoaded && !isCommissioner && !isAgent && !isAdmin && !isDeveloper && (
           <CommissionerApplication userId={user.id} />
         )}
 
@@ -217,7 +217,7 @@ function ProfilePage() {
             </div>
           </section>
 
-          {isAgent && (
+          {showProfessionalFields && (
             <>
               <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
                 <div>
@@ -380,9 +380,9 @@ function CommissionerApplication({ userId }: { userId: string }) {
 
   return (
     <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Become a commissioner</h2>
+      <h2 className="font-display text-xl font-semibold">Become a Commissioner / Agent</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Commissioners can post and manage property listings. Applications are reviewed by an admin.
+        Commissioners and Agents can post and manage property listings. Applications are reviewed by an admin, who will decide which role best fits you.
       </p>
 
       {isPending ? (
@@ -408,7 +408,7 @@ function CommissionerApplication({ userId }: { userId: string }) {
             />
           </div>
           <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
-            {apply.isPending ? "Submitting…" : "Apply to become a commissioner"}
+            {apply.isPending ? "Submitting…" : "Apply to become a Commissioner / Agent"}
           </Button>
         </div>
       )}
