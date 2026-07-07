@@ -7,16 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectGroup,
-  SelectLabel,
-  SelectItem,
-} from "@/components/ui/select";
-import { PROPERTY_TYPES, PROPERTY_STATUS, CDO_AREAS, type PropertyTypeValue } from "@/lib/property-types";
+import { PROPERTY_TYPES, PROPERTY_STATUS, type PropertyTypeValue } from "@/lib/property-types";
 import { uploadPropertyImage } from "@/lib/storage";
 import { toast } from "sonner";
 
@@ -54,7 +45,8 @@ export function ListingForm({
   };
 }) {
   const navigate = useNavigate();
-  const { user, isCommissioner, loading, rolesLoaded } = useAuth();
+  const { user, isCommissioner, isAgent, loading, rolesLoaded } = useAuth();
+  const canPost = isCommissioner || isAgent;
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [type, setType] = useState<PropertyTypeValue>(initial?.property_type ?? "condo");
@@ -96,13 +88,13 @@ export function ListingForm({
       return;
     }
     // Wait for both the session AND the roles fetch to finish before judging
-    // whether this user is a commissioner — checking `loading` alone races
+    // whether this user can post — checking `loading` alone races
     // ahead of the roles query and produces a false-negative toast.
-    if (!loading && rolesLoaded && user && !isCommissioner) {
-      toast.error("You need a commissioner role to post listings.");
+    if (!loading && rolesLoaded && user && !canPost) {
+      toast.error("You need a commissioner or agent role to post listings.");
       navigate({ to: "/dashboard" });
     }
-  }, [loading, rolesLoaded, user, isCommissioner, navigate]);
+  }, [loading, rolesLoaded, user, canPost, navigate]);
 
   async function onFiles(files: FileList | null) {
     if (!files || !user) return;
@@ -165,7 +157,7 @@ export function ListingForm({
   }
 
   // Don't render the form until we actually know the user's roles —
-  // avoids a flash of the form for non-commissioners before the redirect above fires.
+  // avoids a flash of the form for non-commissioners/agents before the redirect above fires.
   if (loading || !rolesLoaded) {
     return (
       <div className="min-h-screen">
@@ -242,22 +234,12 @@ export function ListingForm({
               <Field label="Price (PHP ₱)">
                 <Input type="number" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
               </Field>
-              <Field label="Location (Barangay, Cagayan de Oro City)" full>
-                <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a barangay in Cagayan de Oro City…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CDO_AREAS.map((group) => (
-                      <SelectGroup key={group.group}>
-                        <SelectLabel>{group.group}</SelectLabel>
-                        {group.areas.map((area) => (
-                          <SelectItem key={area} value={area}>{area}</SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Field label="Location" full>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="House no., Barangay, Street, City"
+                />
               </Field>
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
