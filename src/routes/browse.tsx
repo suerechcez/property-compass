@@ -101,13 +101,13 @@ function Browse() {
                 }}
               />
             )}
-            {!heroHidden && <div className="absolute inset-0 bg-surface/80" />}
+            {!heroHidden && <div className="absolute inset-0 bg-surface/30" />}
             <div className="relative mx-auto max-w-7xl px-6 py-8">
-              <h1 className="font-display text-3xl font-semibold">{heading}</h1>
-              <p className="mt-1 text-muted-foreground">
+              <h1 className="font-display text-3xl font-semibold drop-shadow-sm">{heading}</h1>
+              <p className="mt-1 text-muted-foreground drop-shadow-sm">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
-              <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card">
+              <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm">
                 <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input
                   value={q}
