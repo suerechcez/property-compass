@@ -51,6 +51,9 @@ export function Nav() {
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
         {/* Left nav group — all primary links live here now */}
         <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+          {/* Invisible spacer — keeps "Buy" sitting where it did back when
+              "Browse" was still the first link, without showing the text. */}
+          <span aria-hidden="true" className="invisible select-none">Browse</span>
           <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
           <Link to="/browse" search={{ filter: "rent" }} className={NAV_LINK_CLASS}>Rent</Link>
           <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
