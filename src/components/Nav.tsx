@@ -21,7 +21,7 @@ const BRAND_ICON_URL = "/brand-icon.png";
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 export function Nav() {
-  const { user, isCommissioner, isAdmin } = useAuth();
+  const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [iconOk, setIconOk] = useState(true);
 
@@ -50,8 +50,7 @@ export function Nav() {
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
         {/* Left nav group — all primary links live here now */}
         <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-          <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-          <Link to="/browse" search={{ filter: "sale" }} className={NAV_LINK_CLASS}>Buy</Link>
+          <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
           <Link to="/browse" search={{ filter: "rent" }} className={NAV_LINK_CLASS}>Rent</Link>
           <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
           <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
@@ -114,7 +113,7 @@ export function Nav() {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                {isCommissioner && (
+                {(isCommissioner || isAgent) && (
                   <DropdownMenuItem asChild>
                     <Link to="/listings/new" className="cursor-pointer">
                       <Building2 className="h-4 w-4" />
