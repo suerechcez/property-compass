@@ -7,7 +7,7 @@ export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
       { title: "Our Agents — One Higala Properties Inc." },
-      { name: "description", content: "Meet the commissioners at One Higala Properties Inc. and view their sales track record." },
+      { name: "description", content: "Meet the commissioners and agents at One Higala Properties Inc. and view their sales track record." },
     ],
   }),
   component: AgentsList,
@@ -19,15 +19,20 @@ function AgentsList() {
     queryFn: async () => {
       const { data: roles } = await supabase
         .from("user_roles")
-        .select("user_id")
-        .eq("role", "commissioner");
+        .select("user_id, role")
+        .in("role", ["commissioner", "agent"]);
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
+      // If someone holds both roles, prefer showing them as "Agent".
+      const roleByUser = new Map<string, string>();
+      (roles ?? []).forEach((r) => {
+        if (r.role === "agent" || !roleByUser.has(r.user_id)) roleByUser.set(r.user_id, r.role);
+      });
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url, phone, created_at")
         .in("id", ids);
-      return profiles ?? [];
+      return (profiles ?? []).map((p) => ({ ...p, role: roleByUser.get(p.id) ?? "commissioner" }));
     },
   });
 
@@ -38,7 +43,7 @@ function AgentsList() {
         <div className="mx-auto max-w-7xl px-6 py-14">
           <h1 className="font-display text-4xl font-semibold md:text-5xl">Our Agents</h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Meet the commissioners bringing you home the higala way. View their profile, commission earnings, and complete sales history.
+            Meet the commissioners and agents bringing you home the higala way. View their profile, commission earnings, and complete sales history.
           </p>
         </div>
       </section>
@@ -66,7 +71,9 @@ function AgentsList() {
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-semibold group-hover:text-primary">{a.full_name ?? "Agent"}</h3>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">Commissioner</p>
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                      {a.role === "agent" ? "Agent" : "Commissioner"}
+                    </p>
                   </div>
                 </div>
                 <p className="mt-4 text-sm text-primary">View profile & sales →</p>
