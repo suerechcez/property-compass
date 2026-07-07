@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2 } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2, Wallet, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ export function Nav() {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [iconOk, setIconOk] = useState(true);
+  const canManageListings = isCommissioner || isAgent;
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -101,25 +102,39 @@ export function Nav() {
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="cursor-pointer">
+                    <Link to="/dashboard" search={{ tab: "admin" }} className="cursor-pointer">
                       <ShieldCheck className="h-4 w-4" />
                       Admin
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="cursor-pointer">
+                  <Link to="/dashboard" search={{ tab: "overview" }} className="cursor-pointer">
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                {(isCommissioner || isAgent) && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/listings/new" className="cursor-pointer">
-                      <Building2 className="h-4 w-4" />
-                      Post Property
-                    </Link>
-                  </DropdownMenuItem>
+                {canManageListings && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" search={{ tab: "listings" }} className="cursor-pointer">
+                        <Building2 className="h-4 w-4" />
+                        My listings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" search={{ tab: "sales" }} className="cursor-pointer">
+                        <Wallet className="h-4 w-4" />
+                        Sales
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/listings/new" className="cursor-pointer">
+                        <Plus className="h-4 w-4" />
+                        Post Property
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
