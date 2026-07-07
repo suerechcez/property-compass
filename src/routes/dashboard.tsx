@@ -15,12 +15,16 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { format } from "date-fns";
 import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, Plus, type LucideIcon } from "lucide-react";
 
+type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
+const TABS: Tab[] = ["overview", "listings", "sales", "forecast", "admin"];
+
 export const Route = createFileRoute("/dashboard")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: (TABS.includes(search.tab as Tab) ? search.tab : "overview") as Tab,
+  }),
   head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
   component: Dashboard,
 });
-
-type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
 
 const TAB_ICONS: Record<Tab, LucideIcon> = {
   overview: LayoutDashboard,
@@ -58,9 +62,17 @@ function friendlyName(user: { email?: string | null; user_metadata?: Record<stri
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("overview");
+  const { tab: urlTab } = Route.useSearch();
+  const [tab, setTab] = useState<Tab>(urlTab);
   const elevated = isAdmin || isDeveloper;
   const canManageListings = isCommissioner || isAgent;
+
+  // /dashboard is a single route for every tab (deep-linked via ?tab=), so the
+  // component doesn't remount when the profile dropdown links here with a
+  // different tab — re-sync local state whenever the URL's tab actually changes.
+  useEffect(() => {
+    setTab(urlTab);
+  }, [urlTab]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -170,18 +182,76 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
       };
     },
   });
+
+  const { data: myListings = [], isLoading: listingsLoading } = useQuery({
+    queryKey: ["overview-listings", userId, isDeveloper],
+    queryFn: async () => {
+      let q = supabase.from("properties").select("*").order("created_at", { ascending: false });
+      if (!isDeveloper) q = q.eq("commissioner_id", userId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: isCommissioner,
+  });
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
-      <Stat label="Published" value={String(stats?.published ?? "—")} />
-      <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
-      <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
+        <Stat label="Published" value={String(stats?.published ?? "—")} />
+        <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
+        <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
+      </div>
+
       {isCommissioner && (
-        <div className="sm:col-span-2 lg:col-span-4 rounded-2xl border border-border bg-card p-6">
-          <h2 className="font-display text-xl font-semibold">Quick actions</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button asChild><Link to="/listings/new">Post a new property</Link></Button>
-            <Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button>
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="font-display text-xl font-semibold">
+            {isDeveloper ? "All listings" : "Your listings"}
+          </h2>
+
+          {listingsLoading ? (
+            <p className="mt-4 text-muted-foreground">Loading…</p>
+          ) : myListings.length === 0 ? (
+            <p className="mt-4 text-muted-foreground">No listings yet.</p>
+          ) : (
+            <div className="mt-4 divide-y divide-border">
+              {myListings.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/properties/$id"
+                  params={{ id: p.id }}
+                  className="flex gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
+                >
+                  <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {p.images?.[0] ? (
+                      <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center font-display text-lg text-muted-foreground">H</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-display text-lg font-bold leading-tight">{p.title}</h3>
+                      <p className="shrink-0 font-display text-lg font-semibold text-primary">
+                        {formatPrice(p.price)}
+                        {p.for_rent && <span className="text-xs text-muted-foreground"> /mo</span>}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
+                    <p className="mt-1.5 line-clamp-2 text-sm text-foreground/70">
+                      {p.description || "No description provided yet."}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" asChild>
+              <Link to="/browse">Browse listings</Link>
+            </Button>
           </div>
         </div>
       )}
@@ -279,30 +349,73 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
     },
   });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [propertyId, setPropertyId] = useState("");
   const [amount, setAmount] = useState("");
   const [commission, setCommission] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const add = useMutation({
+  function resetForm() {
+    setEditingId(null);
+    setPropertyId("");
+    setAmount("");
+    setCommission("");
+    setBuyerName("");
+    setSaleDate(new Date().toISOString().slice(0, 10));
+  }
+
+  function startEdit(s: {
+    id: string;
+    property_id: string | null;
+    amount: number | string;
+    commission: number | string;
+    buyer_name: string | null;
+    sale_date: string;
+  }) {
+    setEditingId(s.id);
+    setPropertyId(s.property_id ?? "");
+    setAmount(String(s.amount));
+    setCommission(String(s.commission));
+    setBuyerName(s.buyer_name ?? "");
+    setSaleDate(s.sale_date.slice(0, 10));
+  }
+
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("sales").insert({
-        commissioner_id: userId,
+      const payload = {
         property_id: propertyId || null,
         amount: Number(amount),
         commission: Number(commission) || 0,
         buyer_name: buyerName || null,
         sale_date: saleDate,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("sales").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("sales").insert({ ...payload, commissioner_id: userId });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Sale logged");
-      setAmount(""); setCommission(""); setBuyerName(""); setPropertyId("");
+      toast.success(editingId ? "Sale updated" : "Sale logged");
+      resetForm();
       qc.invalidateQueries({ queryKey: ["sales"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("sales").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Sale deleted");
+      qc.invalidateQueries({ queryKey: ["sales"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
   const chartData = useMemo(() => {
@@ -317,10 +430,15 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl font-semibold">Log a new sale</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h2>
+          {editingId && (
+            <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>
+          )}
+        </div>
         <form
           className="mt-4 grid gap-3 md:grid-cols-5"
-          onSubmit={(e) => { e.preventDefault(); add.mutate(); }}
+          onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
         >
           <div className="md:col-span-2">
             <Label>Property</Label>
@@ -337,7 +455,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
           <div><Label>Commission</Label><Input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} /></div>
           <div><Label>Date</Label><Input type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} /></div>
           <div className="md:col-span-4"><Label>Buyer (optional)</Label><Input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} /></div>
-          <div className="flex items-end"><Button className="w-full" type="submit">Add sale</Button></div>
+          <div className="flex items-end"><Button className="w-full" type="submit">{editingId ? "Save changes" : "Add sale"}</Button></div>
         </form>
       </div>
 
@@ -361,11 +479,11 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Property</th><th className="px-4 py-3">Buyer</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Commission</th></tr>
+            <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Property</th><th className="px-4 py-3">Buyer</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Commission</th><th /></tr>
           </thead>
           <tbody>
             {sales.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
             ) : sales.map((s) => (
               <tr key={s.id} className="border-t border-border">
                 <td className="px-4 py-3">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
@@ -373,6 +491,17 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
                 <td className="px-4 py-3">{s.buyer_name ?? "—"}</td>
                 <td className="px-4 py-3 font-medium">{formatPrice(s.amount)}</td>
                 <td className="px-4 py-3 text-primary">{formatPrice(s.commission)}</td>
+                <td className="px-4 py-3 text-right whitespace-nowrap">
+                  <Button size="sm" variant="outline" onClick={() => startEdit(s)}>Edit</Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-2 text-destructive"
+                    onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}
+                  >
+                    Delete
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>
