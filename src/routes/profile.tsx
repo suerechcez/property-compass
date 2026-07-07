@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { PROPERTY_TYPES, CDO_AREAS } from "@/lib/property-types";
+import { PROPERTY_TYPES } from "@/lib/property-types";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "My Profile · One Higala Properties" }] }),
@@ -48,7 +48,6 @@ function ProfilePage() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [agencyName, setAgencyName] = useState("");
   const [specialties, setSpecialties] = useState<string[]>([]);
-  const [serviceAreas, setServiceAreas] = useState<string[]>([]);
   const [languages, setLanguages] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
 
@@ -64,7 +63,6 @@ function ProfilePage() {
     setLicenseNumber(profile.license_number ?? "");
     setAgencyName(profile.agency_name ?? "");
     setSpecialties(profile.specialties ?? []);
-    setServiceAreas(profile.service_areas ?? []);
     setLanguages(profile.languages ?? "");
     setFacebookUrl(profile.facebook_url ?? "");
   }, [profile, user?.email]);
@@ -84,7 +82,6 @@ function ProfilePage() {
           license_number: licenseNumber || null,
           agency_name: agencyName || null,
           specialties,
-          service_areas: serviceAreas,
           languages: languages || null,
           facebook_url: facebookUrl || null,
         })
@@ -278,36 +275,6 @@ function ProfilePage() {
                     >
                       {t.label}
                     </Chip>
-                  ))}
-                </div>
-              </section>
-
-              <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
-                <div>
-                  <h2 className="font-display text-xl font-semibold">Service areas</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Barangays across Cagayan de Oro City you actively serve.
-                    {serviceAreas.length > 0 && ` (${serviceAreas.length} selected)`}
-                  </p>
-                </div>
-                <div className="max-h-72 space-y-4 overflow-y-auto rounded-lg border border-border p-4">
-                  {CDO_AREAS.map((group) => (
-                    <div key={group.group}>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {group.group}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.areas.map((area) => (
-                          <Chip
-                            key={area}
-                            active={serviceAreas.includes(area)}
-                            onClick={() => toggle(serviceAreas, setServiceAreas, area)}
-                          >
-                            {area}
-                          </Chip>
-                        ))}
-                      </div>
-                    </div>
                   ))}
                 </div>
               </section>
