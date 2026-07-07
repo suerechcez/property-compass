@@ -647,19 +647,21 @@ function AdminTools() {
 
 function CommissionerRequests() {
   const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+
   const { data: requests = [] } = useQuery({
     queryKey: ["commissioner-requests"],
     queryFn: async () => {
       const { data: reqs } = await supabase
         .from("commissioner_requests")
-        .select("id, user_id, status, created_at, note")
+        .select("id, user_id, status, created_at, note, full_name, phone, email, reason")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       const ids = Array.from(new Set((reqs ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, phone")
         .in("id", ids);
       const pm = new Map((profiles ?? []).map((p) => [p.id, p]));
       return (reqs ?? []).map((r) => ({ ...r, profile: pm.get(r.user_id) ?? null }));
@@ -682,6 +684,7 @@ function CommissionerRequests() {
       toast.success(v.role ? `Approved as ${v.role}` : "Request denied");
       qc.invalidateQueries({ queryKey: ["commissioner-requests"] });
       qc.invalidateQueries({ queryKey: ["all-users"] });
+      setOpenId(null);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -689,30 +692,68 @@ function CommissionerRequests() {
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
       <h2 className="font-display text-xl font-semibold">Commissioner / Agent requests</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Approve or deny users who requested Commissioner / Agent access, and choose which role to grant.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Open a request to review the applicant's full details, then approve as Commissioner, approve as Agent, or deny.
+      </p>
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
+            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {requests.length === 0 ? (
               <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
-            ) : requests.map((r) => (
-              <tr key={r.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{r.profile?.full_name ?? r.user_id.slice(0, 8)}</div>
-                  <div className="text-xs text-muted-foreground">{r.profile?.email ?? ""}</div>
-                  {r.note && <div className="mt-1 max-w-sm text-xs italic text-muted-foreground">"{r.note}"</div>}
-                </td>
-                <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
-                <td className="px-4 py-3 text-right">
-                  <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
-                  <Button size="sm" variant="outline" className="ml-2" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
-                  <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
-                </td>
-              </tr>
-            ))}
+            ) : requests.map((r) => {
+              const isOpen = openId === r.id;
+              const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
+              return (
+                <>
+                  <tr key={r.id} className="border-t border-border">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{displayName}</div>
+                      <div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
+                    </td>
+                    <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>
+                        {isOpen ? "Close" : "View details"}
+                      </Button>
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
+                      <td colSpan={3} className="px-4 py-5">
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p>
+                            <p className="mt-1 text-sm">{displayName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p>
+                            <p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</p>
+                            <p className="mt-1 text-sm">{r.email ?? r.profile?.email ?? "—"}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason for applying</p>
+                          <p className="mt-1 whitespace-pre-line text-sm text-foreground/85">
+                            {r.reason ?? r.note ?? "No reason provided."}
+                          </p>
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
+                          <Button size="sm" variant="outline" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
           </tbody>
         </table>
       </div>
