@@ -29,10 +29,10 @@ export function SideBar() {
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 overflow-y-auto p-4">
         <section>
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <Newspaper className="h-3.5 w-3.5" /> Commissioner updates
+            <Newspaper className="h-3.5 w-3.5" /> Listing updates
           </div>
           {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No commissioner posts yet.</p>
+            <p className="text-sm text-muted-foreground">No listing updates yet.</p>
           ) : (
             <ul className="space-y-3">
               {recent.map((p) => (
