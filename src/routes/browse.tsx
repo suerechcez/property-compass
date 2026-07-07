@@ -11,6 +11,13 @@ import { Search } from "lucide-react";
 
 type ListingFilter = "all" | "sale" | "rent";
 
+// Hero banner shown above the "For Sale" / "For Rent" heading. Upload the file
+// to /public/hero-browse.jpg (or .jpg — either extension works, the <img> below
+// tries .jpg first and falls back to .png automatically) and it appears here
+// at its own natural size — no cropping/resizing is applied.
+const HERO_BROWSE_JPG = "/hero-browse.jpg";
+const HERO_BROWSE_PNG = "/hero-browse.png";
+
 export const Route = createFileRoute("/browse")({
   validateSearch: (search: Record<string, unknown>) => ({
     filter: (search.filter === "sale" || search.filter === "rent" ? search.filter : "all") as ListingFilter,
@@ -79,6 +86,9 @@ function Browse() {
           {/* ── Search + heading ── */}
           <section className="border-b border-border bg-surface">
             <div className="mx-auto max-w-7xl px-6 py-8">
+              {(listingFilter === "sale" || listingFilter === "rent") && (
+                <HeroBanner />
+              )}
               <h1 className="font-display text-3xl font-semibold">{heading}</h1>
               <p className="mt-1 text-muted-foreground">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
@@ -171,6 +181,25 @@ function Browse() {
         </div>
       </div>
     </div>
+  );
+}
+
+function HeroBanner() {
+  const [src, setSrc] = useState(HERO_BROWSE_JPG);
+  const [hidden, setHidden] = useState(false);
+
+  if (hidden) return null;
+
+  return (
+    <img
+      src={src}
+      alt=""
+      className="mb-6 w-full"
+      onError={() => {
+        if (src === HERO_BROWSE_JPG) setSrc(HERO_BROWSE_PNG);
+        else setHidden(true);
+      }}
+    />
   );
 }
 
