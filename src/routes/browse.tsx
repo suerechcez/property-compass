@@ -11,12 +11,12 @@ import { Search } from "lucide-react";
 
 type ListingFilter = "all" | "sale" | "rent";
 
-// Hero banner shown above the heading on every /browse view (All listings,
-// For Sale, and For Rent alike). Upload the file to /public/hero-browse.jpg
-// (or .png — either extension works, the <img> below tries .jpg first and
-// falls back to .png automatically). It's shown inside a fixed-height banner
-// box and cropped to fill it (object-cover), so any image you drop in — at
-// whatever resolution it happens to be — always fits this same banner size.
+// Hero photo, shown as the background of the heading/search box on every
+// /browse view (All listings, For Sale, and For Rent alike). Upload the file
+// to /public/hero-browse.jpg (or .png — either extension works, the <img>
+// below tries .jpg first and falls back to .png automatically). It's
+// absolutely positioned to fill just that box (object-cover), so it never
+// spills into the nav above or the filter-chip row below.
 const HERO_BROWSE_JPG = "/hero-browse.jpg";
 const HERO_BROWSE_PNG = "/hero-browse.png";
 
@@ -39,6 +39,8 @@ function Browse() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
+  const [heroSrc, setHeroSrc] = useState(HERO_BROWSE_JPG);
+  const [heroHidden, setHeroHidden] = useState(false);
 
   // Buy/Rent/Browse all route to this same "/browse" path with different search
   // params, so the component doesn't remount between them — only re-sync local
@@ -85,10 +87,22 @@ function Browse() {
       <div className="flex">
         <SideBar />
         <div className="min-w-0 flex-1">
-          {/* ── Search + heading ── */}
-          <section className="border-b border-border bg-surface">
-            <div className="mx-auto max-w-7xl px-6 py-8">
-              <HeroBanner />
+          {/* ── Search + heading — hero photo lives as this box's own background,
+                 confined to this section only ── */}
+          <section className="relative overflow-hidden border-b border-border bg-surface">
+            {!heroHidden && (
+              <img
+                src={heroSrc}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={() => {
+                  if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG);
+                  else setHeroHidden(true);
+                }}
+              />
+            )}
+            {!heroHidden && <div className="absolute inset-0 bg-surface/80" />}
+            <div className="relative mx-auto max-w-7xl px-6 py-8">
               <h1 className="font-display text-3xl font-semibold">{heading}</h1>
               <p className="mt-1 text-muted-foreground">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
@@ -180,27 +194,6 @@ function Browse() {
           </section>
         </div>
       </div>
-    </div>
-  );
-}
-
-function HeroBanner() {
-  const [src, setSrc] = useState(HERO_BROWSE_JPG);
-  const [hidden, setHidden] = useState(false);
-
-  if (hidden) return null;
-
-  return (
-    <div className="mb-6 h-40 w-full overflow-hidden rounded-xl sm:h-48 md:h-56">
-      <img
-        src={src}
-        alt=""
-        className="h-full w-full object-cover"
-        onError={() => {
-          if (src === HERO_BROWSE_JPG) setSrc(HERO_BROWSE_PNG);
-          else setHidden(true);
-        }}
-      />
     </div>
   );
 }
