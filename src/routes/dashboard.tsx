@@ -654,7 +654,7 @@ function CommissionerRequests() {
     queryFn: async () => {
       const { data: reqs } = await supabase
         .from("commissioner_requests")
-        .select("id, user_id, status, created_at, note, full_name, phone, email, reason")
+        .select("id, user_id, status, created_at, note, full_name, phone, email, reason, requested_role")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
       const ids = Array.from(new Set((reqs ?? []).map((r) => r.user_id)));
@@ -698,20 +698,28 @@ function CommissionerRequests() {
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
+            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested role</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
           </thead>
           <tbody>
             {requests.length === 0 ? (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
             ) : requests.map((r) => {
               const isOpen = openId === r.id;
               const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
+              const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
               return (
                 <>
                   <tr key={r.id} className="border-t border-border">
                     <td className="px-4 py-3">
                       <div className="font-medium">{displayName}</div>
                       <div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.requested_role ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{requestedLabel}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
                     <td className="px-4 py-3 text-right">
@@ -722,7 +730,7 @@ function CommissionerRequests() {
                   </tr>
                   {isOpen && (
                     <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
-                      <td colSpan={3} className="px-4 py-5">
+                      <td colSpan={4} className="px-4 py-5">
                         <div className="grid gap-4 sm:grid-cols-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p>
@@ -744,8 +752,20 @@ function CommissionerRequests() {
                           </p>
                         </div>
                         <div className="mt-5 flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
-                          <Button size="sm" variant="outline" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
+                          <Button
+                            size="sm"
+                            variant={r.requested_role === "commissioner" ? "default" : "outline"}
+                            onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}
+                          >
+                            Approve as Commissioner
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={r.requested_role === "agent" ? "default" : "outline"}
+                            onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}
+                          >
+                            Approve as Agent
+                          </Button>
                           <Button size="sm" variant="ghost" className="text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
                         </div>
                       </td>
