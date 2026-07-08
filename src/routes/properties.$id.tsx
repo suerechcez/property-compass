@@ -134,8 +134,7 @@ function PropertyDetail() {
 
           <div className="space-y-6">
             <aside className="rounded-2xl border border-border bg-card p-6">
-              <h3 className="font-display text-lg font-semibold">Quick facts</h3>
-              <dl className="mt-4 space-y-3 text-sm">
+              <dl className="space-y-3 text-sm">
                 {data.bedrooms != null && <Fact label="Bedrooms" value={String(data.bedrooms)} />}
                 {data.bathrooms != null && <Fact label="Bathrooms" value={String(data.bathrooms)} />}
                 {data.area_sqm != null && <Fact label="Area" value={`${data.area_sqm} m²`} />}
