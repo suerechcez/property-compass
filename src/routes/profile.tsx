@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/PhoneInput";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { PROPERTY_TYPES } from "@/lib/property-types";
 
 export const Route = createFileRoute("/profile")({
@@ -171,12 +170,8 @@ function ProfilePage() {
           </div>
         </div>
 
-        {rolesLoaded && !isAdmin && !isDeveloper && (
-          isCommissioner && isAgent ? null : isCommissioner || isAgent ? (
-            <SingleRoleApplication userId={user.id} existingRole={isCommissioner ? "commissioner" : "agent"} />
-          ) : (
-            <CommissionerApplication userId={user.id} />
-          )
+        {rolesLoaded && !isAdmin && !isDeveloper && !(isCommissioner && isAgent) && (
+          <RoleApplicationBanner isCommissioner={isCommissioner} isAgent={isAgent} />
         )}
 
         <form
@@ -310,238 +305,28 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
 }
 
 /**
- * Shown to users who hold neither the Commissioner nor Agent role. Lets them
- * choose exactly one of the two to apply for.
+ * Compact CTA banner — no inline form anymore. Clicking through takes the
+ * person to the dedicated /apply page, which collects their details and
+ * reason for applying on its own page rather than inline here.
  */
-function CommissionerApplication({ userId }: { userId: string }) {
-  const qc = useQueryClient();
-  const [role, setRole] = useState<"commissioner" | "agent">("commissioner");
-  const [reason, setReason] = useState("");
-
-  const { data: latestRequest, isLoading } = useQuery({
-    queryKey: ["my-commissioner-request", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("commissioner_requests")
-        .select("id, status, created_at, decided_at, requested_role")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const apply = useMutation({
-    mutationFn: async () => {
-      if (!reason.trim()) {
-        throw new Error("Please share a reason for applying.");
-      }
-      const { error } = await supabase.from("commissioner_requests").insert({
-        user_id: userId,
-        status: "pending",
-        requested_role: role,
-        reason: reason.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(`Your ${role === "agent" ? "Agent" : "Commissioner"} request was submitted for admin review.`);
-      setReason("");
-      qc.invalidateQueries({ queryKey: ["my-commissioner-request", userId] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
-  });
-
-  if (isLoading) return null;
-
-  const isPending = latestRequest?.status === "pending";
-  const isDenied = latestRequest?.status === "denied";
-  const pendingRoleLabel = latestRequest?.requested_role === "agent" ? "Agent" : "Commissioner";
-  const roleLabel = role === "agent" ? "Agent" : "Commissioner";
+function RoleApplicationBanner({ isCommissioner, isAgent }: { isCommissioner: boolean; isAgent: boolean }) {
+  const missingLabel = isCommissioner ? "Agent" : isAgent ? "Commissioner" : null;
 
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Apply for Commissioner or Agent</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Choose the specific role you'd like to apply for. An admin will review your request.
-      </p>
-
-      {isPending ? (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-gold" />
-          Your {pendingRoleLabel} request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
-        </div>
-      ) : (
-        <div className="mt-4 space-y-4">
-          {isDenied && (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              Your previous request was not approved. You're welcome to apply again.
-            </p>
-          )}
-
-          <div>
-            <Label>Which role are you applying for?</Label>
-            <div className="mt-1.5 flex gap-2">
-              <RoleChoice active={role === "commissioner"} onClick={() => setRole("commissioner")}>
-                Commissioner
-              </RoleChoice>
-              <RoleChoice active={role === "agent"} onClick={() => setRole("agent")}>
-                Agent
-              </RoleChoice>
-            </div>
-          </div>
-
-          <div>
-            <Label>Reason for applying</Label>
-            <textarea
-              required
-              rows={4}
-              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder={`Tell the admin why you'd like to become a ${roleLabel} — your real estate experience, license details, or what you're hoping to do on the platform…`}
-            />
-          </div>
-
-          <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
-            {apply.isPending ? "Submitting…" : `Apply for ${roleLabel}`}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Shown to users who already hold exactly one of Commissioner/Agent. Offers a
- * single, compact way to also apply for the other role — no role picker
- * needed since there's only one option left.
- */
-function SingleRoleApplication({
-  userId,
-  existingRole,
-}: {
-  userId: string;
-  existingRole: "commissioner" | "agent";
-}) {
-  const qc = useQueryClient();
-  const missingRole = existingRole === "commissioner" ? "agent" : "commissioner";
-  const missingLabel = missingRole === "agent" ? "Agent" : "Commissioner";
-  const existingLabel = existingRole === "agent" ? "Agent" : "Commissioner";
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
-
-  const { data: latestRequest, isLoading } = useQuery({
-    queryKey: ["my-role-request", userId, missingRole],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("commissioner_requests")
-        .select("id, status, created_at, requested_role")
-        .eq("user_id", userId)
-        .eq("requested_role", missingRole)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const apply = useMutation({
-    mutationFn: async () => {
-      if (!reason.trim()) {
-        throw new Error("Please share a reason for applying.");
-      }
-      const { error } = await supabase.from("commissioner_requests").insert({
-        user_id: userId,
-        status: "pending",
-        requested_role: missingRole,
-        reason: reason.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(`Your ${missingLabel} request was submitted for admin review.`);
-      setReason("");
-      setOpen(false);
-      qc.invalidateQueries({ queryKey: ["my-role-request", userId, missingRole] });
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
-  });
-
-  if (isLoading) return null;
-
-  const isPending = latestRequest?.status === "pending";
-  const isDenied = latestRequest?.status === "denied";
-
-  return (
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-display text-xl font-semibold">Become a {missingLabel}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You're already a {existingLabel}. Apply to add the {missingLabel} role too.
-          </p>
-        </div>
-        {!isPending && (
-          <Button
-            variant="outline"
-            className="sm:shrink-0"
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? "Cancel" : `Become a ${missingLabel}`}
-          </Button>
-        )}
+    <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="font-display text-xl font-semibold">
+          {missingLabel ? `Become a ${missingLabel}` : "Apply for Commissioner or Agent"}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {missingLabel
+            ? `You're already a ${missingLabel === "Agent" ? "Commissioner" : "Agent"}. Apply to add the ${missingLabel} role too.`
+            : "Fill in your details and choose which role you'd like to apply for."}
+        </p>
       </div>
-
-      {isPending && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-gold" />
-          Your {missingLabel} request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
-        </div>
-      )}
-
-      {open && !isPending && (
-        <div className="mt-4 space-y-4">
-          {isDenied && (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              Your previous {missingLabel} request was not approved. You're welcome to apply again.
-            </p>
-          )}
-          <div>
-            <Label>Reason for applying</Label>
-            <textarea
-              required
-              rows={4}
-              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder={`Tell the admin why you'd like to also become a ${missingLabel}…`}
-            />
-          </div>
-          <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
-            {apply.isPending ? "Submitting…" : `Submit ${missingLabel} application`}
-          </Button>
-        </div>
-      )}
+      <Button asChild className="sm:shrink-0">
+        <Link to="/apply">{missingLabel ? `Become a ${missingLabel}` : "Apply now"}</Link>
+      </Button>
     </div>
-  );
-}
-
-function RoleChoice({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background text-foreground/70 hover:bg-accent"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
