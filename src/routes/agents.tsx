@@ -18,9 +18,13 @@ export const Route = createFileRoute("/agents")({
   component: AgentsList,
 });
 
+// Upload this as /public/hero-agents.png in the repo and it appears automatically.
+const HERO_IMAGE_URL = "/hero-agents.png";
+
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
   const [q, setQ] = useState("");
+  const [heroImageOk, setHeroImageOk] = useState(true);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["agents-directory"],
@@ -86,7 +90,16 @@ function AgentsList() {
 
       {/* ── Hero ── */}
       <section className="relative h-[420px] overflow-hidden bg-gradient-to-br from-primary/85 via-primary to-primary/70 md:h-[460px]">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/10" />
+        {heroImageOk && (
+          <img
+            src={HERO_IMAGE_URL}
+            alt="One Higala Properties agents and commissioners"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            loading="eager"
+            onError={() => setHeroImageOk(false)}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/30" />
         <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
           <h1 className="max-w-3xl font-display text-3xl font-bold leading-tight text-white drop-shadow-lg md:text-5xl">
             Where trusted <span className="text-[hsl(210,90%,70%)]">agents</span> meet committed{" "}
