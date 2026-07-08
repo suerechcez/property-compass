@@ -154,7 +154,7 @@ function Browse() {
                   When commissioners and agents post properties, they'll appear here.
                 </p>
                 {user ? (
-                  <Button asChild className="mt-6"><Link to="/profile">Become a Commissioner / Agent</Link></Button>
+                  <Button asChild className="mt-6"><Link to="/apply">Become a Commissioner / Agent</Link></Button>
                 ) : (
                   <div className="mx-auto mt-6 max-w-sm">
                     <p className="font-display italic text-foreground/85">
