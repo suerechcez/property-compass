@@ -7,7 +7,8 @@ import { SideBar } from "@/components/SideBar";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Search, LogIn } from "lucide-react";
 
 type ListingFilter = "all" | "sale" | "rent";
 
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/browse")({
 
 function Browse() {
   const { filter: urlFilter, q: urlQ } = Route.useSearch();
+  const { user } = useAuth();
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
@@ -151,7 +153,21 @@ function Browse() {
                 <p className="mt-2 text-muted-foreground">
                   When commissioners and agents post properties, they'll appear here.
                 </p>
-                <Button asChild className="mt-6"><Link to="/profile">Become a Commissioner / Agent</Link></Button>
+                {user ? (
+                  <Button asChild className="mt-6"><Link to="/profile">Become a Commissioner / Agent</Link></Button>
+                ) : (
+                  <div className="mx-auto mt-6 max-w-sm">
+                    <p className="font-display italic text-foreground/85">
+                      "Every home sold starts with someone brave enough to take the first step."
+                    </p>
+                    <Button asChild className="mt-4">
+                      <Link to="/auth">
+                        <LogIn className="h-4 w-4" />
+                        Sign in to get started
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
