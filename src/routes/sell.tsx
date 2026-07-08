@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
 import { Button } from "@/components/ui/button";
-import { Handshake } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Handshake, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -14,6 +15,8 @@ export const Route = createFileRoute("/sell")({
 });
 
 function Sell() {
+  const { user, loading } = useAuth();
+
   return (
     <div className="min-h-screen">
       <Nav />
@@ -27,9 +30,27 @@ function Sell() {
           commissioner, and track your sale right from here. In the meantime, our commissioners
           can help you list and sell your property directly.
         </p>
-        <Button asChild size="lg" className="mt-8">
-          <Link to="/profile">Get started</Link>
-        </Button>
+
+        {loading ? null : user ? (
+          <Button asChild size="lg" className="mt-8">
+            <Link to="/profile">Get started</Link>
+          </Button>
+        ) : (
+          <div className="mt-8 w-full max-w-md rounded-2xl border border-border bg-card p-6">
+            <p className="font-display text-lg italic text-foreground/85">
+              "Every home sold starts with someone brave enough to take the first step."
+            </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Sign in to apply as a commissioner or agent and start selling with One Higala.
+            </p>
+            <Button asChild size="lg" className="mt-5">
+              <Link to="/auth">
+                <LogIn className="h-4 w-4" />
+                Sign in to get started
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
