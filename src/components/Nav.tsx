@@ -75,7 +75,7 @@ export function Nav() {
             </span>
           )}
           <span className="hidden flex-col leading-tight sm:flex">
-            <span className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
+            <span className="font-signature text-3xl font-normal tracking-tight sm:text-4xl">
               One Higala Properties Inc.
             </span>
             <span className="text-xs italic text-muted-foreground">
