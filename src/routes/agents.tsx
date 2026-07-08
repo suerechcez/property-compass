@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
-import { formatPrice } from "@/lib/property-types";
-import { Users, Building2, Handshake, User, Search } from "lucide-react";
+import { typeLabel } from "@/lib/property-types";
+import { Users, Building2, Handshake, User, Search, Mail, Phone } from "lucide-react";
 
 type RoleTab = "all" | "agent" | "commissioner";
 
@@ -43,25 +43,11 @@ function AgentsList() {
       });
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, created_at, agency_name, title")
+        .select("id, full_name, avatar_url, phone, email, created_at, agency_name, title, bio, specialties")
         .in("id", ids);
-      const { data: sales } = await supabase
-        .from("sales")
-        .select("commissioner_id, amount, sale_date")
-        .in("commissioner_id", ids);
-      const statsByUser = new Map<string, { count: number; volume: number; recent: number }>();
-      const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
-      (sales ?? []).forEach((s) => {
-        const cur = statsByUser.get(s.commissioner_id) ?? { count: 0, volume: 0, recent: 0 };
-        cur.count += 1;
-        cur.volume += Number(s.amount);
-        if (new Date(s.sale_date).getTime() >= oneYearAgo) cur.recent += 1;
-        statsByUser.set(s.commissioner_id, cur);
-      });
       return (profiles ?? []).map((p) => {
         const rs = rolesByUser.get(p.id) ?? [];
-        const stats = statsByUser.get(p.id) ?? { count: 0, volume: 0, recent: 0 };
-        return { ...p, roles: rs, primaryRole: rs.includes("agent") ? "agent" : "commissioner", stats };
+        return { ...p, roles: rs, primaryRole: rs.includes("agent") ? "agent" : "commissioner" };
       });
     },
   });
@@ -133,37 +119,56 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2">
             {filtered.map((a) => (
               <Link
                 key={a.id}
                 to="/agents/$id"
                 params={{ id: a.id }}
-                className="group rounded-2xl border border-border bg-card p-6 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+                className="group flex gap-5 rounded-none border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl"
               >
-                <div className="flex items-start gap-4">
-                  <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-xl font-bold">
-                    {a.avatar_url ? (
-                      <img src={a.avatar_url} alt={a.full_name ?? "Agent"} className="h-full w-full object-cover" />
-                    ) : (
-                      (a.full_name ?? "A").slice(0, 1).toUpperCase()
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">
-                      {a.primaryRole === "agent" ? "Agent" : "Commissioner"}
-                    </span>
-                    <h3 className="mt-1 truncate font-display text-lg font-bold group-hover:text-primary">
-                      {a.full_name ?? "Agent"}
-                    </h3>
-                    <p className="truncate text-sm text-muted-foreground">{a.agency_name || "One Higala Properties Inc."}</p>
-                  </div>
+                <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold">
+                  {a.avatar_url ? (
+                    <img src={a.avatar_url} alt={a.full_name ?? "Agent"} className="h-full w-full object-cover" />
+                  ) : (
+                    (a.full_name ?? "A").slice(0, 1).toUpperCase()
+                  )}
                 </div>
 
-                <div className="mt-4 space-y-1 text-sm">
-                  <p><span className="font-semibold">{a.stats.count}</span> total sales</p>
-                  <p><span className="font-semibold">{a.stats.recent}</span> sales in the last 12 months</p>
-                  <p><span className="font-semibold">{formatPrice(a.stats.volume)}</span> total volume</p>
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">
+                    {a.primaryRole === "agent" ? "Agent" : "Commissioner"}
+                  </span>
+                  <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">
+                    {a.full_name ?? "Agent"}
+                  </h3>
+                  <p className="truncate text-sm text-muted-foreground">{a.agency_name || "One Higala Properties Inc."}</p>
+
+                  <div className="mt-4 space-y-1.5 text-sm">
+                    {a.email && (
+                      <p className="flex items-center gap-1.5 truncate text-foreground/80">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{a.email}</span>
+                      </p>
+                    )}
+                    {a.phone && (
+                      <p className="flex items-center gap-1.5 text-foreground/80">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        {a.phone}
+                      </p>
+                    )}
+                    {a.specialties && a.specialties.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {a.specialties.map((s: string) => (
+                          <span key={s} className="rounded-full bg-secondary px-2 py-0.5 text-xs">{typeLabel(s)}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {a.bio && (
+                    <p className="mt-3 line-clamp-3 text-sm text-foreground/70">{a.bio}</p>
+                  )}
                 </div>
               </Link>
             ))}
