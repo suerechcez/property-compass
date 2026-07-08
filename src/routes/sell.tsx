@@ -15,7 +15,8 @@ export const Route = createFileRoute("/sell")({
 });
 
 function Sell() {
-  const { user, loading } = useAuth();
+  const { user, loading, isCommissioner, isAgent } = useAuth();
+  const alreadyRegistered = isCommissioner || isAgent;
 
   return (
     <div className="min-h-screen">
@@ -33,7 +34,9 @@ function Sell() {
 
         {loading ? null : user ? (
           <Button asChild size="lg" className="mt-8">
-            <Link to="/profile">Get started</Link>
+            <Link to={alreadyRegistered ? "/listings/new" : "/apply"}>
+              {alreadyRegistered ? "Post a property" : "Get started"}
+            </Link>
           </Button>
         ) : (
           <div className="mt-8 w-full max-w-md rounded-2xl border border-border bg-card p-6">
