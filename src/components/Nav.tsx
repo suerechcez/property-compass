@@ -74,14 +74,14 @@ export function Nav() {
               H
             </span>
           )}
-          <span className="hidden flex-col leading-tight sm:flex">
+          <span className="hidden flex-col items-center text-center leading-tight sm:flex">
             <span className="text-xl tracking-tight sm:text-2xl">
               <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}>ONE HIGALA</span>
               <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 500 }}> PROPERTIES INC.</span>
             </span>
-            <span className="text-sm">
+            <span className="text-base sm:text-lg">
               <span style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>Bringing You Home, </span>
-              <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.35em", lineHeight: 1 }}>the Higala Way.</span>
+              <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>the Higala Way.</span>
             </span>
           </span>
         </Link>
