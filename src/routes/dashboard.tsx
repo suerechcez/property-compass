@@ -630,31 +630,35 @@ function AdminTools({ currentUserId }: { currentUserId: string }) {
                     <div className="flex flex-wrap gap-1">
                       {u.roles.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
-                      ) : u.roles.map((r) => (
-                        <span
-                          key={r}
-                          className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs"
-                        >
-                          {r}
-                          <button
-                            type="button"
-                            aria-label={`Revoke ${r}`}
-                            title={`Revoke ${r}`}
-                            onClick={() => {
-                              if (r === "admin" && u.id === currentUserId) {
-                                toast.error("You can't revoke your own admin role.");
-                                return;
-                              }
-                              if (confirm(`Revoke the "${r}" role from ${u.full_name ?? "this user"}?`)) {
-                                revoke.mutate({ userId: u.id, role: r });
-                              }
-                            }}
-                            className="rounded-full p-0.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                      ) : u.roles.map((r) => {
+                        // Admin roles can't be revoked from the dashboard by anyone —
+                        // neither an admin's own role nor another admin's — this is
+                        // enforced again server-side by RLS, this is just the UI guard.
+                        const isProtectedAdmin = r === "admin";
+                        return (
+                          <span
+                            key={r}
+                            className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs"
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
+                            {r}
+                            {!isProtectedAdmin && (
+                              <button
+                                type="button"
+                                aria-label={`Revoke ${r}`}
+                                title={`Revoke ${r}`}
+                                onClick={() => {
+                                  if (confirm(`Revoke the "${r}" role from ${u.full_name ?? "this user"}?`)) {
+                                    revoke.mutate({ userId: u.id, role: r });
+                                  }
+                                }}
+                                className="rounded-full p-0.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
