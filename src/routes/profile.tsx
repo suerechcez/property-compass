@@ -171,8 +171,12 @@ function ProfilePage() {
           </div>
         </div>
 
-        {rolesLoaded && !isCommissioner && !isAgent && !isAdmin && !isDeveloper && (
-          <CommissionerApplication userId={user.id} />
+        {rolesLoaded && !isAdmin && !isDeveloper && (
+          isCommissioner && isAgent ? null : isCommissioner || isAgent ? (
+            <SingleRoleApplication userId={user.id} existingRole={isCommissioner ? "commissioner" : "agent"} />
+          ) : (
+            <CommissionerApplication userId={user.id} />
+          )
         )}
 
         <form
@@ -305,6 +309,10 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
+/**
+ * Shown to users who hold neither the Commissioner nor Agent role. Lets them
+ * choose exactly one of the two to apply for.
+ */
 function CommissionerApplication({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const [role, setRole] = useState<"commissioner" | "agent">("commissioner");
@@ -399,6 +407,122 @@ function CommissionerApplication({ userId }: { userId: string }) {
 
           <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
             {apply.isPending ? "Submitting…" : `Apply for ${roleLabel}`}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Shown to users who already hold exactly one of Commissioner/Agent. Offers a
+ * single, compact way to also apply for the other role — no role picker
+ * needed since there's only one option left.
+ */
+function SingleRoleApplication({
+  userId,
+  existingRole,
+}: {
+  userId: string;
+  existingRole: "commissioner" | "agent";
+}) {
+  const qc = useQueryClient();
+  const missingRole = existingRole === "commissioner" ? "agent" : "commissioner";
+  const missingLabel = missingRole === "agent" ? "Agent" : "Commissioner";
+  const existingLabel = existingRole === "agent" ? "Agent" : "Commissioner";
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const { data: latestRequest, isLoading } = useQuery({
+    queryKey: ["my-role-request", userId, missingRole],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("commissioner_requests")
+        .select("id, status, created_at, requested_role")
+        .eq("user_id", userId)
+        .eq("requested_role", missingRole)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const apply = useMutation({
+    mutationFn: async () => {
+      if (!reason.trim()) {
+        throw new Error("Please share a reason for applying.");
+      }
+      const { error } = await supabase.from("commissioner_requests").insert({
+        user_id: userId,
+        status: "pending",
+        requested_role: missingRole,
+        reason: reason.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Your ${missingLabel} request was submitted for admin review.`);
+      setReason("");
+      setOpen(false);
+      qc.invalidateQueries({ queryKey: ["my-role-request", userId, missingRole] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit request"),
+  });
+
+  if (isLoading) return null;
+
+  const isPending = latestRequest?.status === "pending";
+  const isDenied = latestRequest?.status === "denied";
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-xl font-semibold">Become a {missingLabel}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You're already a {existingLabel}. Apply to add the {missingLabel} role too.
+          </p>
+        </div>
+        {!isPending && (
+          <Button
+            variant="outline"
+            className="sm:shrink-0"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? "Cancel" : `Become a ${missingLabel}`}
+          </Button>
+        )}
+      </div>
+
+      {isPending && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-gold" />
+          Your {missingLabel} request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
+        </div>
+      )}
+
+      {open && !isPending && (
+        <div className="mt-4 space-y-4">
+          {isDenied && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Your previous {missingLabel} request was not approved. You're welcome to apply again.
+            </p>
+          )}
+          <div>
+            <Label>Reason for applying</Label>
+            <textarea
+              required
+              rows={4}
+              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={`Tell the admin why you'd like to also become a ${missingLabel}…`}
+            />
+          </div>
+          <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
+            {apply.isPending ? "Submitting…" : `Submit ${missingLabel} application`}
           </Button>
         </div>
       )}
