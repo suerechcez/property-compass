@@ -75,11 +75,13 @@ export function Nav() {
             </span>
           )}
           <span className="hidden flex-col leading-tight sm:flex">
-            <span className="font-signature text-3xl font-normal tracking-tight sm:text-4xl">
-              One Higala Properties Inc.
+            <span className="text-xl tracking-tight sm:text-2xl">
+              <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}>ONE HIGALA</span>
+              <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 500 }}> PROPERTIES INC.</span>
             </span>
-            <span className="text-xs italic text-muted-foreground">
-              Bringing you home, the higala way
+            <span className="text-sm">
+              <span style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>Bringing You Home, </span>
+              <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.35em", lineHeight: 1 }}>the Higala Way.</span>
             </span>
           </span>
         </Link>
