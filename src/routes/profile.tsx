@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/PhoneInput";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -171,12 +172,7 @@ function ProfilePage() {
         </div>
 
         {rolesLoaded && !isCommissioner && !isAgent && !isAdmin && !isDeveloper && (
-          <CommissionerApplication
-            userId={user.id}
-            defaultName={fullName}
-            defaultPhone={phone}
-            defaultEmail={email || user.email || ""}
-          />
+          <CommissionerApplication userId={user.id} />
         )}
 
         <form
@@ -199,8 +195,8 @@ function ProfilePage() {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
-                <Label>Phone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+63 …" />
+                <Label htmlFor="profile-phone">Phone</Label>
+                <PhoneInput id="profile-phone" value={phone} onChange={setPhone} />
               </div>
               <div>
                 <Label>Years of experience</Label>
@@ -309,36 +305,17 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
-function CommissionerApplication({
-  userId,
-  defaultName,
-  defaultPhone,
-  defaultEmail,
-}: {
-  userId: string;
-  defaultName: string;
-  defaultPhone: string;
-  defaultEmail: string;
-}) {
+function CommissionerApplication({ userId }: { userId: string }) {
   const qc = useQueryClient();
-  const [applicantName, setApplicantName] = useState(defaultName);
-  const [applicantPhone, setApplicantPhone] = useState(defaultPhone);
-  const [applicantEmail, setApplicantEmail] = useState(defaultEmail);
+  const [role, setRole] = useState<"commissioner" | "agent">("commissioner");
   const [reason, setReason] = useState("");
-
-  // Keep the fields synced if the profile finishes loading after this
-  // component first mounts (e.g. slow network) — but don't clobber anything
-  // the person has already started typing.
-  useEffect(() => { setApplicantName((v) => v || defaultName); }, [defaultName]);
-  useEffect(() => { setApplicantPhone((v) => v || defaultPhone); }, [defaultPhone]);
-  useEffect(() => { setApplicantEmail((v) => v || defaultEmail); }, [defaultEmail]);
 
   const { data: latestRequest, isLoading } = useQuery({
     queryKey: ["my-commissioner-request", userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("commissioner_requests")
-        .select("id, status, created_at, decided_at")
+        .select("id, status, created_at, decided_at, requested_role")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -350,21 +327,19 @@ function CommissionerApplication({
 
   const apply = useMutation({
     mutationFn: async () => {
-      if (!applicantName.trim() || !applicantPhone.trim() || !applicantEmail.trim() || !reason.trim()) {
-        throw new Error("Please fill in your name, phone, email, and reason for applying.");
+      if (!reason.trim()) {
+        throw new Error("Please share a reason for applying.");
       }
       const { error } = await supabase.from("commissioner_requests").insert({
         user_id: userId,
         status: "pending",
-        full_name: applicantName.trim(),
-        phone: applicantPhone.trim(),
-        email: applicantEmail.trim(),
+        requested_role: role,
         reason: reason.trim(),
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Request submitted for admin review.");
+      toast.success(`Your ${role === "agent" ? "Agent" : "Commissioner"} request was submitted for admin review.`);
       setReason("");
       qc.invalidateQueries({ queryKey: ["my-commissioner-request", userId] });
     },
@@ -375,18 +350,20 @@ function CommissionerApplication({
 
   const isPending = latestRequest?.status === "pending";
   const isDenied = latestRequest?.status === "denied";
+  const pendingRoleLabel = latestRequest?.requested_role === "agent" ? "Agent" : "Commissioner";
+  const roleLabel = role === "agent" ? "Agent" : "Commissioner";
 
   return (
     <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Become a Commissioner / Agent</h2>
+      <h2 className="font-display text-xl font-semibold">Apply for Commissioner or Agent</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Commissioners and Agents can post and manage property listings. Applications are reviewed by an admin, who will decide which role best fits you.
+        Choose the specific role you'd like to apply for. An admin will review your request.
       </p>
 
       {isPending ? (
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
           <span className="h-2 w-2 shrink-0 rounded-full bg-gold" />
-          Your request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
+          Your {pendingRoleLabel} request submitted {latestRequest?.created_at ? format(new Date(latestRequest.created_at), "MMM d, yyyy") : ""} is pending admin review.
         </div>
       ) : (
         <div className="mt-4 space-y-4">
@@ -395,35 +372,19 @@ function CommissionerApplication({
               Your previous request was not approved. You're welcome to apply again.
             </p>
           )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Full name</Label>
-              <Input
-                required
-                value={applicantName}
-                onChange={(e) => setApplicantName(e.target.value)}
-                placeholder="Juan Dela Cruz"
-              />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input
-                required
-                value={applicantPhone}
-                onChange={(e) => setApplicantPhone(e.target.value)}
-                placeholder="+63 …"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Email</Label>
-              <Input
-                required
-                type="email"
-                value={applicantEmail}
-                onChange={(e) => setApplicantEmail(e.target.value)}
-              />
+
+          <div>
+            <Label>Which role are you applying for?</Label>
+            <div className="mt-1.5 flex gap-2">
+              <RoleChoice active={role === "commissioner"} onClick={() => setRole("commissioner")}>
+                Commissioner
+              </RoleChoice>
+              <RoleChoice active={role === "agent"} onClick={() => setRole("agent")}>
+                Agent
+              </RoleChoice>
             </div>
           </div>
+
           <div>
             <Label>Reason for applying</Label>
             <textarea
@@ -432,14 +393,31 @@ function CommissionerApplication({
               className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Tell the admin why you'd like to become a Commissioner or Agent — your real estate experience, license details, or what you're hoping to do on the platform…"
+              placeholder={`Tell the admin why you'd like to become a ${roleLabel} — your real estate experience, license details, or what you're hoping to do on the platform…`}
             />
           </div>
+
           <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
-            {apply.isPending ? "Submitting…" : "Apply to become a Commissioner / Agent"}
+            {apply.isPending ? "Submitting…" : `Apply for ${roleLabel}`}
           </Button>
         </div>
       )}
     </div>
+  );
+}
+
+function RoleChoice({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground/70 hover:bg-accent"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
