@@ -149,7 +149,7 @@ function Browse() {
               <p className="text-muted-foreground">Loading listings…</p>
             ) : filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
-                <h3 className="font-display text-2xl font-semibold">No listings yet</h3>
+                <h3 className="font-display text-2xl font-semibold">No listings for now</h3>
                 <p className="mt-2 text-muted-foreground">
                   When commissioners and agents post properties, they'll appear here.
                 </p>
