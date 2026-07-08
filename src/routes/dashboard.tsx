@@ -13,7 +13,7 @@ import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
-import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, Plus, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, Plus, X, type LucideIcon } from "lucide-react";
 
 type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
 const TABS: Tab[] = ["overview", "listings", "sales", "forecast", "admin"];
@@ -120,7 +120,7 @@ function Dashboard() {
           {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
           {tab === "sales" && <Sales userId={user.id} isDeveloper={elevated} />}
           {tab === "forecast" && <Forecast />}
-          {tab === "admin" && isAdmin && <AdminTools />}
+          {tab === "admin" && isAdmin && <AdminTools currentUserId={user.id} />}
         </div>
       </div>
     </div>
@@ -569,7 +569,7 @@ function Forecast() {
   );
 }
 
-function AdminTools() {
+function AdminTools({ currentUserId }: { currentUserId: string }) {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({
     queryKey: ["all-users"],
@@ -595,6 +595,18 @@ function AdminTools() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const revoke = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(`${v.role} role revoked`);
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to revoke role"),
+  });
+
   const commissionersAndAgents = users.filter((u) => u.roles.includes("commissioner") || u.roles.includes("agent"));
 
   return (
@@ -616,8 +628,32 @@ function AdminTools() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => (
-                        <span key={r} className="rounded-full bg-secondary px-2 py-0.5 text-xs">{r}</span>
+                      {u.roles.length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : u.roles.map((r) => (
+                        <span
+                          key={r}
+                          className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs"
+                        >
+                          {r}
+                          <button
+                            type="button"
+                            aria-label={`Revoke ${r}`}
+                            title={`Revoke ${r}`}
+                            onClick={() => {
+                              if (r === "admin" && u.id === currentUserId) {
+                                toast.error("You can't revoke your own admin role.");
+                                return;
+                              }
+                              if (confirm(`Revoke the "${r}" role from ${u.full_name ?? "this user"}?`)) {
+                                revoke.mutate({ userId: u.id, role: r });
+                              }
+                            }}
+                            className="rounded-full p-0.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
                       ))}
                     </div>
                   </td>
