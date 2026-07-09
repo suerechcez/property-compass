@@ -17,10 +17,10 @@ export const Route = createFileRoute("/agents/$id")({
   }),
   component: AgentProfile,
   errorComponent: ({ error }) => (
-    <div className="min-h-screen"><Nav /><div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div></div>
+    <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div></div>
   ),
   notFoundComponent: () => (
-    <div className="min-h-screen"><Nav /><div className="mx-auto max-w-4xl p-10">Agent not found.</div></div>
+    <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-4xl p-10">Agent not found.</div></div>
   ),
 });
 
@@ -106,11 +106,11 @@ function AgentProfile() {
   }, [sales]);
 
   if (isLoading || !profile) {
-    return <div className="min-h-screen"><Nav /><div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div></div>;
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       {/* Profile header */}
       <section className="border-b border-border bg-gradient-to-br from-primary/10 via-background to-primary/5">
