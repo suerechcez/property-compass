@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
-import { SideBar } from "@/components/SideBar";
+import { SideBar, SideBarMobileTrigger } from "@/components/SideBar";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,10 @@ function Browse() {
             )}
             {!heroHidden && <div className="absolute inset-0 bg-surface/30" />}
             <div className="relative mx-auto max-w-7xl px-6 py-8">
-              <h1 className="font-display text-3xl font-semibold drop-shadow-sm">{heading}</h1>
+              <div className="flex items-center gap-3">
+                <SideBarMobileTrigger />
+                <h1 className="font-display text-3xl font-semibold drop-shadow-sm">{heading}</h1>
+              </div>
               <p className="mt-1 text-muted-foreground drop-shadow-sm">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
