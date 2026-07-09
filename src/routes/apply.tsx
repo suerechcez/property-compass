@@ -46,7 +46,7 @@ function ApplyPage() {
 
   if (loading || !user || !rolesLoaded) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen site-page">
         <Nav />
         <div className="mx-auto max-w-2xl px-6 py-10 text-muted-foreground">Loading…</div>
       </div>
@@ -57,7 +57,7 @@ function ApplyPage() {
   // panel instead, where roles are granted directly rather than applied for.
   if (isAdmin || isDeveloper) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen site-page">
         <Nav />
         <div className="mx-auto max-w-2xl px-6 py-16 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
@@ -78,7 +78,7 @@ function ApplyPage() {
   // Already hold both roles — nothing left to apply for.
   if (isCommissioner && isAgent) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen site-page">
         <Nav />
         <div className="mx-auto max-w-2xl px-6 py-16 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
@@ -99,7 +99,7 @@ function ApplyPage() {
   const existingRole: "commissioner" | "agent" | null = isCommissioner ? "commissioner" : isAgent ? "agent" : null;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-2xl px-6 py-10">
         <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground">← Back to profile</Link>
