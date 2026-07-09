@@ -125,11 +125,11 @@ function ProfilePage() {
   const showProfessionalFields = isCommissioner || isAgent || isAdmin || isDeveloper;
 
   if (loading || !user) {
-    return <div><Nav /><div className="mx-auto max-w-3xl p-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="site-page"><Nav /><div className="mx-auto max-w-3xl p-10 text-muted-foreground">Loading…</div></div>;
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-3xl px-6 py-10">
         <div className="flex items-center justify-between">
