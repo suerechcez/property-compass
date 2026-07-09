@@ -80,7 +80,7 @@ export function Nav() {
               <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 500 }}> PROPERTIES INC.</span>
             </span>
             <span className="text-base sm:text-lg">
-              <span style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>Bringing You Home, </span>
+              <span className="text-primary" style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>Bringing You Home, </span>
               <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>the Higala Way.</span>
             </span>
           </span>
