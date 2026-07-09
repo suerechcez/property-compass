@@ -19,7 +19,7 @@ function Sell() {
   const alreadyRegistered = isCommissioner || isAgent;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
         <div className="grid h-20 w-20 place-items-center rounded-full bg-primary/10 text-primary">
