@@ -75,7 +75,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface site-page">
       <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
         <div className="hidden md:block">
           <Link to="/" className="font-display text-2xl font-semibold">One Higala Properties Inc.</Link>
