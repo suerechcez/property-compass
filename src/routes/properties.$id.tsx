@@ -49,12 +49,12 @@ function PropertyDetail() {
 
   if (isLoading) {
     return (
-      <div><Nav /><div className="mx-auto max-w-5xl px-6 py-12 text-muted-foreground">Loading…</div></div>
+      <div className="site-page"><Nav /><div className="mx-auto max-w-5xl px-6 py-12 text-muted-foreground">Loading…</div></div>
     );
   }
   if (!data) {
     return (
-      <div>
+      <div className="site-page">
         <Nav />
         <div className="mx-auto max-w-5xl px-6 py-20 text-center">
           <h1 className="font-display text-3xl font-semibold">Listing not found</h1>
@@ -69,7 +69,7 @@ function PropertyDetail() {
   const contactEmail = data.contact_email || data.agent?.email;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground">← Back to listings</Link>
