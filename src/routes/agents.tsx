@@ -71,7 +71,7 @@ function AgentsList() {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
 
       {/* ── Hero ── */}
