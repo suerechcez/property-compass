@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,6 +40,11 @@ function splitPhone(value: string): { code: string; number: string } {
  * Uses a real dropdown menu (not a native <select>) rendered in a portal, so
  * it can never get visually clipped or overlapped by a parent card's
  * boundaries, and shows an actual flag icon next to each region.
+ *
+ * IMPORTANT: the menu is left fully uncontrolled (no open/onOpenChange state)
+ * and uses Radix's onSelect — not onClick — on each item. Controlling
+ * `open` ourselves while also relying on onClick raced against Radix's own
+ * internal close-on-select handling and silently ate the click.
  */
 export function PhoneInput({
   value,
@@ -53,7 +58,6 @@ export function PhoneInput({
   id?: string;
 }) {
   const { code, number } = useMemo(() => splitPhone(value), [value]);
-  const [open, setOpen] = useState(false);
   const selected = COUNTRY_CODES.find((c) => c.code === code) ?? COUNTRY_CODES[0];
 
   function update(newCode: string, newNumber: string) {
@@ -62,7 +66,7 @@ export function PhoneInput({
 
   return (
     <div className="mt-1.5 flex gap-2">
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             id={id}
@@ -81,7 +85,7 @@ export function PhoneInput({
             <DropdownMenuItem
               key={c.code}
               className="cursor-pointer gap-2"
-              onClick={() => update(c.code, number)}
+              onSelect={() => update(c.code, number)}
             >
               <img src={flagUrl(c.iso)} alt="" className="h-4 w-6 shrink-0 rounded-sm object-cover" />
               <span className="text-base font-semibold">{c.label}</span>
