@@ -160,7 +160,7 @@ export function ListingForm({
   // avoids a flash of the form for non-commissioners/agents before the redirect above fires.
   if (loading || !rolesLoaded) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen site-page">
         <Nav />
         <div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div>
       </div>
@@ -168,7 +168,7 @@ export function ListingForm({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-3xl px-6 py-10">
         <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">← Dashboard</Link>
