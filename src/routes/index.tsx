@@ -27,10 +27,15 @@ function Home() {
 
   return (
     <div className="min-h-screen">
-      <Nav />
+      {/* ── Hero (Zillow-style full-bleed with CDO aerial photo) ──
+          Nav lives INSIDE this relative section on mobile so it can float
+          transparently on top of the photo (see Nav's `overlay` prop) —
+          the header collapses out of document flow there, letting the hero
+          run all the way up behind it, matching the reference screenshot.
+          On desktop, Nav reverts to its own normal solid sticky bar. */}
+      <section className="relative h-[100svh] max-h-[760px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[600px] md:max-h-none">
+        <Nav overlay />
 
-      {/* ── Hero (Zillow-style full-bleed with CDO aerial photo) ── */}
-      <section className="relative h-[520px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[600px]">
         {heroImageOk && (
           <img
             src={HERO_IMAGE_URL}
@@ -41,7 +46,7 @@ function Home() {
           />
         )}
         {/* Dark gradient overlay so text is legible — lighter than original */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/10" />
 
         {/* Content */}
         <div className="relative flex h-full flex-col items-start justify-center px-6 md:px-16 lg:px-24">
