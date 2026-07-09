@@ -20,7 +20,7 @@ function EditListing() {
     },
   });
 
-  if (isLoading) return <div><Nav /><div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
-  if (!data) return <div><Nav /><div className="mx-auto max-w-3xl px-6 py-10">Not found</div></div>;
+  if (isLoading) return <div className="site-page"><Nav /><div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
+  if (!data) return <div className="site-page"><Nav /><div className="mx-auto max-w-3xl px-6 py-10">Not found</div></div>;
   return <ListingForm mode="edit" initial={data} />;
 }
