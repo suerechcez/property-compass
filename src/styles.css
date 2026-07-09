@@ -138,4 +138,19 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  /* Pages other than the landing page opt into Montserrat Medium for their
+     headings by adding the "site-page" class to their root wrapper. This
+     deliberately does NOT touch the .font-display utility class itself, so
+     things like the italic hero quotes (which use .font-display directly on
+     a <p>, not a heading tag) keep their original Fraunces serif look
+     everywhere, including on these same pages. */
+  .site-page h1,
+  .site-page h2,
+  .site-page h3,
+  .site-page h4 {
+    font-family: var(--font-montserrat);
+    font-weight: 500;
+    letter-spacing: normal;
+  }
 }
