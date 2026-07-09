@@ -1,18 +1,29 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 // Common calling codes, Philippines first since that's the primary market.
 const COUNTRY_CODES = [
-  { code: "+63", label: "🇵🇭 +63" },
-  { code: "+1", label: "🇺🇸 +1" },
-  { code: "+44", label: "🇬🇧 +44" },
-  { code: "+61", label: "🇦🇺 +61" },
-  { code: "+81", label: "🇯🇵 +81" },
-  { code: "+82", label: "🇰🇷 +82" },
-  { code: "+65", label: "🇸🇬 +65" },
-  { code: "+852", label: "🇭🇰 +852" },
-  { code: "+971", label: "🇦🇪 +971" },
-  { code: "+86", label: "🇨🇳 +86" },
+  { code: "+63", iso: "ph", label: "PH" },
+  { code: "+1", iso: "us", label: "US" },
+  { code: "+44", iso: "gb", label: "GB" },
+  { code: "+61", iso: "au", label: "AU" },
+  { code: "+81", iso: "jp", label: "JP" },
+  { code: "+82", iso: "kr", label: "KR" },
+  { code: "+65", iso: "sg", label: "SG" },
+  { code: "+852", iso: "hk", label: "HK" },
+  { code: "+971", iso: "ae", label: "AE" },
+  { code: "+86", iso: "cn", label: "CN" },
 ];
+
+function flagUrl(iso: string) {
+  return `https://flagcdn.com/${iso}.svg`;
+}
 
 function splitPhone(value: string): { code: string; number: string } {
   const found = COUNTRY_CODES.find((c) => value.startsWith(c.code));
@@ -25,6 +36,10 @@ function splitPhone(value: string): { code: string; number: string } {
  * +63). The combined value (e.g. "+63 9171234567") is what's passed to
  * onChange and what should be stored — splitPhone parses it back apart for
  * display, so this is safe to reuse for any existing "phone" text field.
+ *
+ * Uses a real dropdown menu (not a native <select>) rendered in a portal, so
+ * it can never get visually clipped or overlapped by a parent card's
+ * boundaries, and shows an actual flag icon next to each region.
  */
 export function PhoneInput({
   value,
@@ -38,6 +53,8 @@ export function PhoneInput({
   id?: string;
 }) {
   const { code, number } = useMemo(() => splitPhone(value), [value]);
+  const [open, setOpen] = useState(false);
+  const selected = COUNTRY_CODES.find((c) => c.code === code) ?? COUNTRY_CODES[0];
 
   function update(newCode: string, newNumber: string) {
     onChange(newNumber ? `${newCode} ${newNumber}`.trim() : "");
@@ -45,20 +62,37 @@ export function PhoneInput({
 
   return (
     <div className="mt-1.5 flex gap-2">
-      <select
-        aria-label="Country/region code"
-        className="h-9 w-[5.5rem] shrink-0 rounded-md border border-input bg-background px-2 text-sm"
-        value={code}
-        onChange={(e) => update(e.target.value, number)}
-      >
-        {COUNTRY_CODES.map((c) => (
-          <option key={c.code} value={c.code}>{c.label}</option>
-        ))}
-      </select>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            id={id}
+            type="button"
+            aria-label="Country/region code"
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <img src={flagUrl(selected.iso)} alt="" className="h-4 w-6 shrink-0 rounded-sm object-cover" />
+            <span className="text-base font-semibold">{selected.label}</span>
+            <span className="text-muted-foreground">{selected.code}</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          {COUNTRY_CODES.map((c) => (
+            <DropdownMenuItem
+              key={c.code}
+              className="cursor-pointer gap-2"
+              onClick={() => update(c.code, number)}
+            >
+              <img src={flagUrl(c.iso)} alt="" className="h-4 w-6 shrink-0 rounded-sm object-cover" />
+              <span className="text-base font-semibold">{c.label}</span>
+              <span className="ml-auto text-muted-foreground">{c.code}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <input
-        id={id}
         type="tel"
-        className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
         value={number}
         onChange={(e) => update(code, e.target.value)}
         placeholder={placeholder ?? "9XX XXX XXXX"}
