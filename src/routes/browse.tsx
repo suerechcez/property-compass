@@ -84,7 +84,7 @@ function Browse() {
     listingFilter === "rent" ? "For rent" : listingFilter === "sale" ? "For sale" : "Browse listings";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="flex">
         <SideBar />
