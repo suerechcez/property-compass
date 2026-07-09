@@ -79,7 +79,7 @@ function Dashboard() {
   }, [loading, user, navigate]);
 
   if (loading || !user) {
-    return <div><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="site-page"><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
   const greeting = pickGreeting(user.id);
@@ -95,7 +95,7 @@ function Dashboard() {
   const visibleTabs = tabs.filter((t) => t.show);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
