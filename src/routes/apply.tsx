@@ -12,6 +12,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ShieldCheck } from "lucide-react";
 
+// "a Commissioner" vs "an Agent"
+function article(word: string) {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
 export const Route = createFileRoute("/apply")({
   head: () => ({ meta: [{ title: "Apply for Commissioner / Agent · One Higala Properties" }] }),
   component: ApplyPage,
@@ -135,6 +140,7 @@ function ApplicationForm({
 
   const targetRole = missingRole ?? role;
   const targetLabel = targetRole === "agent" ? "Agent" : "Commissioner";
+  const existingLabel = existingRole === "agent" ? "Agent" : "Commissioner";
 
   const { data: latestRequest, isLoading } = useQuery({
     queryKey: ["my-role-request", userId, targetRole],
@@ -186,11 +192,11 @@ function ApplicationForm({
   return (
     <div className="mt-4">
       <h1 className="font-display text-3xl font-semibold">
-        {missingRole ? `Become a ${targetLabel}` : "Apply for Commissioner or Agent"}
+        {missingRole ? `Become ${article(targetLabel)} ${targetLabel}` : "Apply for Commissioner or Agent"}
       </h1>
       <p className="mt-2 text-muted-foreground">
         {missingRole
-          ? `You're already a ${existingRole === "agent" ? "Agent" : "Commissioner"}. Fill in the details below to also apply for the ${targetLabel} role.`
+          ? `You're already ${article(existingLabel)} ${existingLabel}. Fill in the details below to also apply for the ${targetLabel} role.`
           : "Choose the specific role you'd like to apply for, fill in your details, and share a reason. An admin will review your request."}
       </p>
 
@@ -254,7 +260,7 @@ function ApplicationForm({
               className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={`Tell the admin why you'd like to become a ${targetLabel} — your real estate experience, license details, or what you're hoping to do on the platform…`}
+              placeholder={`Tell the admin why you'd like to become ${article(targetLabel)} ${targetLabel} — your real estate experience, license details, or what you're hoping to do on the platform…`}
             />
           </div>
 
