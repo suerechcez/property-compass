@@ -12,6 +12,11 @@ import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
 import { PROPERTY_TYPES } from "@/lib/property-types";
 
+// "a Commissioner" vs "an Agent"
+function article(word: string) {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "My Profile · One Higala Properties" }] }),
   component: ProfilePage,
@@ -311,21 +316,22 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
  */
 function RoleApplicationBanner({ isCommissioner, isAgent }: { isCommissioner: boolean; isAgent: boolean }) {
   const missingLabel = isCommissioner ? "Agent" : isAgent ? "Commissioner" : null;
+  const existingLabel = missingLabel === "Agent" ? "Commissioner" : "Agent";
 
   return (
     <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 className="font-display text-xl font-semibold">
-          {missingLabel ? `Become a ${missingLabel}` : "Apply for Commissioner or Agent"}
+          {missingLabel ? `Become ${article(missingLabel)} ${missingLabel}` : "Apply for Commissioner or Agent"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {missingLabel
-            ? `You're already a ${missingLabel === "Agent" ? "Commissioner" : "Agent"}. Apply to add the ${missingLabel} role too.`
+            ? `You're already ${article(existingLabel)} ${existingLabel}. Apply to add the ${missingLabel} role too.`
             : "Fill in your details and choose which role you'd like to apply for."}
         </p>
       </div>
       <Button asChild className="sm:shrink-0">
-        <Link to="/apply">{missingLabel ? `Become a ${missingLabel}` : "Apply now"}</Link>
+        <Link to="/apply">{missingLabel ? `Become ${article(missingLabel)} ${missingLabel}` : "Apply now"}</Link>
       </Button>
     </div>
   );
