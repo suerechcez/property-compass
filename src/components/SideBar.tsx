@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Newspaper, Menu } from "lucide-react";
+import { Newspaper, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice, typeLabel } from "@/lib/property-types";
 import { formatDistanceToNow } from "date-fns";
@@ -27,7 +27,7 @@ function useRecentUpdates() {
   });
 }
 
-/** The actual "Listing updates" list — shared between the desktop <aside> and the mobile Sheet. */
+/** The actual "Listing updates" list — shared between the desktop <aside> and the mobile HUD. */
 function SideBarContent() {
   const { data: recent = [] } = useRecentUpdates();
   return (
@@ -83,23 +83,23 @@ export function SideBar() {
 }
 
 /**
- * Mobile-only hamburger button that opens the same "Listing updates" content
- * in a slide-out Sheet, since the <aside> above is hidden below lg. Render
- * this at the top-left of a Browse-style page's content area.
+ * Mobile-only "Listing Updates" button — opens the same content as a
+ * fullscreen HUD (not a side drawer) covering the entire screen, dismissed
+ * by tapping the scrim rather than an explicit close button. Meant to be
+ * placed as a standalone button between the filter/category row and the
+ * listings grid on the Browse page (the <aside> above is hidden below lg).
  */
 export function SideBarMobileTrigger() {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button
-          aria-label="Open listing updates"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border bg-card text-foreground lg:hidden"
-        >
-          <Menu className="h-5 w-5" />
+        <button className="mx-auto flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:border-primary hover:text-primary lg:hidden">
+          <Megaphone className="h-4 w-4" />
+          Listing Updates
         </button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-80 overflow-y-auto">
+      <SheetContent side="fullscreen" hideClose className="overflow-y-auto p-6">
         <SheetHeader>
           <SheetTitle className="font-display">Listing updates</SheetTitle>
         </SheetHeader>
