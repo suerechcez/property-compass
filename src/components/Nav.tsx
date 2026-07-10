@@ -69,7 +69,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       }
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
-        {/* Left — hamburger on mobile (Browse only), full link row on desktop */}
+        {/* Left — hamburger on mobile, full link row on desktop */}
         <div className="flex items-center">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
@@ -95,12 +95,26 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                     Browse
                   </Link>
                 </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/sell" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
+                    Sell
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/agents" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
+                    Find an agent
+                  </Link>
+                </SheetClose>
               </nav>
             </SheetContent>
           </Sheet>
 
-          {/* Desktop: compact — just "Browse" now instead of separate Buy/Rent */}
+          {/* Desktop: compact "Browse" instead of separate Buy/Rent, with an
+              invisible spacer first so the links don't sit flush against the
+              very left edge — keeps the row visually balanced against the
+              avatar hugging the right edge. */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+            <span aria-hidden="true" className="invisible select-none">Rent</span>
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
             <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
