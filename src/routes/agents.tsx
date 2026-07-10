@@ -47,7 +47,7 @@ function AgentsList() {
         .in("id", ids);
       return (profiles ?? []).map((p) => {
         const rs = rolesByUser.get(p.id) ?? [];
-        return { ...p, roles: rs, primaryRole: rs.includes("agent") ? "agent" : "commissioner" };
+        return { ...p, roles: rs };
       });
     },
   });
@@ -136,9 +136,21 @@ function AgentsList() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">
-                    {a.primaryRole === "agent" ? "Agent" : "Commissioner"}
-                  </span>
+                  {/* Show a badge for every role this person holds — someone who
+                      is both a Commissioner and an Agent gets both titles,
+                      not just one. */}
+                  <div className="flex flex-wrap gap-1">
+                    {a.roles.includes("commissioner") && (
+                      <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">
+                        Commissioner
+                      </span>
+                    )}
+                    {a.roles.includes("agent") && (
+                      <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">
+                        Agent
+                      </span>
+                    )}
+                  </div>
                   <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">
                     {a.full_name ?? "Agent"}
                   </h3>
