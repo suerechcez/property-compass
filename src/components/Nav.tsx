@@ -86,8 +86,20 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetTrigger>
             <SheetContent side="left" hideClose className="w-72">
               <SheetHeader>
-                <SheetTitle className="font-display text-xl font-semibold">One Higala</SheetTitle>
-                <p className="text-sm italic text-muted-foreground">Bringing you home, the higala way</p>
+                <SheetTitle
+                  className="text-xl tracking-tight text-primary"
+                  style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}
+                >
+                  ONE HIGALA
+                </SheetTitle>
+                <p className="text-sm">
+                  <span className="text-primary" style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>
+                    Bringing You Home,{" "}
+                  </span>
+                  <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>
+                    the Higala Way.
+                  </span>
+                </p>
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 text-base font-medium">
                 <SheetClose asChild>
