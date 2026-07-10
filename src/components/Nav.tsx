@@ -86,9 +86,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetTrigger>
             <SheetContent side="left" hideClose className="w-72">
               <SheetHeader>
-                <SheetTitle asChild>
-                  <BrandTitle />
-                </SheetTitle>
+                <SheetTitle className="font-display text-xl font-semibold">One Higala</SheetTitle>
+                <p className="text-sm italic text-muted-foreground">Bringing you home, the higala way</p>
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 text-base font-medium">
                 <SheetClose asChild>
