@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { BrandTitle } from "@/components/BrandTitle";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,14 +21,6 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose 
 const BRAND_ICON_URL = "/brand-icon.png";
 
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
-
-const MOBILE_LINKS = [
-  { to: "/browse", label: "Browse" },
-  { to: "/browse", search: { filter: "sale" as const }, label: "Buy" },
-  { to: "/browse", search: { filter: "rent" as const }, label: "Rent" },
-  { to: "/sell", label: "Sell" },
-  { to: "/agents", label: "Find an agent" },
-];
 
 /**
  * `overlay` — when true, the header floats transparently on top of the
@@ -76,7 +69,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       }
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
-        {/* Left — hamburger on mobile, full link row on desktop */}
+        {/* Left — hamburger on mobile (Browse only), full link row on desktop */}
         <div className="flex items-center">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
@@ -91,39 +84,25 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 <Menu className="h-6 w-6" />
               </button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72">
+            <SheetContent side="left" hideClose className="w-72">
               <SheetHeader>
-                <SheetTitle className="font-display">One Higala Properties Inc.</SheetTitle>
+                <SheetTitle asChild>
+                  <BrandTitle />
+                </SheetTitle>
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 text-base font-medium">
-                {MOBILE_LINKS.map((l) => (
-                  <SheetClose asChild key={l.label}>
-                    <Link
-                      to={l.to}
-                      search={"search" in l ? l.search : undefined}
-                      className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent"
-                    >
-                      {l.label}
-                    </Link>
-                  </SheetClose>
-                ))}
+                <SheetClose asChild>
+                  <Link to="/browse" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
+                    Browse
+                  </Link>
+                </SheetClose>
               </nav>
-              {!user && (
-                <div className="mt-6 border-t border-border pt-6">
-                  <SheetClose asChild>
-                    <Button asChild className="w-full"><Link to="/auth">Sign in</Link></Button>
-                  </SheetClose>
-                </div>
-              )}
             </SheetContent>
           </Sheet>
 
+          {/* Desktop: compact — just "Browse" now instead of separate Buy/Rent */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-            {/* Invisible spacer — keeps "Buy" sitting where it did back when
-                "Browse" was still the first link, without showing the text. */}
-            <span aria-hidden="true" className="invisible select-none">Browse</span>
-            <Link to="/browse" className={NAV_LINK_CLASS}>Buy</Link>
-            <Link to="/browse" search={{ filter: "rent" }} className={NAV_LINK_CLASS}>Rent</Link>
+            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
             <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
           </nav>
@@ -143,21 +122,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               H
             </span>
           )}
-          <span className="hidden flex-col items-center text-center leading-tight sm:flex">
-            <span className={`text-xl tracking-tight sm:text-2xl ${overlay ? "text-white md:text-foreground" : ""}`}>
-              <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}>ONE HIGALA</span>
-              <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 500 }}> PROPERTIES INC.</span>
-            </span>
-            <span className="text-base sm:text-lg">
-              <span
-                className={overlay ? "text-white/90 md:text-primary" : "text-primary"}
-                style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}
-              >
-                Bringing You Home,{" "}
-              </span>
-              <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>the Higala Way.</span>
-            </span>
-          </span>
+          <div className="hidden items-center sm:flex">
+            <BrandTitle light={overlay} className="items-center text-center" />
+          </div>
         </Link>
 
         {/* Right side — profile/sign-in */}
