@@ -104,15 +104,12 @@ function Browse() {
               />
             )}
             {!heroHidden && <div className="absolute inset-0 bg-surface/30" />}
-            <div className="relative mx-auto max-w-7xl px-6 py-8">
-              <div className="flex items-center gap-3">
-                <SideBarMobileTrigger />
-                <h1 className="font-display text-3xl font-semibold drop-shadow-sm">{heading}</h1>
-              </div>
-              <p className="mt-1 text-muted-foreground drop-shadow-sm">
+            <div className="relative mx-auto max-w-7xl px-6 py-6 sm:py-8">
+              <h1 className="font-display text-2xl font-semibold drop-shadow-sm sm:text-3xl">{heading}</h1>
+              <p className="mt-1 text-sm text-muted-foreground drop-shadow-sm sm:text-base">
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
-              <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm">
+              <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5">
                 <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input
                   value={q}
@@ -126,7 +123,7 @@ function Browse() {
 
           {/* ── Buy / Rent / All + property-type filter chips ── */}
           <section className="border-b border-border">
-            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-5">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-4 sm:py-5">
               <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>
                 All listings
               </FilterChip>
@@ -146,13 +143,19 @@ function Browse() {
             </div>
           </section>
 
+          {/* ── "Listing Updates" — mobile only, sits between the category
+                 chips and the grid, opens the updates feed as a fullscreen HUD ── */}
+          <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden">
+            <SideBarMobileTrigger />
+          </div>
+
           {/* ── Listings grid ── */}
-          <section className="mx-auto max-w-7xl px-6 py-12">
+          <section className="mx-auto max-w-7xl px-6 py-6 sm:py-12">
             {isLoading ? (
               <p className="text-muted-foreground">Loading listings…</p>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
-                <h3 className="font-display text-2xl font-semibold">No listings for now</h3>
+              <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center sm:p-16">
+                <h3 className="font-display text-xl font-semibold sm:text-2xl">No listings for now</h3>
                 <p className="mt-2 text-muted-foreground">
                   When commissioners and agents post properties, they'll appear here.
                 </p>
@@ -173,7 +176,7 @@ function Browse() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
                 {filtered.map((p) => (
                   <Link
                     key={p.id}
@@ -192,16 +195,16 @@ function Browse() {
                         <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>
                       )}
                     </div>
-                    <div className="p-5">
+                    <div className="p-4 sm:p-5">
                       <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
                         <span>{typeLabel(p.property_type)}</span>
                         {p.for_rent && (
                           <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>
                         )}
                       </div>
-                      <h3 className="mt-2 font-display text-xl font-semibold leading-tight">{p.title}</h3>
+                      <h3 className="mt-2 font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                      <p className="mt-4 font-display text-2xl font-semibold text-primary">
+                      <p className="mt-3 font-display text-xl font-semibold text-primary sm:mt-4 sm:text-2xl">
                         {formatPrice(p.price)}
                         {p.for_rent && <span className="text-base text-muted-foreground"> /mo</span>}
                       </p>
