@@ -631,17 +631,19 @@ function AdminTools({ currentUserId }: { currentUserId: string }) {
                       {u.roles.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
                       ) : u.roles.map((r) => {
-                        // Admin roles can't be revoked from the dashboard by anyone —
-                        // neither an admin's own role nor another admin's — this is
-                        // enforced again server-side by RLS, this is just the UI guard.
-                        const isProtectedAdmin = r === "admin";
+                        // Only Commissioner and Agent roles can ever be revoked from
+                        // here — never "buyer" (the baseline role every account
+                        // has) and never "admin" (self or another admin's). This
+                        // mirrors the server-side RLS policy, which is the real
+                        // enforcement; this is just the matching UI guard.
+                        const isRevocable = r === "commissioner" || r === "agent";
                         return (
                           <span
                             key={r}
                             className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs"
                           >
                             {r}
-                            {!isProtectedAdmin && (
+                            {isRevocable && (
                               <button
                                 type="button"
                                 aria-label={`Revoke ${r}`}
