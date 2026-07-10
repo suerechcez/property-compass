@@ -12,7 +12,7 @@ export function BrandTitle({ light = false, className = "" }: { light?: boolean;
   return (
     <span className={`flex flex-col leading-tight ${className}`}>
       <span className={`text-lg tracking-tight sm:text-xl ${light ? "text-white md:text-foreground" : "text-foreground"}`}>
-        <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }} className={light ? "" : "text-primary md:text-primary"}>
+        <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }} className={light ? "text-white md:text-primary" : "text-primary"}>
           ONE HIGALA
         </span>
         <span style={{ fontFamily: "var(--font-montserrat)", fontWeight: 500 }} className={light ? "" : "text-muted-foreground"}>
