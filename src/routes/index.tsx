@@ -3,7 +3,9 @@ import { useState } from "react";
 import { Nav } from "@/components/Nav";
 import { ExploreOptions } from "@/components/ExploreOptions";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
+import { Search, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -24,6 +26,7 @@ const HERO_IMAGE_URL = "/hero-oh.jpg";
 function Home() {
   const [q, setQ] = useState("");
   const [heroImageOk, setHeroImageOk] = useState(true);
+  const { user, loading } = useAuth();
 
   return (
     <div className="min-h-screen">
@@ -106,6 +109,26 @@ function Home() {
 
       {/* ── Buy / Rent / Sell cards ── */}
       <ExploreOptions />
+
+      {/* ── Sign-in prompt — signed-out visitors only ── */}
+      {!loading && !user && (
+        <section className="border-b border-border bg-surface">
+          <div className="mx-auto max-w-2xl px-6 py-16 text-center">
+            <h2 className="font-display text-2xl font-semibold md:text-3xl">
+              Sign in for a better experience
+            </h2>
+            <p className="mt-4 font-display text-lg italic text-foreground/80">
+              "Every home sold starts with someone brave enough to take the first step."
+            </p>
+            <Button asChild size="lg" className="mt-6">
+              <Link to="/auth">
+                <LogIn className="h-4 w-4" />
+                Sign in
+              </Link>
+            </Button>
+          </div>
+        </section>
+      )}
 
       <footer className="border-t border-border bg-gradient-to-b from-background to-primary/5">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-2 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center">
