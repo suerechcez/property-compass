@@ -121,12 +121,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop: compact "Browse" instead of separate Buy/Rent, with an
-              invisible spacer first so the links don't sit flush against the
-              very left edge — keeps the row visually balanced against the
-              avatar hugging the right edge. */}
+          {/* Desktop: Browse / Sell / Find an agent, flush against the left
+              edge (matching the same left padding the right-side avatar
+              uses on its edge) — no leading spacer, so this row lines up
+              identically on every page. */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-            <span aria-hidden="true" className="invisible select-none">Rent</span>
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
             <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
