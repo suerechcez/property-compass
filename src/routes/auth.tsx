@@ -78,10 +78,12 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-surface site-page">
       <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
-        <div className="hidden text-center md:flex md:flex-col md:items-center">
-          <Link to="/">
-            <BrandTitle nameOnly className="items-center" />
-          </Link>
+        <div className="hidden md:block">
+          <div className="text-center">
+            <Link to="/" className="inline-block">
+              <BrandTitle nameOnly className="items-center" />
+            </Link>
+          </div>
           <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
             Sign in, settle in — the higala way.
           </h1>
@@ -92,10 +94,10 @@ function AuthPage() {
         </div>
 
         <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
-          <h2 className="font-display text-2xl font-semibold">
+          <h2 className="text-center font-display text-2xl font-semibold">
             {mode === "signin" ? "Welcome back" : "Create your account"}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-center text-sm text-muted-foreground">
             {mode === "signin"
               ? "Sign in to manage your listings and sales."
               : "Join One Higala Properties Inc. in less than a minute."}
