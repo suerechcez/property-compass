@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BrandTitle } from "@/components/BrandTitle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -17,6 +16,16 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+// Brand mark, stored at /public/brand-icon.png (same file used in the top bar).
+const BRAND_ICON_URL = "/brand-icon.png";
+
+// Right-side photo. Upload the file to /public/hero-auth.jpg (or .png —
+// either extension works, the <img> below tries .jpg first and falls back
+// to .png automatically). Shown at full height on desktop only, matching
+// the Zillow-style split layout; hidden on mobile to keep the form full-width there.
+const HERO_AUTH_JPG = "/hero-auth.jpg";
+const HERO_AUTH_PNG = "/hero-auth.png";
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -25,6 +34,8 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [requestCommissioner, setRequestCommissioner] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [heroSrc, setHeroSrc] = useState(HERO_AUTH_JPG);
+  const [heroHidden, setHeroHidden] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -76,28 +87,27 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface site-page">
-      <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
-        <div className="hidden md:block">
-          <div className="text-center">
-            <Link to="/" className="inline-block">
-              <BrandTitle nameOnly className="items-center" />
-            </Link>
-          </div>
-          <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
-            Sign in, settle in — the higala way.
-          </h1>
-          <p className="mt-6 max-w-md text-lg text-muted-foreground">
-            One home for commissioners and buyers across Cagayan de Oro City — post listings,
-            track sales, and find your next place, all in one portal.
-          </p>
-        </div>
+    <div className="min-h-screen bg-background site-page">
+      <div className="flex min-h-screen">
+        {/* ── Left: logo + form, everything lives here ── */}
+        <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 md:w-[440px] md:shrink-0 lg:w-[480px] lg:px-16">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={BRAND_ICON_URL} alt="" className="h-9 w-9 object-contain" />
+            <span
+              className="text-lg tracking-tight"
+              style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}
+            >
+              <span className="text-foreground">ONE HIGALA</span>{" "}
+              <span className="font-medium text-muted-foreground" style={{ fontWeight: 500 }}>
+                PROPERTIES INC.
+              </span>
+            </span>
+          </Link>
 
-        <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
-          <h2 className="text-center font-display text-2xl font-semibold">
-            {mode === "signin" ? "Welcome back" : "Create your account"}
-          </h2>
-          <p className="mt-1 text-center text-sm text-muted-foreground">
+          <h1 className="mt-10 font-display text-2xl font-semibold">
+            {mode === "signin" ? "Sign in" : "Create account"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Sign in to manage your listings and sales."
               : "Join One Higala Properties Inc. in less than a minute."}
@@ -134,16 +144,7 @@ function AuthPage() {
             </Button>
           </form>
 
-          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            or
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continue with Google
-          </Button>
-
-          <p className="mt-5 text-center text-sm text-muted-foreground">
+          <p className="mt-4 text-sm text-muted-foreground">
             {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
             <button
               type="button"
@@ -153,6 +154,31 @@ function AuthPage() {
               {mode === "signin" ? "Create an account" : "Sign in instead"}
             </button>
           </p>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            or
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={google}>
+            Continue with Google
+          </Button>
+        </div>
+
+        {/* ── Right: full-height photo, desktop only ── */}
+        <div className="relative hidden flex-1 md:block">
+          {!heroHidden && (
+            <img
+              src={heroSrc}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={() => {
+                if (heroSrc === HERO_AUTH_JPG) setHeroSrc(HERO_AUTH_PNG);
+                else setHeroHidden(true);
+              }}
+            />
+          )}
+          {heroHidden && <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />}
         </div>
       </div>
     </div>
