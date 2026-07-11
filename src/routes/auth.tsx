@@ -19,7 +19,7 @@ export const Route = createFileRoute("/auth")({
 // Brand mark, stored at /public/brand-icon.png (same file used in the top bar).
 const BRAND_ICON_URL = "/brand-icon.png";
 
-// Right-side photo. Upload the file to /public/hero-auth.jpg (or .png —
+// Left-side photo. Upload the file to /public/hero-auth.jpg (or .png —
 // either extension works, the <img> below tries .jpg first and falls back
 // to .png automatically). Shown at full height on desktop only, matching
 // the Zillow-style split layout; hidden on mobile to keep the form full-width there.
@@ -89,7 +89,23 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-background site-page">
       <div className="flex min-h-screen">
-        {/* ── Left: logo + form, everything lives here ── */}
+        {/* ── Left: full-height photo, desktop only ── */}
+        <div className="relative hidden flex-1 md:block">
+          {!heroHidden && (
+            <img
+              src={heroSrc}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={() => {
+                if (heroSrc === HERO_AUTH_JPG) setHeroSrc(HERO_AUTH_PNG);
+                else setHeroHidden(true);
+              }}
+            />
+          )}
+          {heroHidden && <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />}
+        </div>
+
+        {/* ── Right: logo + form, everything lives here ── */}
         <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 md:w-[440px] md:shrink-0 lg:w-[480px] lg:px-16">
           <Link to="/" className="flex items-center gap-3">
             <img src={BRAND_ICON_URL} alt="" className="h-9 w-9 object-contain" />
@@ -163,22 +179,6 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={google}>
             Continue with Google
           </Button>
-        </div>
-
-        {/* ── Right: full-height photo, desktop only ── */}
-        <div className="relative hidden flex-1 md:block">
-          {!heroHidden && (
-            <img
-              src={heroSrc}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={() => {
-                if (heroSrc === HERO_AUTH_JPG) setHeroSrc(HERO_AUTH_PNG);
-                else setHeroHidden(true);
-              }}
-            />
-          )}
-          {heroHidden && <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />}
         </div>
       </div>
     </div>
