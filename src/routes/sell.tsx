@@ -15,6 +15,14 @@ export const Route = createFileRoute("/sell")({
   component: Sell,
 });
 
+// Icons for the two intro cards above the fold. Upload either extension to
+// /public — tries .png first, falls back to .jpg, then to the plain lucide
+// icon if neither exists.
+const CARD_COMMISSIONER_PNG = "/sell-card-commissioner.png";
+const CARD_COMMISSIONER_JPG = "/sell-card-commissioner.jpg";
+const CARD_VISIBILITY_PNG = "/sell-card-visibility.png";
+const CARD_VISIBILITY_JPG = "/sell-card-visibility.jpg";
+
 // Photos for the two option panels below. Upload either extension to
 // /public — the <img> tries .jpg first and falls back to .png automatically,
 // then to a plain navy panel if neither exists.
@@ -43,9 +51,7 @@ function Sell() {
               Montserrat Medium heading instead of the serif display font. */}
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-                <Handshake className="h-7 w-7" />
-              </div>
+              <CardIcon png={CARD_COMMISSIONER_PNG} jpg={CARD_COMMISSIONER_JPG} alt="Sell with a commissioner or agent" fallback={Handshake} />
               <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">
                 Sell with a commissioner or agent
               </h2>
@@ -55,9 +61,7 @@ function Sell() {
               </p>
             </div>
             <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-                <TrendingUp className="h-7 w-7" />
-              </div>
+              <CardIcon png={CARD_VISIBILITY_PNG} jpg={CARD_VISIBILITY_JPG} alt="Maximize your home's visibility" fallback={TrendingUp} />
               <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">
                 Maximize your home's visibility
               </h2>
@@ -157,6 +161,44 @@ function Sell() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+/** Icon circle for the two intro cards — shows an uploaded image if present, otherwise the lucide fallback icon. */
+function CardIcon({
+  png,
+  jpg,
+  alt,
+  fallback: Fallback,
+}: {
+  png: string;
+  jpg: string;
+  alt: string;
+  fallback: typeof Handshake;
+}) {
+  const [src, setSrc] = useState(png);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+        <Fallback className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-primary/10">
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={() => {
+          if (src === png) setSrc(jpg);
+          else setFailed(true);
+        }}
+      />
     </div>
   );
 }
