@@ -2,7 +2,6 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Nav } from "@/components/Nav";
 import { PhoneInput } from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -29,10 +28,10 @@ export const Route = createFileRoute("/agents/$id")({
   }),
   component: AgentProfile,
   errorComponent: ({ error }) => (
-    <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div></div>
+    <div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div>
   ),
   notFoundComponent: () => (
-    <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-4xl p-10">Agent not found.</div></div>
+    <div className="mx-auto max-w-4xl p-10">Agent not found.</div>
   ),
 });
 
@@ -153,13 +152,11 @@ function AgentProfile() {
   }
 
   if (isLoading || !profile) {
-    return <div className="min-h-screen site-page"><Nav /><div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div>;
   }
 
   return (
-    <div className="min-h-screen site-page">
-      <Nav />
-
+    <div className="site-page">
       {/* ── Header: profile card + listing photo gallery ── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-8">
