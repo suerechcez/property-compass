@@ -165,7 +165,12 @@ function Sell() {
   );
 }
 
-/** Icon circle for the two intro cards — shows an uploaded image if present, otherwise the lucide fallback icon. */
+/**
+ * Icon for the two intro cards — shown at its own natural size via
+ * object-contain (no circular clipping/cropping), same box treatment as the
+ * landing page's Buy/Rent/Sell icons. Falls back to a small lucide icon in a
+ * tinted circle only if no image has been uploaded yet.
+ */
 function CardIcon({
   png,
   jpg,
@@ -189,11 +194,11 @@ function CardIcon({
   }
 
   return (
-    <div className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-primary/10">
+    <div className="grid h-24 w-24 place-items-center">
       <img
         src={src}
         alt={alt}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         onError={() => {
           if (src === png) setSrc(jpg);
           else setFailed(true);
