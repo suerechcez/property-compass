@@ -38,27 +38,30 @@ function Sell() {
             Sell with a <span className="text-gold">One Higala</span> professional
           </h1>
 
-          <div className="mt-10 grid gap-6 text-left md:grid-cols-2">
-            <div className="rounded-2xl bg-white p-8">
+          {/* Same card styling as the landing page's Buy/Rent/Sell boxes:
+              centered content, bordered white card, soft shadow, and a
+              Montserrat Medium heading instead of the serif display font. */}
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
                 <Handshake className="h-7 w-7" />
               </div>
-              <h2 className="mt-5 font-display text-xl font-semibold text-foreground">
+              <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">
                 Sell with a commissioner or agent
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-3 max-w-xs text-sm text-muted-foreground">
                 Work with a trusted One Higala commissioner or agent who handles pricing,
                 marketing, and negotiations for you — from listing to turnover.
               </p>
             </div>
-            <div className="rounded-2xl bg-white p-8">
+            <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
               <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
                 <TrendingUp className="h-7 w-7" />
               </div>
-              <h2 className="mt-5 font-display text-xl font-semibold text-foreground">
+              <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">
                 Maximize your home's visibility
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-3 max-w-xs text-sm text-muted-foreground">
                 Reach buyers actively browsing Cagayan de Oro City listings on One Higala
                 Properties, whether you list with a pro or list it yourself.
               </p>
