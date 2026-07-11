@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -13,6 +14,14 @@ export const Route = createFileRoute("/sell")({
   }),
   component: Sell,
 });
+
+// Photos for the two option panels below. Upload either extension to
+// /public — the <img> tries .jpg first and falls back to .png automatically,
+// then to a plain navy panel if neither exists.
+const FIND_AGENT_JPG = "/sell-find-agent.jpg";
+const FIND_AGENT_PNG = "/sell-find-agent.png";
+const LIST_YOURSELF_JPG = "/sell-list-yourself.jpg";
+const LIST_YOURSELF_PNG = "/sell-list-yourself.png";
 
 function Sell() {
   const { user, loading, isCommissioner, isAgent } = useAuth();
@@ -56,74 +65,69 @@ function Sell() {
             </div>
           </div>
 
-          <p className="mx-auto mt-10 max-w-2xl text-white/85">
-            Answer a couple of questions to connect with a commissioner or agent, or explore
-            listing your property yourself — no commitment required.
-          </p>
-
-          <Button asChild size="lg" className="mt-6 rounded-full bg-white text-primary hover:bg-white/90">
+          <Button asChild size="lg" className="mt-10 rounded-full bg-white text-primary hover:bg-white/90">
             <a href="#sell-options">Get started</a>
           </Button>
         </div>
       </section>
 
       {/* ── Two paths ── */}
-      <section id="sell-options" className="mx-auto max-w-5xl space-y-8 px-6 py-16">
+      <section id="sell-options" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         {/* Find your own agent */}
-        <div className="grid overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
-          <div className="aspect-video bg-primary/70 md:aspect-auto" />
-          <div className="p-8 md:p-10">
-            <h2 className="font-display text-2xl font-bold text-white md:text-3xl">
+        <div className="grid min-h-[420px] overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
+          <PanelImage jpg={FIND_AGENT_JPG} png={FIND_AGENT_PNG} alt="Find your own agent" />
+          <div className="flex flex-col justify-center p-10 md:p-14">
+            <h2 className="font-display text-3xl font-bold text-white md:text-4xl">
               Find your own <span className="text-gold">agent</span>
             </h2>
-            <ul className="mt-5 space-y-3 text-sm text-white/90">
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-gold" />
+            <ul className="mt-6 space-y-4 text-base text-white/90">
+              <li className="flex gap-2.5">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />
                 <span>
                   <strong className="text-white">Ready to work with a pro?</strong> Search
                   commissioners and agents by specialties and service areas to find the right match.
                 </span>
               </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-gold" />
+              <li className="flex gap-2.5">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />
                 <span>
                   <strong className="text-white">Already have someone in mind?</strong> Browse
                   their profile, credentials, and track record before you commit.
                 </span>
               </li>
             </ul>
-            <Button asChild className="mt-6 rounded-full bg-white text-primary hover:bg-white/90">
+            <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
               <Link to="/agents">Find agents near you →</Link>
             </Button>
           </div>
         </div>
 
         {/* Sell your home yourself */}
-        <div className="grid overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
-          <div className="order-2 p-8 md:order-1 md:p-10">
-            <h2 className="font-display text-2xl font-bold text-white md:text-3xl">
+        <div className="grid min-h-[420px] overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
+          <div className="order-2 flex flex-col justify-center p-10 md:order-1 md:p-14">
+            <h2 className="font-display text-3xl font-bold text-white md:text-4xl">
               Sell your home <span className="text-gold">yourself</span>
             </h2>
-            <ul className="mt-5 space-y-3 text-sm text-white/90">
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-gold" />
+            <ul className="mt-6 space-y-4 text-base text-white/90">
+              <li className="flex gap-2.5">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />
                 Reach more potential buyers with a For Sale By Owner listing.
               </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-gold" />
+              <li className="flex gap-2.5">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />
                 Manage everything yourself — photos, pricing, and inquiries.
               </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-gold" />
+              <li className="flex gap-2.5">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />
                 No commissioner or agent role required to get listed.
               </li>
             </ul>
             {loading ? null : user ? (
-              <Button asChild className="mt-6 rounded-full bg-white text-primary hover:bg-white/90">
+              <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
                 <Link to="/sell/list-your-own">List your home on One Higala Properties →</Link>
               </Button>
             ) : (
-              <Button asChild className="mt-6 rounded-full bg-white text-primary hover:bg-white/90">
+              <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
                 <Link to="/auth">
                   <LogIn className="h-4 w-4" />
                   Sign in to get started
@@ -131,7 +135,9 @@ function Sell() {
               </Button>
             )}
           </div>
-          <div className="order-1 aspect-video bg-primary/70 md:order-2 md:aspect-auto" />
+          <div className="order-1 md:order-2">
+            <PanelImage jpg={LIST_YOURSELF_JPG} png={LIST_YOURSELF_PNG} alt="Sell your home yourself" />
+          </div>
         </div>
       </section>
 
@@ -149,5 +155,24 @@ function Sell() {
         </section>
       )}
     </div>
+  );
+}
+
+function PanelImage({ jpg, png, alt }: { jpg: string; png: string; alt: string }) {
+  const [src, setSrc] = useState(jpg);
+  const [hidden, setHidden] = useState(false);
+
+  if (hidden) return <div className="aspect-video bg-primary/70 md:aspect-auto md:h-full" />;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="aspect-video w-full object-cover md:aspect-auto md:h-full"
+      onError={() => {
+        if (src === jpg) setSrc(png);
+        else setHidden(true);
+      }}
+    />
   );
 }
