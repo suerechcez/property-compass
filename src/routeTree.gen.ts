@@ -78,10 +78,16 @@ const ListingsNewRoute = ListingsNewRouteImport.update({
   path: '/listings/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+// IMPORTANT: this is a standalone top-level page (its own <Nav/>, full
+// layout — same pattern as PropertiesIdRoute above), NOT nested under
+// AgentsRoute. It was previously wired with getParentRoute: () => AgentsRoute,
+// which silently broke it: AgentsRoute's component never renders an
+// <Outlet/>, so nested children can never actually display — the URL would
+// change on navigation but the /agents directory page just kept showing.
 const AgentsIdRoute = AgentsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AgentsRoute,
+  id: '/agents/$id',
+  path: '/agents/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
   id: '/listings/$id/edit',
@@ -91,7 +97,7 @@ const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRouteWithChildren
+  '/agents': typeof AgentsRoute
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -106,7 +112,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRouteWithChildren
+  '/agents': typeof AgentsRoute
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -122,7 +128,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRouteWithChildren
+  '/agents': typeof AgentsRoute
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -185,7 +191,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentsRoute: typeof AgentsRouteWithChildren
+  AgentsRoute: typeof AgentsRoute
+  AgentsIdRoute: typeof AgentsIdRoute
   ApplyRoute: typeof ApplyRoute
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
@@ -279,10 +286,10 @@ declare module '@tanstack/react-router' {
     }
     '/agents/$id': {
       id: '/agents/$id'
-      path: '/$id'
+      path: '/agents/$id'
       fullPath: '/agents/$id'
       preLoaderRoute: typeof AgentsIdRouteImport
-      parentRoute: typeof AgentsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/listings/$id/edit': {
       id: '/listings/$id/edit'
@@ -294,20 +301,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AgentsRouteChildren {
-  AgentsIdRoute: typeof AgentsIdRoute
-}
-
-const AgentsRouteChildren: AgentsRouteChildren = {
-  AgentsIdRoute: AgentsIdRoute,
-}
-
-const AgentsRouteWithChildren =
-  AgentsRoute._addFileChildren(AgentsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentsRoute: AgentsRouteWithChildren,
+  AgentsRoute: AgentsRoute,
+  AgentsIdRoute: AgentsIdRoute,
   ApplyRoute: ApplyRoute,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
