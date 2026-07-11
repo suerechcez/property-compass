@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BrandTitle } from "@/components/BrandTitle";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -78,7 +79,9 @@ function AuthPage() {
     <div className="min-h-screen bg-surface site-page">
       <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
         <div className="hidden md:block">
-          <Link to="/" className="font-display text-2xl font-semibold">One Higala Properties Inc.</Link>
+          <Link to="/">
+            <BrandTitle nameOnly />
+          </Link>
           <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
             Sign in, settle in — the higala way.
           </h1>
