@@ -103,16 +103,7 @@ function AuthPage() {
               : "Join One Higala Properties Inc. in less than a minute."}
           </p>
 
-          <Button variant="outline" className="mt-6 w-full" onClick={google}>
-            Continue with Google
-          </Button>
-          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            or
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className="mt-6 space-y-4">
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name">Full name</Label>
@@ -142,6 +133,16 @@ function AuthPage() {
               {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            or
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={google}>
+            Continue with Google
+          </Button>
+
           <p className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
             <button
