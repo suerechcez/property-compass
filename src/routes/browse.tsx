@@ -198,9 +198,14 @@ function Browse() {
                     <div className="p-4 sm:p-5">
                       <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
                         <span>{typeLabel(p.property_type)}</span>
-                        {p.for_rent && (
-                          <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>
-                        )}
+                        <div className="flex gap-1.5">
+                          {p.is_owner_listed && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>
+                          )}
+                          {p.for_rent && (
+                            <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>
+                          )}
+                        </div>
                       </div>
                       <h3 className="mt-2 font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
