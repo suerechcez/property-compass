@@ -20,6 +20,7 @@ import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
+import { Route as AgentsIndexRouteImport } from './routes/agents.index'
 import { Route as AgentsIdRouteImport } from './routes/agents.$id'
 import { Route as ListingsIdEditRouteImport } from './routes/listings.$id.edit'
 
@@ -58,6 +59,7 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+// Layout route — agents.tsx renders <Nav/> + <Outlet/> for its children below.
 const AgentsRoute = AgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
@@ -78,16 +80,15 @@ const ListingsNewRoute = ListingsNewRouteImport.update({
   path: '/listings/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-// IMPORTANT: this is a standalone top-level page (its own <Nav/>, full
-// layout — same pattern as PropertiesIdRoute above), NOT nested under
-// AgentsRoute. It was previously wired with getParentRoute: () => AgentsRoute,
-// which silently broke it: AgentsRoute's component never renders an
-// <Outlet/>, so nested children can never actually display — the URL would
-// change on navigation but the /agents directory page just kept showing.
+const AgentsIndexRoute = AgentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgentsRoute,
+} as any)
 const AgentsIdRoute = AgentsIdRouteImport.update({
-  id: '/agents/$id',
-  path: '/agents/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AgentsRoute,
 } as any)
 const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
   id: '/listings/$id/edit',
@@ -97,7 +98,7 @@ const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -108,11 +109,11 @@ export interface FileRoutesByFullPath {
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/agents/': typeof AgentsIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -123,12 +124,13 @@ export interface FileRoutesByTo {
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/agents': typeof AgentsIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/agents': typeof AgentsRouteWithChildren
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
@@ -139,6 +141,7 @@ export interface FileRoutesById {
   '/agents/$id': typeof AgentsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/agents/': typeof AgentsIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRouteTypes {
@@ -156,11 +159,11 @@ export interface FileRouteTypes {
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
+    | '/agents/'
     | '/listings/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agents'
     | '/apply'
     | '/auth'
     | '/browse'
@@ -171,6 +174,7 @@ export interface FileRouteTypes {
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
+    | '/agents'
     | '/listings/$id/edit'
   id:
     | '__root__'
@@ -186,13 +190,13 @@ export interface FileRouteTypes {
     | '/agents/$id'
     | '/listings/new'
     | '/properties/$id'
+    | '/agents/'
     | '/listings/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentsRoute: typeof AgentsRoute
-  AgentsIdRoute: typeof AgentsIdRoute
+  AgentsRoute: typeof AgentsRouteWithChildren
   ApplyRoute: typeof ApplyRoute
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
@@ -286,10 +290,17 @@ declare module '@tanstack/react-router' {
     }
     '/agents/$id': {
       id: '/agents/$id'
-      path: '/agents/$id'
+      path: '/$id'
       fullPath: '/agents/$id'
       preLoaderRoute: typeof AgentsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AgentsRoute
+    }
+    '/agents/': {
+      id: '/agents/'
+      path: '/'
+      fullPath: '/agents/'
+      preLoaderRoute: typeof AgentsIndexRouteImport
+      parentRoute: typeof AgentsRoute
     }
     '/listings/$id/edit': {
       id: '/listings/$id/edit'
@@ -301,10 +312,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AgentsRouteChildren {
+  AgentsIdRoute: typeof AgentsIdRoute
+  AgentsIndexRoute: typeof AgentsIndexRoute
+}
+
+const AgentsRouteChildren: AgentsRouteChildren = {
+  AgentsIdRoute: AgentsIdRoute,
+  AgentsIndexRoute: AgentsIndexRoute,
+}
+
+const AgentsRouteWithChildren =
+  AgentsRoute._addFileChildren(AgentsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentsRoute: AgentsRoute,
-  AgentsIdRoute: AgentsIdRoute,
+  AgentsRoute: AgentsRouteWithChildren,
   ApplyRoute: ApplyRoute,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
