@@ -78,9 +78,9 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-surface site-page">
       <div className="mx-auto grid min-h-screen max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:items-center">
-        <div className="hidden md:block">
+        <div className="hidden text-center md:flex md:flex-col md:items-center">
           <Link to="/">
-            <BrandTitle nameOnly />
+            <BrandTitle nameOnly className="items-center" />
           </Link>
           <h1 className="mt-12 font-display text-5xl font-semibold leading-tight">
             Sign in, settle in — the higala way.
