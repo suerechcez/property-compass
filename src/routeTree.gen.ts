@@ -14,6 +14,7 @@ import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as IndexRouteImport } from './routes/index'
@@ -45,6 +46,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplyRoute = ApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -86,6 +92,7 @@ const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agents': typeof AgentsRouteWithChildren
+  '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agents': typeof AgentsRouteWithChildren
+  '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agents': typeof AgentsRouteWithChildren
+  '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agents'
+    | '/apply'
     | '/auth'
     | '/browse'
     | '/dashboard'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agents'
+    | '/apply'
     | '/auth'
     | '/browse'
     | '/dashboard'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agents'
+    | '/apply'
     | '/auth'
     | '/browse'
     | '/dashboard'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentsRoute: typeof AgentsRouteWithChildren
+  ApplyRoute: typeof ApplyRoute
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
   DashboardRoute: typeof DashboardRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/browse'
       fullPath: '/browse'
       preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apply': {
+      id: '/apply'
+      path: '/apply'
+      fullPath: '/apply'
+      preLoaderRoute: typeof ApplyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -288,6 +308,7 @@ const AgentsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentsRoute: AgentsRouteWithChildren,
+  ApplyRoute: ApplyRoute,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
   DashboardRoute: DashboardRoute,
