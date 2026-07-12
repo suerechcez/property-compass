@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PROPERTY_TYPES, PROPERTY_STATUS, type PropertyTypeValue } from "@/lib/property-types";
 import { uploadPropertyImage } from "@/lib/storage";
+import { ensureSaleRecord } from "@/lib/sales";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/listings/new")({
@@ -137,6 +138,12 @@ export function ListingForm({
       if (mode === "edit" && initial) {
         const { error } = await supabase.from("properties").update(payload).eq("id", initial.id);
         if (error) throw error;
+        // Marking a listing "Sold" here should also log it under Sales —
+        // only do this on the transition into "sold" so re-saving an
+        // already-sold listing doesn't create duplicate sales rows.
+        if (status === "sold" && initial.status !== "sold") {
+          await ensureSaleRecord(initial.id, payload.commissioner_id, payload.price);
+        }
         toast.success("Listing updated");
         navigate({ to: "/properties/$id", params: { id: initial.id } });
       } else {
@@ -230,6 +237,11 @@ export function ListingForm({
                 >
                   {PROPERTY_STATUS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+                {status === "sold" && initial?.status !== "sold" && (
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Saving will log this as a sale on your Sales tab.
+                  </p>
+                )}
               </Field>
               <Field label="Price (PHP ₱)">
                 <Input type="number" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
