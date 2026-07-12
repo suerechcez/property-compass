@@ -2,7 +2,6 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { PhoneInput } from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatPrice, typeLabel } from "@/lib/property-types";
@@ -90,7 +89,7 @@ function AgentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("*, properties(id, title, property_type, location, images, bedrooms, bathrooms, area_sqm)")
+        .select("*, properties(id, title, property_type, location, images, bedrooms, bathrooms, area_sqm, status)")
         .eq("commissioner_id", id)
         .order("sale_date", { ascending: false });
       if (error) throw error;
@@ -114,6 +113,13 @@ function AgentProfile() {
   const sold = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
   const forSale = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
   const forRent = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
+
+  // Featured sales should highlight sales whose property isn't already shown
+  // in the "Sold" carousel below — sold properties belong there, not here.
+  const featuredSales = useMemo(
+    () => sales.filter((s) => (s.properties as { status?: string } | null)?.status !== "sold"),
+    [sales],
+  );
 
   // Gallery for the header — the photos of what they're currently selling/renting.
   const galleryImages = useMemo(
@@ -246,7 +252,7 @@ function AgentProfile() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_320px]">
         {/* ── Main column ── */}
         <div className="min-w-0 space-y-12">
-          <FeaturedSalesCarousel sales={sales} />
+          <FeaturedSalesCarousel sales={featuredSales} />
 
           <TeamSection profile={profile} roleLabel={roleLabel} />
 
@@ -344,7 +350,6 @@ function FeaturedSalesCarousel({ sales }: { sales: Record<string, unknown>[] }) 
               ) : (
                 <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>
               )}
-              <span className="absolute left-2 top-2 rounded bg-foreground/85 px-2 py-0.5 text-[11px] font-semibold text-background">Sold</span>
             </div>
             <div className="p-3">
               <p className="font-display text-lg font-bold">{formatPrice(s.amount as number)}</p>
@@ -504,7 +509,14 @@ function ContactForm({
         </div>
         <div>
           <Label htmlFor="contact-phone">Phone</Label>
-          <PhoneInput id="contact-phone" value={phone} onChange={setPhone} />
+          <input
+            id="contact-phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+63 9XX XXX XXXX"
+            className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          />
         </div>
         <div>
           <Label>Email</Label>
