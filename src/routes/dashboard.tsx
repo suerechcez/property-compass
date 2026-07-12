@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { typeLabel, formatPrice } from "@/lib/property-types";
+import { markPropertySold } from "@/lib/sales";
 import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -292,6 +293,19 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
+  const markSold = useMutation({
+    mutationFn: async (p: { id: string; commissioner_id: string; price: number | string }) => {
+      await markPropertySold(p.id, p.commissioner_id, Number(p.price));
+    },
+    onSuccess: () => {
+      toast.success("Marked as sold — logged under Sales");
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to mark as sold"),
+  });
+
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (properties.length === 0)
     return (
@@ -317,8 +331,21 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
               <td className="px-4 py-3 capitalize">{p.status}</td>
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
-              <td className="px-4 py-3 text-right">
-                <Button size="sm" variant="outline" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>
+              <td className="px-4 py-3 text-right whitespace-nowrap">
+                {p.status !== "sold" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (confirm(`Mark "${p.title}" as sold? This will log it under Sales.`)) {
+                        markSold.mutate(p);
+                      }
+                    }}
+                  >
+                    Mark as Sold
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="ml-2" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>
                 <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>Delete</Button>
               </td>
             </tr>
