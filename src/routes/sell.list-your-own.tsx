@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,17 +113,12 @@ function ListYourOwn() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen site-page">
-        <Nav />
-        <div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div>
-      </div>
+      <div className="mx-auto max-w-3xl px-6 py-10 text-muted-foreground">Loading…</div>
     );
   }
 
   return (
-    <div className="min-h-screen site-page">
-      <Nav />
-
+    <div className="site-page">
       {/* ── Header banner ── */}
       <section className="bg-primary">
         <div className="mx-auto max-w-3xl px-6 py-14 text-center">
