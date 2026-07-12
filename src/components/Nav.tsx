@@ -121,11 +121,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop: Browse / Sell / Find an agent, flush against the left
-              edge (matching the same left padding the right-side avatar
-              uses on its edge) — no leading spacer, so this row lines up
-              identically on every page. */}
+          {/* Desktop: Browse / Sell / Find an agent. A leading invisible
+              spacer sits before "Browse" to balance the topbar's horizontal
+              rhythm against the right-side avatar/sign-in — purely spacing,
+              renders no visible text. */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+            <span aria-hidden="true" className="invisible select-none">Browse</span>
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
             <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
