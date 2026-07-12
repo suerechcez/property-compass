@@ -17,10 +17,13 @@ import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgentsRouteImport } from './routes/agents'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SellIndexRouteImport } from './routes/sell.index'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as AgentsIndexRouteImport } from './routes/agents.index'
+import { Route as SellListYourOwnRouteImport } from './routes/sell.list-your-own'
 import { Route as AgentsIdRouteImport } from './routes/agents.$id'
 import { Route as ListingsIdEditRouteImport } from './routes/listings.$id.edit'
 
@@ -29,6 +32,7 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+// Layout route — sell.tsx renders <Nav/> + <Outlet/> for its children below.
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -65,10 +69,20 @@ const AgentsRoute = AgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SellIndexRoute = SellIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SellRoute,
 } as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
@@ -85,6 +99,11 @@ const AgentsIndexRoute = AgentsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AgentsRoute,
 } as any)
+const SellListYourOwnRoute = SellListYourOwnRouteImport.update({
+  id: '/list-your-own',
+  path: '/list-your-own',
+  getParentRoute: () => SellRoute,
+} as any)
 const AgentsIdRoute = AgentsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -98,56 +117,65 @@ const ListingsIdEditRoute = ListingsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/agents': typeof AgentsRouteWithChildren
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
-  '/sell': typeof SellRoute
+  '/sell': typeof SellRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
+  '/sell/list-your-own': typeof SellListYourOwnRoute
+  '/agents/': typeof AgentsIndexRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
-  '/agents/': typeof AgentsIndexRoute
+  '/sell/': typeof SellIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
-  '/sell': typeof SellRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
+  '/sell/list-your-own': typeof SellListYourOwnRoute
+  '/agents': typeof AgentsIndexRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
-  '/agents': typeof AgentsIndexRoute
+  '/sell': typeof SellIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/agents': typeof AgentsRouteWithChildren
   '/apply': typeof ApplyRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/dashboard': typeof DashboardRoute
   '/profile': typeof ProfileRoute
-  '/sell': typeof SellRoute
+  '/sell': typeof SellRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/agents/$id': typeof AgentsIdRoute
+  '/sell/list-your-own': typeof SellListYourOwnRoute
+  '/agents/': typeof AgentsIndexRoute
   '/listings/new': typeof ListingsNewRoute
   '/properties/$id': typeof PropertiesIdRoute
-  '/agents/': typeof AgentsIndexRoute
+  '/sell/': typeof SellIndexRoute
   '/listings/$id/edit': typeof ListingsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/agents'
     | '/apply'
     | '/auth'
@@ -157,28 +185,33 @@ export interface FileRouteTypes {
     | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
+    | '/sell/list-your-own'
+    | '/agents/'
     | '/listings/new'
     | '/properties/$id'
-    | '/agents/'
+    | '/sell/'
     | '/listings/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/apply'
     | '/auth'
     | '/browse'
     | '/dashboard'
     | '/profile'
-    | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
+    | '/sell/list-your-own'
+    | '/agents'
     | '/listings/new'
     | '/properties/$id'
-    | '/agents'
+    | '/sell'
     | '/listings/$id/edit'
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/agents'
     | '/apply'
     | '/auth'
@@ -188,21 +221,24 @@ export interface FileRouteTypes {
     | '/sell'
     | '/sitemap.xml'
     | '/agents/$id'
+    | '/sell/list-your-own'
+    | '/agents/'
     | '/listings/new'
     | '/properties/$id'
-    | '/agents/'
+    | '/sell/'
     | '/listings/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AgentsRoute: typeof AgentsRouteWithChildren
   ApplyRoute: typeof ApplyRoute
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
   DashboardRoute: typeof DashboardRoute
   ProfileRoute: typeof ProfileRoute
-  SellRoute: typeof SellRoute
+  SellRoute: typeof SellRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ListingsNewRoute: typeof ListingsNewRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
@@ -267,12 +303,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/sell/': {
+      id: '/sell/'
+      path: '/'
+      fullPath: '/sell/'
+      preLoaderRoute: typeof SellIndexRouteImport
+      parentRoute: typeof SellRoute
     }
     '/properties/$id': {
       id: '/properties/$id'
@@ -294,6 +344,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/agents/$id'
       preLoaderRoute: typeof AgentsIdRouteImport
       parentRoute: typeof AgentsRoute
+    }
+    '/sell/list-your-own': {
+      id: '/sell/list-your-own'
+      path: '/list-your-own'
+      fullPath: '/sell/list-your-own'
+      preLoaderRoute: typeof SellListYourOwnRouteImport
+      parentRoute: typeof SellRoute
     }
     '/agents/': {
       id: '/agents/'
@@ -325,15 +382,28 @@ const AgentsRouteChildren: AgentsRouteChildren = {
 const AgentsRouteWithChildren =
   AgentsRoute._addFileChildren(AgentsRouteChildren)
 
+interface SellRouteChildren {
+  SellListYourOwnRoute: typeof SellListYourOwnRoute
+  SellIndexRoute: typeof SellIndexRoute
+}
+
+const SellRouteChildren: SellRouteChildren = {
+  SellListYourOwnRoute: SellListYourOwnRoute,
+  SellIndexRoute: SellIndexRoute,
+}
+
+const SellRouteWithChildren = SellRoute._addFileChildren(SellRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AgentsRoute: AgentsRouteWithChildren,
   ApplyRoute: ApplyRoute,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
   DashboardRoute: DashboardRoute,
   ProfileRoute: ProfileRoute,
-  SellRoute: SellRoute,
+  SellRoute: SellRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ListingsNewRoute: ListingsNewRoute,
   PropertiesIdRoute: PropertiesIdRoute,
