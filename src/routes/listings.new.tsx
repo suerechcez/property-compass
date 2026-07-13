@@ -275,7 +275,6 @@ export function ListingForm({
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="+63 9XX XXX XXXX"
                 />
               </Field>
               <Field label="Email (Gmail or other)">
