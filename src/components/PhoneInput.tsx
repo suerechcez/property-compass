@@ -99,7 +99,7 @@ export function PhoneInput({
         className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
         value={number}
         onChange={(e) => update(code, e.target.value)}
-        placeholder={placeholder ?? "9XX XXX XXXX"}
+        placeholder={placeholder}
       />
     </div>
   );
