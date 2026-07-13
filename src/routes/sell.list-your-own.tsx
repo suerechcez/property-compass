@@ -192,7 +192,7 @@ function ListYourOwn() {
             <p className="text-sm text-muted-foreground">Shown to buyers so they can reach you directly.</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <Field label="Phone number">
-                <Input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+63 9XX XXX XXXX" />
+                <Input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
               </Field>
               <Field label="Email">
                 <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="you@gmail.com" />
