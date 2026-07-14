@@ -222,7 +222,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   key={p.id}
                   to="/properties/$id"
                   params={{ id: p.id }}
-                  className="flex gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
+                  className="flex items-center gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
                 >
                   <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? (
