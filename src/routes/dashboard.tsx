@@ -224,11 +224,11 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   params={{ id: p.id }}
                   className="flex gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
                 >
-                  <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? (
-                      <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                      <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <div className="grid h-full w-full place-items-center font-display text-lg text-muted-foreground">H</div>
+                      <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
