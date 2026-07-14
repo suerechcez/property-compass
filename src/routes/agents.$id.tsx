@@ -16,6 +16,7 @@ import {
   Mail,
   Phone,
   Users,
+  Star,
 } from "lucide-react";
 
 export const Route = createFileRoute("/agents/$id")({
@@ -46,6 +47,7 @@ type Property = {
   for_rent: boolean;
   status: string;
   property_type: string;
+  is_featured: boolean;
   updated_at?: string;
   created_at: string;
 };
@@ -114,11 +116,13 @@ function AgentProfile() {
   const forSale = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
   const forRent = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
 
-  // Featured sales should highlight sales whose property isn't already shown
-  // in the "Sold" carousel below — sold properties belong there, not here.
-  const featuredSales = useMemo(
-    () => sales.filter((s) => (s.properties as { status?: string } | null)?.status !== "sold"),
-    [sales],
+  // "Featured sales" is now a curated selection — the commissioner/agent
+  // explicitly places a listing here from the property page's "Place as
+  // Featured Sale" toggle. Sold properties still belong exclusively in the
+  // "Sold" carousel below, so they're excluded here even if flagged.
+  const featured = useMemo(
+    () => listings.filter((p) => p.is_featured && p.status !== "sold"),
+    [listings],
   );
 
   // Gallery for the header — the photos of what they're currently selling/renting.
@@ -252,13 +256,13 @@ function AgentProfile() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_320px]">
         {/* ── Main column ── */}
         <div className="min-w-0 space-y-12">
-          <FeaturedSalesCarousel sales={featuredSales} />
+          <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
 
           <TeamSection profile={profile} roleLabel={roleLabel} />
 
-          <ListingCarousel title="Sold" items={sold} soldStyle />
-          <ListingCarousel title="For sale" items={forSale} />
-          <ListingCarousel title="For rent" items={forRent} isRent />
+          <ListingCarousel title="Sold" items={sold} badge="Sold" />
+          <ListingCarousel title="For sale" items={forSale} badge="For sale" />
+          <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
         </div>
 
         {/* ── Sticky contact form ── */}
@@ -336,45 +340,6 @@ function CarouselShell({ title, count, children }: { title: string; count?: numb
   );
 }
 
-function FeaturedSalesCarousel({ sales }: { sales: Record<string, unknown>[] }) {
-  if (sales.length === 0) return null;
-  return (
-    <CarouselShell title="Featured sales">
-      {sales.slice(0, 8).map((s) => {
-        const prop = s.properties as { id?: string; title?: string; images?: string[]; location?: string; bedrooms?: number; bathrooms?: number; area_sqm?: number } | null;
-        const card = (
-          <div className="w-64 shrink-0 overflow-hidden rounded-xl border border-border bg-card transition hover:shadow-md">
-            <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-              {prop?.images?.[0] ? (
-                <img src={prop.images[0]} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>
-              )}
-            </div>
-            <div className="p-3">
-              <p className="font-display text-lg font-bold">{formatPrice(s.amount as number)}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {[prop?.bedrooms != null && `${prop.bedrooms} bd`, prop?.bathrooms != null && `${prop.bathrooms} ba`, prop?.area_sqm != null && `${prop.area_sqm} sqft`]
-                  .filter(Boolean)
-                  .join(" | ") || prop?.title}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">{prop?.location ?? "Cagayan de Oro City"}</p>
-              <p className="mt-1.5 text-xs text-gold-foreground">
-                Sold {formatDistanceToNow(new Date(s.sale_date as string), { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-        );
-        return prop?.id ? (
-          <Link key={s.id as string} to="/properties/$id" params={{ id: prop.id }}>{card}</Link>
-        ) : (
-          <div key={s.id as string}>{card}</div>
-        );
-      })}
-    </CarouselShell>
-  );
-}
-
 function TeamSection({
   profile,
   roleLabel,
@@ -424,12 +389,14 @@ function ListingCarousel({
   title,
   items,
   isRent,
-  soldStyle,
+  badge,
+  badgeIcon: BadgeIcon,
 }: {
   title: string;
   items: Property[];
   isRent?: boolean;
-  soldStyle?: boolean;
+  badge: string;
+  badgeIcon?: typeof Star;
 }) {
   if (items.length === 0) return null;
   return (
@@ -447,8 +414,9 @@ function ListingCarousel({
             ) : (
               <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>
             )}
-            <span className="absolute left-2 top-2 rounded bg-foreground/85 px-2 py-0.5 text-[11px] font-semibold text-background">
-              {soldStyle ? "Sold" : isRent ? "For rent" : "For sale"}
+            <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-foreground/85 px-2 py-0.5 text-[11px] font-semibold text-background">
+              {BadgeIcon && <BadgeIcon className="h-3 w-3 fill-current" />}
+              {badge}
             </span>
           </div>
           <div className="p-3">
