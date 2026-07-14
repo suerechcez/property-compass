@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail } from "lucide-react";
+import { Phone, Mail, Star } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/properties/$id")({
 function PropertyDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { user, isDeveloper, isAdmin } = useAuth();
 
   const { data, isLoading } = useQuery({
@@ -45,6 +47,19 @@ function PropertyDetail() {
 
       return { ...property, agent };
     },
+  });
+
+  const toggleFeatured = useMutation({
+    mutationFn: async (next: boolean) => {
+      const { error } = await supabase.from("properties").update({ is_featured: next }).eq("id", id);
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      toast.success(next ? "Placed as a Featured Sale on your profile" : "Removed from Featured Sales");
+      qc.invalidateQueries({ queryKey: ["properties", id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to update"),
   });
 
   if (isLoading) {
@@ -80,6 +95,11 @@ function PropertyDetail() {
               <span>{typeLabel(data.property_type)}</span>
               {data.for_rent && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
               <span className="rounded-full border border-border px-2 py-0.5 capitalize">{data.status}</span>
+              {data.is_featured && (
+                <span className="flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">
+                  <Star className="h-3 w-3 fill-current" /> Featured Sale
+                </span>
+              )}
             </div>
             <h1 className="mt-3 font-display text-4xl font-semibold md:text-5xl">{data.title}</h1>
             <p className="mt-2 text-muted-foreground">{data.location ?? "Location not set"}</p>
@@ -90,9 +110,20 @@ function PropertyDetail() {
               {data.for_rent && <span className="text-lg text-muted-foreground"> /mo</span>}
             </p>
             {canEdit && (
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate({ to: "/listings/$id/edit", params: { id: data.id } })}>
-                Edit listing
-              </Button>
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <Button
+                  variant={data.is_featured ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleFeatured.mutate(!data.is_featured)}
+                  disabled={toggleFeatured.isPending}
+                >
+                  <Star className={`h-4 w-4 ${data.is_featured ? "fill-current" : ""}`} />
+                  {data.is_featured ? "Remove from Featured Sales" : "Place as Featured Sale"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/listings/$id/edit", params: { id: data.id } })}>
+                  Edit listing
+                </Button>
+              </div>
             )}
           </div>
         </header>
