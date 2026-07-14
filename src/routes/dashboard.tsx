@@ -232,7 +232,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3">
                       <h3 className="font-display text-lg font-bold leading-tight">{p.title}</h3>
                       <p className="shrink-0 font-display text-lg font-semibold text-primary">
                         {formatPrice(p.price)}
