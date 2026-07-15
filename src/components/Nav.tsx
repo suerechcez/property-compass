@@ -17,15 +17,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
-// Brand mark (the "1H" logo), stored at /public/brand-icon.png.
 const BRAND_ICON_URL = "/brand-icon.png";
-
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 /**
- * `overlay` — when true, the header starts transparent over the hero image
- * and transitions to a solid/blurred bar once the user scrolls down.
- * It is always `sticky` so it follows the user on every screen size.
+ * `overlay` — when true, the nav starts transparent over the hero photo and
+ * transitions to a solid/blurred bar once the user scrolls. It is ALWAYS
+ * `sticky` on every screen size so it follows the user on scroll.
  */
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -37,9 +35,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   useEffect(() => {
     if (!overlay) return;
-    function onScroll() {
-      setScrolled(window.scrollY > 10);
-    }
+    const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [overlay]);
@@ -64,8 +60,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
-  // When overlay is active: transparent + white text at top, solid + normal
-  // text once scrolled. Non-overlay pages always get the solid sticky bar.
+  // Transparent only when overlay is active AND user hasn't scrolled yet
   const isTransparent = overlay && !scrolled;
 
   return (
@@ -77,7 +72,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       }
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
-        {/* Left — hamburger on mobile, full link row on desktop */}
+
+        {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
@@ -111,34 +107,27 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </SheetHeader>
               <nav className="mt-6 flex flex-col gap-1 text-base font-medium">
                 <SheetClose asChild>
-                  <Link to="/browse" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
-                    Browse
-                  </Link>
+                  <Link to="/browse" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Browse</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/sell" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
-                    Sell
-                  </Link>
+                  <Link to="/sell" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Sell</Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/agents" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">
-                    Find an agent
-                  </Link>
+                  <Link to="/agents" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Find an agent</Link>
                 </SheetClose>
               </nav>
             </SheetContent>
           </Sheet>
 
-          {/* Desktop nav links */}
+          {/* Desktop nav links — always visible, color adapts to transparency */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-            <span aria-hidden="true" className="invisible select-none">Browse</span>
             <Link to="/browse" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Browse</Link>
-            <Link to="/sell" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Sell</Link>
+            <Link to="/sell"   className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Sell</Link>
             <Link to="/agents" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Find an agent</Link>
           </nav>
         </div>
 
-        {/* Centered brand */}
+        {/* Center — brand */}
         <Link to="/" className="col-start-2 flex items-center justify-center gap-3 justify-self-center">
           {iconOk ? (
             <img
@@ -157,13 +146,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </div>
         </Link>
 
-        {/* Right side — profile / sign-in */}
+        {/* Right — profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className={isTransparent ? "h-10 w-10 border-2 border-white md:h-12 md:w-12 md:border md:border-border" : "h-12 w-12 border border-border"}>
+                  <Avatar className={isTransparent ? "h-10 w-10 border-2 border-white" : "h-12 w-12 border border-border"}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-semibold text-primary-foreground">
                       {initial}
@@ -179,8 +168,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 {isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard" search={{ tab: "admin" }} className="cursor-pointer">
-                      <ShieldCheck className="h-4 w-4" />
-                      Admin
+                      <ShieldCheck className="h-4 w-4" />Admin
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -188,26 +176,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   <>
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" search={{ tab: "overview" }} className="cursor-pointer">
-                        <LayoutDashboard className="h-4 w-4" />
-                        Dashboard
+                        <LayoutDashboard className="h-4 w-4" />Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" search={{ tab: "listings" }} className="cursor-pointer">
-                        <Building2 className="h-4 w-4" />
-                        My listings
+                        <Building2 className="h-4 w-4" />My listings
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" search={{ tab: "sales" }} className="cursor-pointer">
-                        <Wallet className="h-4 w-4" />
-                        Sales
+                        <Wallet className="h-4 w-4" />Sales
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/listings/new" className="cursor-pointer">
-                        <Plus className="h-4 w-4" />
-                        Post Property
+                        <Plus className="h-4 w-4" />Post Property
                       </Link>
                     </DropdownMenuItem>
                   </>
@@ -215,14 +199,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="cursor-pointer">
-                    <Settings className="h-4 w-4" />
-                    Profile settings
+                    <Settings className="h-4 w-4" />Profile settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive focus:text-destructive">
-                  <LogOut className="h-4 w-4" />
-                  Sign out
+                  <LogOut className="h-4 w-4" />Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
