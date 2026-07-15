@@ -68,9 +68,6 @@ function Dashboard() {
   const elevated = isAdmin || isDeveloper;
   const canManageListings = isCommissioner || isAgent;
 
-  // /dashboard is a single route for every tab (deep-linked via ?tab=), so the
-  // component doesn't remount when the profile dropdown links here with a
-  // different tab — re-sync local state whenever the URL's tab actually changes.
   useEffect(() => {
     setTab(urlTab);
   }, [urlTab]);
@@ -224,14 +221,14 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   params={{ id: p.id }}
                   className="flex items-center gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
                 >
-                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  <div className="relative h-20 w-28 shrink-0 self-center overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? (
-                      <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover" />
+                      <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
                     ) : (
                       <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 self-center">
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-display text-lg font-bold leading-tight">{p.title}</h3>
                       <p className="shrink-0 font-display text-lg font-semibold text-primary">
@@ -658,11 +655,6 @@ function AdminTools({ currentUserId }: { currentUserId: string }) {
                       {u.roles.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
                       ) : u.roles.map((r) => {
-                        // Only Commissioner and Agent roles can ever be revoked from
-                        // here — never "buyer" (the baseline role every account
-                        // has) and never "admin" (self or another admin's). This
-                        // mirrors the server-side RLS policy, which is the real
-                        // enforcement; this is just the matching UI guard.
                         const isRevocable = r === "commissioner" || r === "agent";
                         return (
                           <span
