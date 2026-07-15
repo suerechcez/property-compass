@@ -60,6 +60,18 @@ function friendlyName(user: { email?: string | null; user_metadata?: Record<stri
   return "friend";
 }
 
+/**
+ * Resolve a CSS custom property to its computed value by reading it off
+ * document.documentElement. Recharts passes colour strings straight into SVG
+ * attributes which cannot resolve `var(--token)` references on their own —
+ * SVG attribute parsing happens outside the CSS cascade. We therefore read the
+ * value once at render time and hand Recharts a concrete colour string.
+ */
+function cssVar(name: string): string {
+  if (typeof window === "undefined") return "";
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -451,6 +463,18 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
     return [...byMonth.entries()].map(([month, total]) => ({ month, total }));
   }, [sales]);
 
+  // Resolve CSS custom properties to actual colour values at render time.
+  // Recharts injects colours as SVG element attributes which are NOT subject
+  // to CSS cascade — var(--token) references are ignored by the SVG parser.
+  // getComputedStyle on :root returns the resolved oklch() / hex strings.
+  const chartColors = useMemo(() => ({
+    border: cssVar("--border"),
+    mutedFg: cssVar("--muted-foreground"),
+    primary: cssVar("--primary"),
+    card: cssVar("--card"),
+    cardFg: cssVar("--card-foreground"),
+  }), []);
+
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-border bg-card p-6">
@@ -489,19 +513,26 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
+                <XAxis dataKey="month" stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 12 }} />
+                <YAxis stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 12 }} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   formatter={(v: number) => [formatPrice(v), "Volume"]}
                   contentStyle={{
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
+                    background: chartColors.card,
+                    border: `1px solid ${chartColors.border}`,
                     borderRadius: 8,
-                    color: "var(--card-foreground)",
+                    color: chartColors.cardFg,
                   }}
                 />
-                <Line type="monotone" dataKey="total" stroke="var(--primary)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--primary)" }} />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke={chartColors.primary}
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }}
+                  activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
