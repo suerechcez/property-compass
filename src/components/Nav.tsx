@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2, Wallet, Plus, Menu } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2, Wallet, Plus, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 const BRAND_ICON_URL = "/brand-icon.png";
-
-// Desktop nav links are always dark (text-foreground), never white
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 /**
- * `overlay` — mobile only effect.
- * On mobile: starts transparent over the hero photo, transitions to solid once
- * the user scrolls past 10px.
- * On desktop (md+): always the normal solid sticky bar — overlay has no effect.
+ * `overlay` — mobile-only effect.
+ *
+ * Mobile: the header is `absolute` so it floats over the hero photo with a
+ * transparent background. Once the user scrolls past 10 px it becomes
+ * `fixed` + solid (mimicking the Zillow pattern).
+ *
+ * Desktop (md+): always the normal solid `sticky` bar — overlay is ignored.
  */
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -63,71 +64,86 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
-  // Transparent only on mobile when overlay is active and not yet scrolled.
-  // Desktop is NEVER transparent.
+  // Only goes transparent on mobile when overlay + not yet scrolled
   const mobileTransparent = overlay && !scrolled;
 
   return (
     <header
       className={[
-        "sticky top-0 z-40 transition-colors duration-300",
-        // Mobile: transparent at top of hero, solid after scroll
-        mobileTransparent
-          ? "bg-transparent"
-          : "border-b border-border/60 bg-background/85 backdrop-blur",
-        // Desktop: always solid, always bordered — overrides whatever mobile says
-        "md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur",
+        "z-40 w-full transition-all duration-300",
+        // ── Mobile positioning ──
+        // At top of hero: absolute + transparent so photo shows through
+        // After scroll: fixed + solid so it sticks as user scrolls
+        overlay
+          ? scrolled
+            ? "fixed top-0 border-b border-border/60 bg-background/95 backdrop-blur"
+            : "absolute top-0 bg-transparent"
+          : "sticky top-0 border-b border-border/60 bg-background/85 backdrop-blur",
+        // ── Desktop: always sticky + solid, no matter what overlay says ──
+        "md:sticky md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur md:top-0",
       ].join(" ")}
     >
-      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
-        {/* Left — hamburger (mobile) / nav links (desktop) */}
+        {/* ── Left: hamburger (mobile) / nav links (desktop) ── */}
         <div className="flex items-center">
+
+          {/* Mobile burger — Zillow-inspired: just an icon, no label */}
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <button
                 aria-label="Open menu"
-                className={
-                  mobileTransparent
-                    ? "grid h-10 w-10 place-items-center rounded-full text-white md:hidden"
-                    : "grid h-10 w-10 place-items-center rounded-full text-foreground md:hidden"
-                }
+                className={[
+                  "grid h-10 w-10 place-items-center rounded-full transition md:hidden",
+                  mobileTransparent ? "text-white" : "text-foreground",
+                ].join(" ")}
               >
                 <Menu className="h-6 w-6" />
               </button>
             </SheetTrigger>
-            <SheetContent side="left" hideClose className="w-72">
-              <SheetHeader>
-                <SheetTitle
-                  className="text-xl tracking-tight text-primary"
-                  style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}
-                >
-                  ONE HIGALA
-                </SheetTitle>
-                <p className="text-sm">
-                  <span className="text-primary" style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>
-                    Bringing You Home,{" "}
+
+            {/* Zillow-style full-width slide-in drawer */}
+            <SheetContent side="left" hideClose className="w-full max-w-xs p-0">
+              {/* Drawer header */}
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <img src={BRAND_ICON_URL} alt="One Higala" className="h-8 w-8 object-contain" onError={() => {}} />
+                  <span
+                    className="text-base font-extrabold tracking-tight text-primary"
+                    style={{ fontFamily: "var(--font-montserrat)" }}
+                  >
+                    ONE HIGALA
                   </span>
-                  <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>
-                    the Higala Way.
-                  </span>
-                </p>
-              </SheetHeader>
-              <nav className="mt-6 flex flex-col gap-1 text-base font-medium">
+                </div>
                 <SheetClose asChild>
-                  <Link to="/browse" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Browse</Link>
+                  <button aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent">
+                    <X className="h-5 w-5" />
+                  </button>
+                </SheetClose>
+              </div>
+
+              {/* Nav links — clean rows like Zillow */}
+              <nav className="divide-y divide-border">
+                <SheetClose asChild>
+                  <Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">
+                    Browse
+                  </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/sell" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Sell</Link>
+                  <Link to="/sell" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">
+                    Sell
+                  </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/agents" className="rounded-lg px-3 py-2.5 text-foreground hover:bg-accent">Find an agent</Link>
+                  <Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">
+                    Find an agent
+                  </Link>
                 </SheetClose>
               </nav>
             </SheetContent>
           </Sheet>
 
-          {/* Desktop nav links — always dark text, md: prefix guarantees it */}
+          {/* Desktop nav links — always dark */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
@@ -135,7 +151,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </nav>
         </div>
 
-        {/* Center — brand */}
+        {/* ── Center: brand logo ── */}
         <Link to="/" className="col-start-2 flex items-center justify-center gap-3 justify-self-center">
           {iconOk ? (
             <img
@@ -145,34 +161,34 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               onError={() => setIconOk(false)}
             />
           ) : (
-            <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-xl font-bold shadow-sm">
+            <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">
               H
             </span>
           )}
           <div className="hidden items-center sm:flex">
-            {/* Brand title always dark on desktop */}
             <BrandTitle light={false} className="items-center text-center" />
           </div>
         </Link>
 
-        {/* Right — profile / sign-in */}
+        {/* ── Right: profile / sign-in ── */}
         <div className="col-start-3 flex items-center justify-end">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-12 w-12 border border-border">
+                  <Avatar className={[
+                    "border",
+                    mobileTransparent ? "h-9 w-9 border-white/60" : "h-10 w-10 border-border md:h-12 md:w-12",
+                  ].join(" ")}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-semibold text-primary-foreground">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">
                       {initial}
                     </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="truncate">
-                  {profile?.full_name || user.email}
-                </DropdownMenuLabel>
+                <DropdownMenuLabel className="truncate">{profile?.full_name || user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <DropdownMenuItem asChild>
@@ -218,9 +234,10 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            mobileTransparent ? (
-              <Link to="/auth" className="text-base font-medium text-white md:hidden">Sign in</Link>
-            ) : null
+            // Mobile: white "Sign in" text over transparent hero
+            mobileTransparent
+              ? <Link to="/auth" className="text-sm font-semibold text-white md:hidden">Sign in</Link>
+              : null
           )}
           {!user && (
             <Button asChild size="sm" className={mobileTransparent ? "hidden md:inline-flex" : ""}>
