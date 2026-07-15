@@ -28,11 +28,12 @@ function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* ── Hero — Nav overlays the photo on mobile, sticky+solid on desktop ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background">
-        {/* Nav sits inside the hero so it can float over the photo on mobile */}
-        <Nav overlay />
+      {/* Nav is outside the hero on desktop (solid sticky bar).
+          On mobile it overlays the hero photo via the overlay prop. */}
+      <Nav overlay />
 
+      {/* ── Hero ── */}
+      <section className="relative h-[560px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[640px]">
         {heroImageOk && (
           <img
             src={HERO_IMAGE_URL}
@@ -42,9 +43,9 @@ function Home() {
             onError={() => setHeroImageOk(false)}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/10" />
 
-        <div className="relative flex h-[560px] flex-col items-start justify-center px-6 pb-12 md:h-[640px] md:px-16 md:pb-16 lg:px-24">
+        <div className="relative flex h-full flex-col items-start justify-center px-6 pb-12 md:px-16 md:pb-16 lg:px-24">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-white backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             One Higala Properties Inc.
