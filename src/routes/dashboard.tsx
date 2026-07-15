@@ -219,9 +219,9 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   key={p.id}
                   to="/properties/$id"
                   params={{ id: p.id }}
-                  className="flex items-center gap-4 py-3 transition hover:bg-accent -mx-2 px-2 rounded-lg"
+                  className="flex items-center gap-4 py-5 transition hover:bg-accent -mx-2 px-2 rounded-lg"
                 >
-                  <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? (
                       <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
                     ) : (
@@ -230,14 +230,14 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-display text-base font-bold leading-tight">{p.title}</h3>
-                      <p className="shrink-0 font-display text-base font-semibold text-primary">
+                      <h3 className="font-display text-xl font-bold leading-tight">{p.title}</h3>
+                      <p className="shrink-0 font-display text-xl font-semibold text-primary">
                         {formatPrice(p.price)}
-                        {p.for_rent && <span className="text-xs text-muted-foreground"> /mo</span>}
+                        {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                    <p className="mt-0.5 line-clamp-1 text-sm text-foreground/70">
+                    <p className="mt-1 text-base text-muted-foreground">{p.location ?? "Location TBD"}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-foreground/70">
                       {p.description || "No description provided yet."}
                     </p>
                   </div>
