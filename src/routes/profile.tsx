@@ -7,12 +7,10 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PhoneInput } from "@/components/PhoneInput";
 import { uploadAvatarImage } from "@/lib/storage";
 import { toast } from "sonner";
 import { PROPERTY_TYPES } from "@/lib/property-types";
 
-// "a Commissioner" vs "an Agent"
 function article(word: string) {
   return /^[aeiou]/i.test(word) ? "an" : "a";
 }
@@ -49,7 +47,6 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Agent credibility fields
   const [licenseNumber, setLicenseNumber] = useState("");
   const [agencyName, setAgencyName] = useState("");
   const [specialties, setSpecialties] = useState<string[]>([]);
@@ -107,7 +104,6 @@ function ProfilePage() {
     try {
       const url = await uploadAvatarImage(file, user.id);
       setAvatarUrl(url);
-      // persist immediately so nav/agent page reflect it
       await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
       toast.success("Photo uploaded");
     } catch (err) {
@@ -199,8 +195,12 @@ function ProfilePage() {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="profile-phone">Phone</Label>
-                <PhoneInput id="profile-phone" value={phone} onChange={setPhone} />
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
               </div>
               <div>
                 <Label>Years of experience</Label>
@@ -309,11 +309,6 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
-/**
- * Compact CTA banner — no inline form anymore. Clicking through takes the
- * person to the dedicated /apply page, which collects their details and
- * reason for applying on its own page rather than inline here.
- */
 function RoleApplicationBanner({ isCommissioner, isAgent }: { isCommissioner: boolean; isAgent: boolean }) {
   const missingLabel = isCommissioner ? "Agent" : isAgent ? "Commissioner" : null;
   const existingLabel = missingLabel === "Agent" ? "Commissioner" : "Agent";
