@@ -48,8 +48,10 @@ export function ListingForm({
   const navigate = useNavigate();
   const { user, isCommissioner, isAgent, loading, rolesLoaded } = useAuth();
   const canPost = isCommissioner || isAgent;
-  // Only ever run the role-guard once per mount — prevents re-firing when
-  // canPost temporarily reads false between renders.
+  // Guard fires at most once per mount — prevents re-firing on token refresh.
+  // In edit mode the guard is skipped entirely: if you're editing your own
+  // listing you clearly have the role already, and running the check here
+  // races against the roles fetch on fresh navigation.
   const guardFired = useRef(false);
 
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -96,14 +98,19 @@ export function ListingForm({
       return;
     }
 
-    // Roles are confirmed loaded and this user cannot post. Guard fires at most
-    // once per mount so a subsequent TOKEN_REFRESHED render can't re-trigger it.
+    // Edit mode: skip the role guard. The listing's RLS policy will reject the
+    // save if the user somehow doesn't own it — no need to gate here and risk
+    // a false redirect while roles are still loading on fresh navigation.
+    if (mode === "edit") return;
+
+    // Create mode: block non-commissioners/agents. One-shot so a subsequent
+    // TOKEN_REFRESHED render can't re-trigger it.
     if (!canPost && !guardFired.current) {
       guardFired.current = true;
       toast.error("You need a commissioner or agent role to post listings.");
       navigate({ to: "/dashboard" });
     }
-  }, [loading, rolesLoaded, user, canPost]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, rolesLoaded, user, canPost, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onFiles(files: FileList | null) {
     if (!files || !user) return;
@@ -146,9 +153,6 @@ export function ListingForm({
       if (mode === "edit" && initial) {
         const { error } = await supabase.from("properties").update(payload).eq("id", initial.id);
         if (error) throw error;
-        // Marking a listing "Sold" here should also log it under Sales —
-        // only do this on the transition into "sold" so re-saving an
-        // already-sold listing doesn't create duplicate sales rows.
         if (status === "sold" && initial.status !== "sold") {
           await ensureSaleRecord(initial.id, payload.commissioner_id, payload.price);
         }
@@ -171,9 +175,10 @@ export function ListingForm({
     }
   }
 
-  // Don't render the form until we actually know the user's roles —
-  // avoids a flash of the form for non-commissioners/agents before the redirect above fires.
-  if (loading || !rolesLoaded) {
+  // In create mode, don't render the form until roles are confirmed — avoids
+  // a flash before the redirect fires for non-commissioners/agents.
+  // In edit mode, render immediately (the parent already gated on data loading).
+  if (mode === "create" && (loading || !rolesLoaded)) {
     return (
       <div className="min-h-screen site-page">
         <Nav />
@@ -195,7 +200,6 @@ export function ListingForm({
         </p>
 
         <form onSubmit={save} className="mt-10 space-y-8">
-          {/* Photos */}
           <Section title="Photos">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {images.map((url, i) => (
