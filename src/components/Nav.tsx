@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, Settings, ShieldCheck, LayoutDashboard, Building2, Wallet, Plus, Menu } from "lucide-react";
@@ -23,22 +23,26 @@ const BRAND_ICON_URL = "/brand-icon.png";
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 /**
- * `overlay` — when true, the header floats transparently on top of the
- * page's own hero image on mobile only (matching the Zillow mobile
- * reference: hamburger + logo + "Sign in", all white, no background,
- * hero photo running full-bleed behind it). Desktop is unaffected either
- * way — always the normal solid bar with full nav links.
- *
- * Pages using this must render <Nav overlay /> as the first element inside
- * a `relative` hero section (see routes/index.tsx) so the header's
- * `absolute` positioning sits over the photo instead of pushing it down.
+ * `overlay` — when true, the header starts transparent over the hero image
+ * and transitions to a solid/blurred bar once the user scrolls down.
+ * It is always `sticky` so it follows the user on every screen size.
  */
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [iconOk, setIconOk] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const canManageListings = isCommissioner || isAgent;
+
+  useEffect(() => {
+    if (!overlay) return;
+    function onScroll() {
+      setScrolled(window.scrollY > 10);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [overlay]);
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -60,12 +64,16 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
+  // When overlay is active: transparent + white text at top, solid + normal
+  // text once scrolled. Non-overlay pages always get the solid sticky bar.
+  const isTransparent = overlay && !scrolled;
+
   return (
     <header
       className={
-        overlay
-          ? "absolute inset-x-0 top-0 z-40 bg-transparent md:sticky md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur"
-          : "sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur"
+        isTransparent
+          ? "sticky top-0 z-40 bg-transparent transition-colors duration-300"
+          : "sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur transition-colors duration-300"
       }
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
@@ -76,7 +84,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <button
                 aria-label="Open menu"
                 className={
-                  overlay
+                  isTransparent
                     ? "grid h-10 w-10 place-items-center rounded-full text-white md:hidden"
                     : "grid h-10 w-10 place-items-center rounded-full text-foreground md:hidden"
                 }
@@ -124,9 +132,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {/* Desktop nav links */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
             <span aria-hidden="true" className="invisible select-none">Browse</span>
-            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-            <Link to="/sell" className={NAV_LINK_CLASS}>Sell</Link>
-            <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+            <Link to="/browse" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Browse</Link>
+            <Link to="/sell" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Sell</Link>
+            <Link to="/agents" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Find an agent</Link>
           </nav>
         </div>
 
@@ -145,7 +153,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </span>
           )}
           <div className="hidden items-center sm:flex">
-            <BrandTitle light={overlay} className="items-center text-center" />
+            <BrandTitle light={isTransparent} className="items-center text-center" />
           </div>
         </Link>
 
@@ -155,7 +163,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className={overlay ? "h-10 w-10 border-2 border-white md:h-12 md:w-12 md:border md:border-border" : "h-12 w-12 border border-border"}>
+                  <Avatar className={isTransparent ? "h-10 w-10 border-2 border-white md:h-12 md:w-12 md:border md:border-border" : "h-12 w-12 border border-border"}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-semibold text-primary-foreground">
                       {initial}
@@ -176,8 +184,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {/* Dashboard and listing tools are only relevant for
-                    commissioners and agents — hide from regular buyers. */}
                 {canManageListings && (
                   <>
                     <DropdownMenuItem asChild>
@@ -220,11 +226,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : overlay ? (
+          ) : isTransparent ? (
             <Link to="/auth" className="text-base font-medium text-white md:hidden">Sign in</Link>
           ) : null}
           {!user && (
-            <Button asChild size="sm" className={overlay ? "hidden md:inline-flex" : ""}>
+            <Button asChild size="sm" className={isTransparent ? "hidden md:inline-flex" : ""}>
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
