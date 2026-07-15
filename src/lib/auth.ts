@@ -8,8 +8,16 @@ export interface AuthState {
   session: Session | null;
   user: User | null;
   roles: AppRole[];
+  /** True once getSession() has resolved — session may still be null (logged out). */
   loading: boolean;
+  /** True once roles have been fetched for the current user (or confirmed no user). */
   rolesLoaded: boolean;
+  /**
+   * The single flag to gate on. True only when BOTH the session check AND the
+   * roles fetch have completed. Use this instead of checking loading + rolesLoaded
+   * separately to avoid any window where both appear settled but roles are stale.
+   */
+  authReady: boolean;
   isDeveloper: boolean;
   isCommissioner: boolean;
   isAgent: boolean;
@@ -21,9 +29,6 @@ export function useAuth(): AuthState {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  // Track which user id we last fetched roles for so we never flip
-  // rolesLoaded→false for the same user (avoids the false-negative redirect
-  // on TOKEN_REFRESHED / duplicate INITIAL_SESSION events).
   const lastFetchedUserId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -40,19 +45,28 @@ export function useAuth(): AuthState {
   useEffect(() => {
     const userId = session?.user?.id ?? null;
 
-    // User signed out — clear roles immediately.
+    // No user — clear roles but only mark rolesLoaded after the session check
+    // itself has finished (loading=false). This prevents the brief window where
+    // session=null + rolesLoaded=true fires before getSession() resolves with
+    // the actual logged-in session.
     if (!userId) {
-      lastFetchedUserId.current = null;
-      setRoles([]);
-      setRolesLoaded(true);
+      // If we were previously tracking a user, clear them now.
+      if (lastFetchedUserId.current !== null) {
+        lastFetchedUserId.current = null;
+        setRoles([]);
+      }
+      // Only mark roles as "loaded" (empty) once we actually know there's no
+      // session — i.e. after the initial session check completes.
+      if (!loading) {
+        setRolesLoaded(true);
+      }
       return;
     }
 
-    // Same user as last fetch (e.g. TOKEN_REFRESHED) — roles are still valid,
-    // don't reset rolesLoaded and don't re-fetch.
+    // Same user — roles already fetched, nothing to do.
     if (userId === lastFetchedUserId.current) return;
 
-    // New user id — fetch fresh roles.
+    // New user — fetch roles fresh.
     lastFetchedUserId.current = userId;
     setRolesLoaded(false);
     supabase
@@ -60,12 +74,11 @@ export function useAuth(): AuthState {
       .select("role")
       .eq("user_id", userId)
       .then(({ data }) => {
-        // Guard: ignore stale response if user changed while this was in-flight.
         if (userId !== lastFetchedUserId.current) return;
         setRoles((data ?? []).map((r) => r.role as AppRole));
         setRolesLoaded(true);
       });
-  }, [session?.user?.id]);
+  }, [session?.user?.id, loading]);
 
   const isCommissioner = rolesLoaded && roles.includes("commissioner");
   const isAgent = rolesLoaded && roles.includes("agent");
@@ -77,6 +90,8 @@ export function useAuth(): AuthState {
     roles,
     loading,
     rolesLoaded,
+    // authReady is the single safe flag: session check done AND roles settled.
+    authReady: !loading && rolesLoaded,
     isDeveloper: rolesLoaded && roles.includes("developer"),
     isCommissioner,
     isAgent,
