@@ -5,11 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatPrice, typeLabel } from "@/lib/property-types";
-import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   BadgeCheck,
-  Facebook,
   ChevronLeft,
   ChevronRight,
   Share2,
@@ -71,8 +69,6 @@ function AgentProfile() {
     },
   });
 
-  // Determine whether this person is registered as a Commissioner, an Agent,
-  // or both — used as the fallback label when they haven't set a custom job title.
   const { data: roleRows = [] } = useQuery({
     queryKey: ["agent-roles", id],
     queryFn: async () => {
@@ -117,16 +113,11 @@ function AgentProfile() {
   const forSale = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
   const forRent = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
 
-  // "Featured sales" is now a curated selection — the commissioner/agent
-  // explicitly places a listing here from the property page's "Place as
-  // Featured Sale" toggle. Sold properties still belong exclusively in the
-  // "Sold" carousel below, so they're excluded here even if flagged.
   const featured = useMemo(
     () => listings.filter((p) => p.is_featured && p.status !== "sold"),
     [listings],
   );
 
-  // Gallery for the header — the photos of what they're currently selling/renting.
   const galleryImages = useMemo(
     () => listings.flatMap((p) => p.images ?? []).slice(0, 10),
     [listings],
@@ -150,7 +141,7 @@ function AgentProfile() {
       try {
         await navigator.share({ title: profile?.full_name ?? "Agent profile", url });
       } catch {
-        /* user cancelled — no-op */
+        /* user cancelled */
       }
     } else {
       await navigator.clipboard.writeText(url);
@@ -168,7 +159,6 @@ function AgentProfile() {
 
   return (
     <div className="site-page">
-      {/* ── Header: profile card + listing photo gallery ── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <p className="text-sm text-muted-foreground">
@@ -178,7 +168,6 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
-            {/* Left — profile card */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -229,7 +218,6 @@ function AgentProfile() {
               </div>
             </div>
 
-            {/* Right — gallery of what they're selling/renting */}
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {galleryImages.length > 0 ? (
                 <ImageGallery images={galleryImages} />
@@ -241,7 +229,6 @@ function AgentProfile() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-6 sm:grid-cols-4">
             <Stat label="Sales" value={String(stats.count)} />
             <Stat label="Listings" value={String(listings.length)} />
@@ -255,19 +242,14 @@ function AgentProfile() {
       </section>
 
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_320px]">
-        {/* ── Main column ── */}
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
-
-          {/* Only agents get a team section — commissioners are solo by design for now */}
           {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
-
           <ListingCarousel title="Sold" items={sold} badge="Sold" />
           <ListingCarousel title="For sale" items={forSale} badge="For sale" />
           <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
         </div>
 
-        {/* ── Sticky contact form ── */}
         <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
           <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
         </aside>
@@ -349,11 +331,7 @@ function TeamSection({
   profile: { id: string; full_name: string | null; avatar_url: string | null; title: string | null };
   roleLabel: string;
 }) {
-  // No team structure exists yet — this renders as a single-member team (just
-  // this agent) so the section/layout is already in place. Once teams are
-  // implemented, swap this hardcoded array for a real team-members query.
   const members = [profile];
-
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -478,13 +456,11 @@ function ContactForm({
           />
         </div>
         <div>
-          <Label htmlFor="contact-phone">Phone</Label>
+          <Label>Phone</Label>
           <input
-            id="contact-phone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+63 9XX XXX XXXX"
             className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
           />
         </div>
