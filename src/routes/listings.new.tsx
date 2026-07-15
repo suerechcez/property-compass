@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
@@ -48,6 +48,9 @@ export function ListingForm({
   const navigate = useNavigate();
   const { user, isCommissioner, isAgent, loading, rolesLoaded } = useAuth();
   const canPost = isCommissioner || isAgent;
+  // Only ever run the role-guard once per mount — prevents re-firing when
+  // canPost temporarily reads false between renders.
+  const guardFired = useRef(false);
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [type, setType] = useState<PropertyTypeValue>(initial?.property_type ?? "condo");
@@ -84,18 +87,23 @@ export function ListingForm({
   }, [user, mode]);
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Not ready yet — wait for both session and roles to settle.
+    if (loading || !rolesLoaded) return;
+
+    // No session — send to auth.
+    if (!user) {
       navigate({ to: "/auth" });
       return;
     }
-    // Wait for both the session AND the roles fetch to finish before judging
-    // whether this user can post — checking `loading` alone races
-    // ahead of the roles query and produces a false-negative toast.
-    if (!loading && rolesLoaded && user && !canPost) {
+
+    // Roles are confirmed loaded and this user cannot post. Guard fires at most
+    // once per mount so a subsequent TOKEN_REFRESHED render can't re-trigger it.
+    if (!canPost && !guardFired.current) {
+      guardFired.current = true;
       toast.error("You need a commissioner or agent role to post listings.");
       navigate({ to: "/dashboard" });
     }
-  }, [loading, rolesLoaded, user, canPost, navigate]);
+  }, [loading, rolesLoaded, user, canPost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onFiles(files: FileList | null) {
     if (!files || !user) return;
