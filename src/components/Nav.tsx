@@ -20,15 +20,6 @@ import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/s
 const BRAND_ICON_URL = "/brand-icon.png";
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
-/**
- * `overlay` — mobile-only effect.
- *
- * Mobile: the header is `absolute` so it floats over the hero photo with a
- * transparent background. Once the user scrolls past 10 px it becomes
- * `fixed` + solid (mimicking the Zillow pattern).
- *
- * Desktop (md+): always the normal solid `sticky` bar — overlay is ignored.
- */
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -63,32 +54,24 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   }
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
-
-  // Only goes transparent on mobile when overlay + not yet scrolled
   const mobileTransparent = overlay && !scrolled;
 
   return (
     <header
       className={[
         "z-40 w-full transition-all duration-300",
-        // ── Mobile positioning ──
-        // At top of hero: absolute + transparent so photo shows through
-        // After scroll: fixed + solid so it sticks as user scrolls
         overlay
           ? scrolled
             ? "fixed top-0 border-b border-border/60 bg-background/95 backdrop-blur"
             : "absolute top-0 bg-transparent"
           : "sticky top-0 border-b border-border/60 bg-background/85 backdrop-blur",
-        // ── Desktop: always sticky + solid, no matter what overlay says ──
         "md:sticky md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur md:top-0",
       ].join(" ")}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
-        {/* ── Left: hamburger (mobile) / nav links (desktop) ── */}
+        {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
-
-          {/* Mobile burger — Zillow-inspired: just an icon, no label */}
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <button
@@ -102,10 +85,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </button>
             </SheetTrigger>
 
-            {/* Zillow-style full-width slide-in drawer */}
             <SheetContent side="left" hideClose className="w-full max-w-xs p-0">
-              {/* Drawer header */}
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              {/* Drawer header — logo + name centered, close button pinned right */}
+              <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
                 <div className="flex items-center gap-2">
                   <img src={BRAND_ICON_URL} alt="One Higala" className="h-8 w-8 object-contain" onError={() => {}} />
                   <span
@@ -116,13 +98,16 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   </span>
                 </div>
                 <SheetClose asChild>
-                  <button aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent">
+                  <button
+                    aria-label="Close menu"
+                    className="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"
+                  >
                     <X className="h-5 w-5" />
                   </button>
                 </SheetClose>
               </div>
 
-              {/* Nav links — clean rows like Zillow */}
+              {/* Nav links */}
               <nav className="divide-y divide-border">
                 <SheetClose asChild>
                   <Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">
@@ -143,7 +128,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop nav links — always dark */}
+          {/* Desktop nav links */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
@@ -151,7 +136,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </nav>
         </div>
 
-        {/* ── Center: brand logo ── */}
+        {/* Center — brand */}
         <Link to="/" className="col-start-2 flex items-center justify-center gap-3 justify-self-center">
           {iconOk ? (
             <img
@@ -170,7 +155,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </div>
         </Link>
 
-        {/* ── Right: profile / sign-in ── */}
+        {/* Right — profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end">
           {user ? (
             <DropdownMenu>
@@ -234,7 +219,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            // Mobile: white "Sign in" text over transparent hero
             mobileTransparent
               ? <Link to="/auth" className="text-sm font-semibold text-white md:hidden">Sign in</Link>
               : null
