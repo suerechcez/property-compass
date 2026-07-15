@@ -84,7 +84,8 @@ function AgentProfile() {
       return data ?? [];
     },
   });
-  const roleLabel = roleRows.some((r) => r.role === "agent") ? "Agent" : "Commissioner";
+  const isAgent = roleRows.some((r) => r.role === "agent");
+  const roleLabel = isAgent ? "Agent" : "Commissioner";
 
   const { data: sales = [] } = useQuery({
     queryKey: ["agent-sales", id],
@@ -258,7 +259,8 @@ function AgentProfile() {
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
 
-          <TeamSection profile={profile} roleLabel={roleLabel} />
+          {/* Only agents get a team section — commissioners are solo by design for now */}
+          {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
 
           <ListingCarousel title="Sold" items={sold} badge="Sold" />
           <ListingCarousel title="For sale" items={forSale} badge="For sale" />
