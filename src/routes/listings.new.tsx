@@ -46,12 +46,11 @@ export function ListingForm({
   };
 }) {
   const navigate = useNavigate();
-  const { user, isCommissioner, isAgent, loading, rolesLoaded } = useAuth();
+  // authReady is true only after BOTH the session check AND the roles fetch have
+  // completed — eliminates every race window between loading/rolesLoaded.
+  const { user, isCommissioner, isAgent, authReady } = useAuth();
   const canPost = isCommissioner || isAgent;
-  // Guard fires at most once per mount — prevents re-firing on token refresh.
-  // In edit mode the guard is skipped entirely: if you're editing your own
-  // listing you clearly have the role already, and running the check here
-  // races against the roles fetch on fresh navigation.
+  // One-shot ref so TOKEN_REFRESHED re-renders can never re-fire the guard.
   const guardFired = useRef(false);
 
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -71,8 +70,7 @@ export function ListingForm({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Prefill contact info from the commissioner's own profile on a brand-new
-  // listing (not when editing an existing one, which already has its own values).
+  // Prefill contact info from the user's profile on a new listing.
   useEffect(() => {
     if (!user || mode === "edit") return;
     supabase
@@ -89,28 +87,27 @@ export function ListingForm({
   }, [user, mode]);
 
   useEffect(() => {
-    // Not ready yet — wait for both session and roles to settle.
-    if (loading || !rolesLoaded) return;
+    // Wait until both session and roles are fully settled.
+    if (!authReady) return;
 
-    // No session — send to auth.
+    // No session at all — go to auth.
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
 
-    // Edit mode: skip the role guard. The listing's RLS policy will reject the
-    // save if the user somehow doesn't own it — no need to gate here and risk
-    // a false redirect while roles are still loading on fresh navigation.
+    // Edit mode: no role guard needed. RLS on the DB enforces ownership;
+    // running the guard here races against role resolution on fresh navigation.
     if (mode === "edit") return;
 
-    // Create mode: block non-commissioners/agents. One-shot so a subsequent
-    // TOKEN_REFRESHED render can't re-trigger it.
+    // Create mode: block non-commissioners/agents. One-shot so re-renders
+    // after a token refresh can never fire this again on the same mount.
     if (!canPost && !guardFired.current) {
       guardFired.current = true;
       toast.error("You need a commissioner or agent role to post listings.");
       navigate({ to: "/dashboard" });
     }
-  }, [loading, rolesLoaded, user, canPost, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authReady, user, canPost, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onFiles(files: FileList | null) {
     if (!files || !user) return;
@@ -175,10 +172,10 @@ export function ListingForm({
     }
   }
 
-  // In create mode, don't render the form until roles are confirmed — avoids
-  // a flash before the redirect fires for non-commissioners/agents.
-  // In edit mode, render immediately (the parent already gated on data loading).
-  if (mode === "create" && (loading || !rolesLoaded)) {
+  // In create mode, hold the loading screen until authReady — prevents any
+  // flash of the form or a premature redirect before roles are confirmed.
+  // In edit mode, render immediately; the parent gates on data availability.
+  if (mode === "create" && !authReady) {
     return (
       <div className="min-h-screen site-page">
         <Nav />
