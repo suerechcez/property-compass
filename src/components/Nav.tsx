@@ -121,10 +121,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop: Browse / Sell / Find an agent. A leading invisible
-              spacer sits before "Browse" to balance the topbar's horizontal
-              rhythm against the right-side avatar/sign-in — purely spacing,
-              renders no visible text. */}
+          {/* Desktop nav links */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
             <span aria-hidden="true" className="invisible select-none">Browse</span>
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
@@ -133,7 +130,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </nav>
         </div>
 
-        {/* Centered brand — clicking it goes home */}
+        {/* Centered brand */}
         <Link to="/" className="col-start-2 flex items-center justify-center gap-3 justify-self-center">
           {iconOk ? (
             <img
@@ -152,7 +149,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </div>
         </Link>
 
-        {/* Right side — profile/sign-in */}
+        {/* Right side — profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end">
           {user ? (
             <DropdownMenu>
@@ -179,14 +176,16 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" search={{ tab: "overview" }} className="cursor-pointer">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
+                {/* Dashboard and listing tools are only relevant for
+                    commissioners and agents — hide from regular buyers. */}
                 {canManageListings && (
                   <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" search={{ tab: "overview" }} className="cursor-pointer">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" search={{ tab: "listings" }} className="cursor-pointer">
                         <Building2 className="h-4 w-4" />
