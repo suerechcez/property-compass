@@ -219,25 +219,25 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                   key={p.id}
                   to="/properties/$id"
                   params={{ id: p.id }}
-                  className="flex items-center gap-4 py-4 transition hover:bg-accent -mx-2 px-2 rounded-lg first:pt-0"
+                  className="flex items-center gap-4 py-3 transition hover:bg-accent -mx-2 px-2 rounded-lg"
                 >
-                  <div className="relative h-20 w-28 shrink-0 self-center overflow-hidden rounded-lg bg-muted">
+                  <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? (
                       <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
                     ) : (
                       <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1 self-center">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-display text-lg font-bold leading-tight">{p.title}</h3>
-                      <p className="shrink-0 font-display text-lg font-semibold text-primary">
+                      <h3 className="font-display text-base font-bold leading-tight">{p.title}</h3>
+                      <p className="shrink-0 font-display text-base font-semibold text-primary">
                         {formatPrice(p.price)}
                         {p.for_rent && <span className="text-xs text-muted-foreground"> /mo</span>}
                       </p>
                     </div>
                     <p className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                    <p className="mt-1.5 line-clamp-2 text-sm text-foreground/70">
+                    <p className="mt-0.5 line-clamp-1 text-sm text-foreground/70">
                       {p.description || "No description provided yet."}
                     </p>
                   </div>
