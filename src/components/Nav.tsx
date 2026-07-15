@@ -18,6 +18,8 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
 const BRAND_ICON_URL = "/brand-icon.png";
+
+// Desktop nav links are always dark (text-foreground), never white
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 /**
@@ -62,19 +64,18 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
   // Transparent only on mobile when overlay is active and not yet scrolled.
-  // Desktop is NEVER transparent — it always gets the solid bar.
+  // Desktop is NEVER transparent.
   const mobileTransparent = overlay && !scrolled;
 
   return (
     <header
       className={[
-        // Always sticky on all screen sizes
         "sticky top-0 z-40 transition-colors duration-300",
-        // Mobile: transparent when at top of page (overlay mode), solid otherwise
+        // Mobile: transparent at top of hero, solid after scroll
         mobileTransparent
           ? "bg-transparent"
           : "border-b border-border/60 bg-background/85 backdrop-blur",
-        // Desktop: always override to solid regardless of overlay/scroll state
+        // Desktop: always solid, always bordered — overrides whatever mobile says
         "md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur",
       ].join(" ")}
     >
@@ -126,7 +127,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop nav links — always solid colours */}
+          {/* Desktop nav links — always dark text, md: prefix guarantees it */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
             <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
             <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
@@ -149,7 +150,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </span>
           )}
           <div className="hidden items-center sm:flex">
-            {/* Desktop brand title always in normal (dark) mode */}
+            {/* Brand title always dark on desktop */}
             <BrandTitle light={false} className="items-center text-center" />
           </div>
         </Link>
@@ -217,7 +218,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            // Mobile: white "Sign in" text when transparent, hidden on desktop (button below handles it)
             mobileTransparent ? (
               <Link to="/auth" className="text-base font-medium text-white md:hidden">Sign in</Link>
             ) : null
