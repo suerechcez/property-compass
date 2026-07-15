@@ -7,12 +7,10 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PhoneInput } from "@/components/PhoneInput";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ShieldCheck } from "lucide-react";
 
-// "a Commissioner" vs "an Agent"
 function article(word: string) {
   return /^[aeiou]/i.test(word) ? "an" : "a";
 }
@@ -53,8 +51,6 @@ function ApplyPage() {
     );
   }
 
-  // Admins/developers already have full access — send them to the Admin
-  // panel instead, where roles are granted directly rather than applied for.
   if (isAdmin || isDeveloper) {
     return (
       <div className="min-h-screen site-page">
@@ -75,7 +71,6 @@ function ApplyPage() {
     );
   }
 
-  // Already hold both roles — nothing left to apply for.
   if (isCommissioner && isAgent) {
     return (
       <div className="min-h-screen site-page">
@@ -238,8 +233,12 @@ function ApplicationForm({
               />
             </div>
             <div>
-              <Label htmlFor="apply-phone">Phone</Label>
-              <PhoneInput id="apply-phone" value={applicantPhone} onChange={setApplicantPhone} />
+              <Label>Phone</Label>
+              <Input
+                type="tel"
+                value={applicantPhone}
+                onChange={(e) => setApplicantPhone(e.target.value)}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label>Email</Label>
