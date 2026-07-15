@@ -28,11 +28,13 @@ function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Nav is outside the hero on desktop (solid sticky bar).
-          On mobile it overlays the hero photo via the overlay prop. */}
+      {/* Desktop: normal sticky solid nav above the hero.
+          Mobile: overlay prop makes it absolute+transparent over the hero photo. */}
       <Nav overlay />
 
-      {/* ── Hero ── */}
+      {/* ── Hero ──
+          `relative` is required so the mobile absolute nav positions against it.
+          The hero itself is NOT padded — the nav floats on top on mobile. */}
       <section className="relative h-[560px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[640px]">
         {heroImageOk && (
           <img
@@ -125,9 +127,7 @@ function Home() {
             <p className="italic">Bringing you home, the higala way</p>
           </div>
           <div className="text-center">
-            <Link to="/about" className="font-medium text-primary hover:underline">
-              About us
-            </Link>
+            <Link to="/about" className="font-medium text-primary hover:underline">About us</Link>
           </div>
           <p className="text-center sm:text-right">© {new Date().getFullYear()} One Higala Properties Inc.</p>
         </div>
