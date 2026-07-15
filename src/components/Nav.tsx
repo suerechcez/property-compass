@@ -21,9 +21,10 @@ const BRAND_ICON_URL = "/brand-icon.png";
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 /**
- * `overlay` — when true, the nav starts transparent over the hero photo and
- * transitions to a solid/blurred bar once the user scrolls. It is ALWAYS
- * `sticky` on every screen size so it follows the user on scroll.
+ * `overlay` — mobile only effect.
+ * On mobile: starts transparent over the hero photo, transitions to solid once
+ * the user scrolls past 10px.
+ * On desktop (md+): always the normal solid sticky bar — overlay has no effect.
  */
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -60,16 +61,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
-  // Transparent only when overlay is active AND user hasn't scrolled yet
-  const isTransparent = overlay && !scrolled;
+  // Transparent only on mobile when overlay is active and not yet scrolled.
+  // Desktop is NEVER transparent — it always gets the solid bar.
+  const mobileTransparent = overlay && !scrolled;
 
   return (
     <header
-      className={
-        isTransparent
-          ? "sticky top-0 z-40 bg-transparent transition-colors duration-300"
-          : "sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur transition-colors duration-300"
-      }
+      className={[
+        // Always sticky on all screen sizes
+        "sticky top-0 z-40 transition-colors duration-300",
+        // Mobile: transparent when at top of page (overlay mode), solid otherwise
+        mobileTransparent
+          ? "bg-transparent"
+          : "border-b border-border/60 bg-background/85 backdrop-blur",
+        // Desktop: always override to solid regardless of overlay/scroll state
+        "md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur",
+      ].join(" ")}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-10">
 
@@ -80,7 +87,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <button
                 aria-label="Open menu"
                 className={
-                  isTransparent
+                  mobileTransparent
                     ? "grid h-10 w-10 place-items-center rounded-full text-white md:hidden"
                     : "grid h-10 w-10 place-items-center rounded-full text-foreground md:hidden"
                 }
@@ -119,11 +126,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </SheetContent>
           </Sheet>
 
-          {/* Desktop nav links — always visible, color adapts to transparency */}
+          {/* Desktop nav links — always solid colours */}
           <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-            <Link to="/browse" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Browse</Link>
-            <Link to="/sell"   className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Sell</Link>
-            <Link to="/agents" className={isTransparent ? "text-white hover:text-white/80" : NAV_LINK_CLASS}>Find an agent</Link>
+            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+            <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
+            <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
           </nav>
         </div>
 
@@ -142,7 +149,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             </span>
           )}
           <div className="hidden items-center sm:flex">
-            <BrandTitle light={isTransparent} className="items-center text-center" />
+            {/* Desktop brand title always in normal (dark) mode */}
+            <BrandTitle light={false} className="items-center text-center" />
           </div>
         </Link>
 
@@ -152,7 +160,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className={isTransparent ? "h-10 w-10 border-2 border-white" : "h-12 w-12 border border-border"}>
+                  <Avatar className="h-12 w-12 border border-border">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-semibold text-primary-foreground">
                       {initial}
@@ -208,11 +216,14 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : isTransparent ? (
-            <Link to="/auth" className="text-base font-medium text-white md:hidden">Sign in</Link>
-          ) : null}
+          ) : (
+            // Mobile: white "Sign in" text when transparent, hidden on desktop (button below handles it)
+            mobileTransparent ? (
+              <Link to="/auth" className="text-base font-medium text-white md:hidden">Sign in</Link>
+            ) : null
+          )}
           {!user && (
-            <Button asChild size="sm" className={isTransparent ? "hidden md:inline-flex" : ""}>
+            <Button asChild size="sm" className={mobileTransparent ? "hidden md:inline-flex" : ""}>
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
