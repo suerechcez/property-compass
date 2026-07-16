@@ -14,10 +14,20 @@ import { predictSales } from "@/lib/predictions.functions";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
-import { LayoutDashboard, Building2, Wallet, Sparkles, ShieldCheck, Plus, X, type LucideIcon } from "lucide-react";
+import {
+  LayoutDashboard, Building2, Wallet, Sparkles,
+  Users, ClipboardList, BarChart3,
+  Plus, X, type LucideIcon,
+} from "lucide-react";
 
-type Tab = "overview" | "listings" | "sales" | "forecast" | "admin";
-const TABS: Tab[] = ["overview", "listings", "sales", "forecast", "admin"];
+type Tab =
+  | "overview" | "listings" | "sales" | "forecast"
+  | "admin-users" | "admin-requests" | "admin-tracking";
+
+const TABS: Tab[] = [
+  "overview", "listings", "sales", "forecast",
+  "admin-users", "admin-requests", "admin-tracking",
+];
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -28,51 +38,45 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const TAB_ICONS: Record<Tab, LucideIcon> = {
-  overview: LayoutDashboard,
-  listings: Building2,
-  sales: Wallet,
-  forecast: Sparkles,
-  admin: ShieldCheck,
+  overview:         LayoutDashboard,
+  listings:         Building2,
+  sales:            Wallet,
+  forecast:         Sparkles,
+  "admin-users":    Users,
+  "admin-requests": ClipboardList,
+  "admin-tracking": BarChart3,
 };
 
-const GREETINGS = [
-  "Hello",
-  "Welcome back",
-  "Kumusta",
-  "Maayong adlaw",
-  "Good to see you",
-  "Hey there",
-];
+const TAB_LABELS: Record<Tab, string> = {
+  overview:         "Overview",
+  listings:         "My listings",
+  sales:            "Sales",
+  forecast:         "AI forecast",
+  "admin-users":    "Users & Roles",
+  "admin-requests": "C/A Requests",
+  "admin-tracking": "C/A Tracking",
+};
+
+const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
 
 function pickGreeting(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  const dayBucket = Math.floor(Date.now() / (1000 * 60 * 60 * 12));
-  return GREETINGS[(h + dayBucket) % GREETINGS.length];
+  return GREETINGS[(h + Math.floor(Date.now() / (1000 * 60 * 60 * 12))) % GREETINGS.length];
 }
 
 function friendlyName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
   const meta = user.user_metadata ?? {};
   const full = (meta.full_name as string) || (meta.name as string) || "";
   if (full) return full.split(" ")[0];
-  const email = user.email ?? "";
-  if (email) return email.split("@")[0];
-  return "friend";
+  return user.email?.split("@")[0] ?? "friend";
 }
 
-/** Resolve a CSS custom property to its computed value for use in SVG attributes. */
 function cssVar(name: string): string {
   if (typeof window === "undefined") return "";
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/**
- * Format a peso amount for Y-axis ticks.
- * < 1 000       → ₱0
- * < 1 000 000   → ₱Xk   (e.g. ₱500k)
- * < 1 000 000 000 → ₱X.XM  (e.g. ₱1.5M)
- * ≥ 1 000 000 000 → ₱X.XB
- */
 function formatYAxis(v: number): string {
   if (v >= 1_000_000_000) return `₱${(v / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
   if (v >= 1_000_000)     return `₱${(v / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -95,15 +99,14 @@ function Dashboard() {
     return <div className="site-page"><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
-  const greeting = pickGreeting(user.id);
-  const name = friendlyName(user);
-
-  const tabs: { id: Tab; label: string; show: boolean }[] = [
-    { id: "overview",  label: "Overview",     show: true },
-    { id: "listings",  label: "My listings",  show: canManageListings },
-    { id: "sales",     label: "Sales",        show: canManageListings },
-    { id: "forecast",  label: "AI forecast",  show: canManageListings },
-    { id: "admin",     label: "Admin",        show: isAdmin },
+  const tabs: { id: Tab; show: boolean }[] = [
+    { id: "overview",         show: true },
+    { id: "listings",         show: canManageListings },
+    { id: "sales",            show: canManageListings },
+    { id: "forecast",         show: canManageListings },
+    { id: "admin-users",      show: isAdmin },
+    { id: "admin-requests",   show: isAdmin },
+    { id: "admin-tracking",   show: isAdmin },
   ];
   const visibleTabs = tabs.filter((t) => t.show);
 
@@ -113,45 +116,67 @@ function Dashboard() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-4xl font-semibold">{greeting}, {name} 👋</h1>
+            <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
             <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
           </div>
           {canManageListings && (
-            <Button asChild>
-              <Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link>
-            </Button>
+            <Button asChild><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
           )}
         </div>
 
-        <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} />
+        <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} isAdmin={isAdmin} />
 
         <div className="mt-6 min-w-0">
-          {tab === "overview" && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
-          {tab === "listings" && <Listings userId={user.id} isDeveloper={elevated} />}
-          {tab === "sales"    && <Sales userId={user.id} isDeveloper={elevated} />}
-          {tab === "forecast" && <Forecast />}
-          {tab === "admin" && isAdmin && <AdminTools currentUserId={user.id} />}
+          {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
+          {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
+          {tab === "forecast"         && <Forecast />}
+          {tab === "admin-users"      && isAdmin && <UsersRoles />}
+          {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
+          {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
         </div>
       </div>
     </div>
   );
 }
 
-function DashboardTopNav({ tabs, active, onChange }: { tabs: { id: Tab; label: string }[]; active: Tab; onChange: (t: Tab) => void }) {
+function DashboardTopNav({
+  tabs, active, onChange, isAdmin,
+}: {
+  tabs: { id: Tab }[];
+  active: Tab;
+  onChange: (t: Tab) => void;
+  isAdmin: boolean;
+}) {
+  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking"];
+  const nonAdminTabs = tabs.filter((t) => !adminTabs.includes(t.id));
+  const adminTabsVisible = tabs.filter((t) => adminTabs.includes(t.id));
+
+  function Pill({ id }: { id: Tab }) {
+    const Icon = TAB_ICONS[id];
+    const isActive = active === id;
+    return (
+      <button
+        onClick={() => onChange(id)}
+        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+      >
+        <Icon className="h-3.5 w-3.5" />{TAB_LABELS[id]}
+      </button>
+    );
+  }
+
   return (
-    <nav className="mt-8 flex gap-1 overflow-x-auto border-b border-border pb-2">
-      {tabs.map((t) => {
-        const Icon = TAB_ICONS[t.id];
-        const isActive = active === t.id;
-        return (
-          <button key={t.id} onClick={() => onChange(t.id)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-          >
-            <Icon className="h-3.5 w-3.5" />{t.label}
-          </button>
-        );
-      })}
-    </nav>
+    <div className="mt-8 border-b border-border pb-2">
+      <nav className="flex gap-1 overflow-x-auto">
+        {nonAdminTabs.map((t) => <Pill key={t.id} id={t.id} />)}
+      </nav>
+      {isAdmin && adminTabsVisible.length > 0 && (
+        <nav className="mt-1 flex gap-1 overflow-x-auto pt-1">
+          <span className="mr-1 flex items-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">Admin</span>
+          {adminTabsVisible.map((t) => <Pill key={t.id} id={t.id} />)}
+        </nav>
+      )}
+    </div>
   );
 }
 
@@ -163,8 +188,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
       const salesQ = isDeveloper ? supabase.from("sales").select("amount,commission") : supabase.from("sales").select("amount,commission").eq("commissioner_id", userId);
       const [{ data: props, count: propsCount }, { data: sales }] = await Promise.all([propsQ, salesQ]);
       const totalSales = (sales ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const totalCommission = (sales ?? []).reduce((s, r) => s + Number(r.commission), 0);
-      return { propsCount: propsCount ?? 0, published: (props ?? []).filter((p) => p.status === "published").length, salesCount: (sales ?? []).length, totalSales, totalCommission };
+      return { propsCount: propsCount ?? 0, published: (props ?? []).filter((p) => p.status === "published").length, salesCount: (sales ?? []).length, totalSales };
     },
   });
 
@@ -188,14 +212,13 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
-
       {isCommissioner && (
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-display text-xl font-semibold">{isDeveloper ? "All listings" : "Your listings"}</h2>
           {listingsLoading ? <p className="mt-4 text-muted-foreground">Loading…</p> : myListings.length === 0 ? <p className="mt-4 text-muted-foreground">No listings yet.</p> : (
             <div className="mt-4 divide-y divide-border">
               {myListings.map((p) => (
-                <Link key={p.id} to="/properties/$id" params={{ id: p.id }} className="flex items-center gap-4 py-5 transition hover:bg-accent -mx-2 px-2 rounded-lg">
+                <Link key={p.id} to="/properties/$id" params={{ id: p.id }} className="flex items-center gap-4 -mx-2 rounded-lg px-2 py-5 transition hover:bg-accent">
                   <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
@@ -239,17 +262,15 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       return data ?? [];
     },
   });
-
   const del = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("properties").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Listing deleted"); qc.invalidateQueries({ queryKey: ["my-listings"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
-
   const markSold = useMutation({
     mutationFn: async (p: { id: string; commissioner_id: string; price: number | string }) => { await markPropertySold(p.id, p.commissioner_id, Number(p.price)); },
-    onSuccess: () => { toast.success("Marked as sold — logged under Sales"); qc.invalidateQueries({ queryKey: ["my-listings"] }); qc.invalidateQueries({ queryKey: ["sales"] }); qc.invalidateQueries({ queryKey: ["dashboard-stats"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to mark as sold"),
+    onSuccess: () => { toast.success("Marked as sold"); qc.invalidateQueries({ queryKey: ["my-listings"] }); qc.invalidateQueries({ queryKey: ["sales"] }); qc.invalidateQueries({ queryKey: ["dashboard-stats"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
@@ -314,7 +335,6 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
   const [groupBy, setGroupBy]       = useState<GroupBy>("month");
 
   function resetForm() { setEditingId(null); setPropertyId(""); setAmount(""); setCommission(""); setBuyerName(""); setSaleDate(new Date().toISOString().slice(0, 10)); }
-
   function startEdit(s: { id: string; property_id: string | null; amount: number | string; commission: number | string; buyer_name: string | null; sale_date: string }) {
     setEditingId(s.id); setPropertyId(s.property_id ?? ""); setAmount(String(s.amount)); setCommission(String(s.commission)); setBuyerName(s.buyer_name ?? ""); setSaleDate(s.sale_date.slice(0, 10));
   }
@@ -328,48 +348,30 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
     onSuccess: () => { toast.success(editingId ? "Sale updated" : "Sale logged"); resetForm(); qc.invalidateQueries({ queryKey: ["sales"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
-
   const del = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("sales").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Sale deleted"); qc.invalidateQueries({ queryKey: ["sales"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
-  // Group sales by day or month depending on the toggle.
   const chartData = useMemo(() => {
     const bucket = new Map<string, number>();
     [...sales].reverse().forEach((s) => {
-      const key = groupBy === "day"
-        ? s.sale_date.slice(0, 10)          // YYYY-MM-DD
-        : s.sale_date.slice(0, 7);           // YYYY-MM
+      const key = groupBy === "day" ? s.sale_date.slice(0, 10) : s.sale_date.slice(0, 7);
       bucket.set(key, (bucket.get(key) ?? 0) + Number(s.amount));
     });
     return [...bucket.entries()].map(([label, total]) => ({ label, total }));
   }, [sales, groupBy]);
 
-  // Format the X-axis tick labels nicely for each grouping.
   const formatXTick = (val: string) => {
-    if (groupBy === "month") {
-      // "2024-07" → "Jul 24"
-      const [y, m] = val.split("-");
-      const d = new Date(Number(y), Number(m) - 1, 1);
-      return format(d, "MMM yy");
-    }
-    // "2024-07-16" → "Jul 16"
+    if (groupBy === "month") { const [y, m] = val.split("-"); return format(new Date(Number(y), Number(m) - 1, 1), "MMM yy"); }
     return format(new Date(val), "MMM d");
   };
 
-  const chartColors = useMemo(() => ({
-    border:  cssVar("--border"),
-    mutedFg: cssVar("--muted-foreground"),
-    primary: cssVar("--primary"),
-    card:    cssVar("--card"),
-    cardFg:  cssVar("--card-foreground"),
-  }), []);
+  const chartColors = useMemo(() => ({ border: cssVar("--border"), mutedFg: cssVar("--muted-foreground"), primary: cssVar("--primary"), card: cssVar("--card"), cardFg: cssVar("--card-foreground") }), []);
 
   return (
     <div className="space-y-8">
-      {/* ── Log / edit form ── */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h2>
@@ -391,19 +393,13 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
         </form>
       </div>
 
-      {/* ── Chart ── */}
       {chartData.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-xl font-semibold">Sales over time</h2>
-            {/* Day / Month toggle */}
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
               {(["day", "month"] as GroupBy[]).map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setGroupBy(g)}
-                  className={`rounded-full px-3 py-1 capitalize transition ${groupBy === g ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                >
+                <button key={g} onClick={() => setGroupBy(g)} className={`rounded-full px-3 py-1 capitalize transition ${groupBy === g ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                   {g === "day" ? "Day by day" : "Month by month"}
                 </button>
               ))}
@@ -413,48 +409,24 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
-                <XAxis
-                  dataKey="label"
-                  tickFormatter={formatXTick}
-                  stroke={chartColors.mutedFg}
-                  tick={{ fill: chartColors.mutedFg, fontSize: 11 }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  stroke={chartColors.mutedFg}
-                  tick={{ fill: chartColors.mutedFg, fontSize: 11 }}
-                  tickFormatter={formatYAxis}
-                  width={60}
-                />
-                <Tooltip
-                  formatter={(v: number) => [formatPrice(v), "Volume"]}
-                  labelFormatter={formatXTick}
-                  contentStyle={{ background: chartColors.card, border: `1px solid ${chartColors.border}`, borderRadius: 8, color: chartColors.cardFg }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke={chartColors.primary}
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }}
-                  activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }}
-                />
+                <XAxis dataKey="label" tickFormatter={formatXTick} stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} interval="preserveStartEnd" />
+                <YAxis stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} tickFormatter={formatYAxis} width={60} />
+                <Tooltip formatter={(v: number) => [formatPrice(v), "Volume"]} labelFormatter={formatXTick} contentStyle={{ background: chartColors.card, border: `1px solid ${chartColors.border}`, borderRadius: 8, color: chartColors.cardFg }} />
+                <Line type="monotone" dataKey="total" stroke={chartColors.primary} strokeWidth={2.5} dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }} activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {/* ── Sales table ── */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Property</th><th className="px-4 py-3">Buyer</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Commission</th><th /></tr>
           </thead>
           <tbody>
-            {sales.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
-            ) : sales.map((s) => (
+            {sales.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
+            : sales.map((s) => (
               <tr key={s.id} className="border-t border-border">
                 <td className="px-4 py-3">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
                 <td className="px-4 py-3">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
@@ -522,7 +494,9 @@ function Forecast() {
   );
 }
 
-function AdminTools({ currentUserId }: { currentUserId: string }) {
+// ── Admin: Users & Roles ─────────────────────────────────────────────────────
+
+function UsersRoles() {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({
     queryKey: ["all-users"],
@@ -540,65 +514,60 @@ function AdminTools({ currentUserId }: { currentUserId: string }) {
     onSuccess: () => { toast.success("Role granted"); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
-
   const revoke = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => { const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role); if (error) throw error; },
     onSuccess: (_d, v) => { toast.success(`${v.role} role revoked`); qc.invalidateQueries({ queryKey: ["all-users"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to revoke role"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const commissionersAndAgents = users.filter((u) => u.roles.includes("commissioner") || u.roles.includes("agent"));
-
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl font-semibold">Users & roles</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has admin access.</p>
-        <div className="mt-5 overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Roles</th><th className="px-4 py-3 text-right">Actions</th></tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-t border-border">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
-                    <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
-                        const isRevocable = r === "commissioner" || r === "agent";
-                        return (
-                          <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs">
-                            {r}
-                            {isRevocable && (
-                              <button type="button" aria-label={`Revoke ${r}`} onClick={() => { if (confirm(`Revoke the "${r}" role from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive">
-                                <X className="h-3 w-3" />
-                              </button>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
-                    {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
-                    {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Users & Roles</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has admin access.</p>
+      <div className="mt-5 overflow-hidden rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Roles</th><th className="px-4 py-3 text-right">Actions</th></tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-t border-border">
+                <td className="px-4 py-3">
+                  <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
+                  <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
+                      const isRevocable = r === "commissioner" || r === "agent";
+                      return (
+                        <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs">
+                          {r}
+                          {isRevocable && (
+                            <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
+                  {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
+                  {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <CommissionerRequests />
-      <CommissionerTracking commissioners={commissionersAndAgents} />
     </div>
   );
 }
+
+// ── Admin: C/A Requests ──────────────────────────────────────────────────────
 
 function CommissionerRequests() {
   const qc = useQueryClient();
@@ -628,17 +597,16 @@ function CommissionerRequests() {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner / Agent requests</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Open a request to review the applicant's full details, then approve as Commissioner, approve as Agent, or deny.</p>
+      <h2 className="font-display text-xl font-semibold">Commissioner / Agent Requests</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Review pending applications and approve or deny them.</p>
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested role</th><th className="px-4 py-3">Requested</th><th className="px-4 py-3 text-right">Actions</th></tr>
+            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested role</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Actions</th></tr>
           </thead>
           <tbody>
-            {requests.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
-            ) : requests.map((r) => {
+            {requests.length === 0 ? <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
+            : requests.map((r) => {
               const isOpen = openId === r.id;
               const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
               const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
@@ -658,7 +626,7 @@ function CommissionerRequests() {
                           <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p><p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p></div>
                           <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</p><p className="mt-1 text-sm">{r.email ?? r.profile?.email ?? "—"}</p></div>
                         </div>
-                        <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason for applying</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/85">{r.reason ?? r.note ?? "No reason provided."}</p></div>
+                        <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/85">{r.reason ?? r.note ?? "No reason provided."}</p></div>
                         <div className="mt-5 flex flex-wrap gap-2">
                           <Button size="sm" variant={r.requested_role === "commissioner" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
                           <Button size="sm" variant={r.requested_role === "agent" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
@@ -677,7 +645,21 @@ function CommissionerRequests() {
   );
 }
 
-function CommissionerTracking({ commissioners }: { commissioners: { id: string; full_name: string | null }[] }) {
+// ── Admin: C/A Tracking ──────────────────────────────────────────────────────
+
+function CommissionerTracking() {
+  const { data: users = [] } = useQuery({
+    queryKey: ["all-users"],
+    queryFn: async () => {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, created_at");
+      const { data: roles }    = await supabase.from("user_roles").select("user_id, role");
+      const map = new Map<string, string[]>();
+      (roles ?? []).forEach((r) => { const list = map.get(r.user_id) ?? []; list.push(r.role); map.set(r.user_id, list); });
+      return (profiles ?? []).map((p) => ({ ...p, roles: map.get(p.id) ?? [] }));
+    },
+  });
+  const commissioners = users.filter((u) => u.roles.includes("commissioner") || u.roles.includes("agent"));
+
   const { data: sales = [] } = useQuery({
     queryKey: ["admin-all-sales"],
     queryFn: async () => { const { data, error } = await supabase.from("sales").select("commissioner_id, amount, commission, sale_date").order("sale_date", { ascending: false }); if (error) throw error; return data ?? []; },
@@ -696,7 +678,7 @@ function CommissionerTracking({ commissioners }: { commissioners: { id: string; 
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner / Agent tracking</h2>
+      <h2 className="font-display text-xl font-semibold">Commissioner / Agent Tracking</h2>
       <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners and agents.</p>
       <div className="mt-5 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
@@ -704,9 +686,8 @@ function CommissionerTracking({ commissioners }: { commissioners: { id: string; 
             <tr><th className="px-4 py-3">Agent</th><th className="px-4 py-3 text-right">Deals</th><th className="px-4 py-3 text-right">Volume</th><th className="px-4 py-3 text-right">Commission</th><th className="px-4 py-3">Last sale</th></tr>
           </thead>
           <tbody>
-            {commissioners.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
-            ) : commissioners.map((c) => {
+            {commissioners.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
+            : commissioners.map((c) => {
               const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
               return (
                 <tr key={c.id} className="border-t border-border">
