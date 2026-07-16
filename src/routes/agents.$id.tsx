@@ -113,6 +113,19 @@ function AgentProfile() {
     },
   });
 
+  // Fetch reviews here so the avg rating is available for the stats row
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["agent-reviews", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agent_reviews")
+        .select("rating")
+        .eq("agent_id", id);
+      if (error) throw error;
+      return (data ?? []) as { rating: number }[];
+    },
+  });
+
   const sold     = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
   const forSale  = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
   const forRent  = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
@@ -121,13 +134,16 @@ function AgentProfile() {
 
   const stats = useMemo(() => {
     const prices = listings.map((p) => Number(p.price)).filter((n) => n > 0);
+    const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
     return {
       count: sales.length,
       minPrice: prices.length ? Math.min(...prices) : null,
       maxPrice: prices.length ? Math.max(...prices) : null,
       avgPrice: prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0,
+      reviewCount: reviews.length,
+      avgRating,
     };
-  }, [sales, listings]);
+  }, [sales, listings, reviews]);
 
   async function handleShare() {
     const url = window.location.href;
@@ -157,7 +173,7 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
-            {/* Profile card */}
+            {/* Profile card — fully centered */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -166,33 +182,54 @@ function AgentProfile() {
                     : (profile.full_name ?? "A").slice(0, 1).toUpperCase()}
                 </div>
               </div>
-              <div className="bg-card p-6">
+
+              {/* ── Centered body ── */}
+              <div className="flex flex-col items-center bg-card p-6 text-center">
                 {profile.license_number && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                     <BadgeCheck className="h-3.5 w-3.5" />Licensed
                   </span>
                 )}
                 <h1 className="mt-2 font-display text-2xl font-bold">{profile.full_name ?? roleLabel}</h1>
-                <p className="mt-0.5 text-sm text-muted-foreground">{profile.title ?? roleLabel}</p>
-                {profile.agency_name && <p className="mt-2 text-sm font-medium">{profile.agency_name}</p>}
+
+                {/* ── Reviews summary between title and agency ── */}
+                {stats.avgRating !== null && (
+                  <div className="mt-1 flex items-center justify-center gap-1.5">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map((n) => (
+                        <Star key={n} className={`h-3.5 w-3.5 ${n <= Math.round(stats.avgRating!) ? "fill-yellow-400 text-yellow-400" : "fill-none text-muted-foreground/30"}`} />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">{stats.avgRating.toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">({stats.reviewCount} review{stats.reviewCount !== 1 ? "s" : ""})</span>
+                  </div>
+                )}
+
+                <p className="mt-1.5 text-sm text-muted-foreground">{profile.title ?? roleLabel}</p>
+                {profile.agency_name && <p className="mt-1 text-sm font-medium">{profile.agency_name}</p>}
                 <p className="text-sm text-muted-foreground">One Higala {roleLabel}</p>
-                <div className="mt-4 flex gap-2">
-                  <Button className="flex-1" onClick={() => document.getElementById("contact-agent")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+
+                <div className="mt-4 flex w-full justify-center gap-2">
+                  <Button
+                    className="flex-1"
+                    onClick={() => document.getElementById("contact-agent")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  >
                     Contact {roleLabel}
                   </Button>
                   <Button variant="outline" size="icon" aria-label="Share profile" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
+
                 {(profile.email || profile.phone) && (
-                  <div className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
+                  <div className="mt-4 w-full space-y-1.5 border-t border-border pt-4 text-sm">
                     {profile.email && (
-                      <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-primary">
+                      <a href={`mailto:${profile.email}`} className="flex items-center justify-center gap-2 text-muted-foreground hover:text-primary">
                         <Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{profile.email}</span>
                       </a>
                     )}
                     {profile.phone && (
-                      <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-primary">
+                      <a href={`tel:${profile.phone}`} className="flex items-center justify-center gap-2 text-muted-foreground hover:text-primary">
                         <Phone className="h-3.5 w-3.5 shrink-0" />{profile.phone}
                       </a>
                     )}
@@ -227,8 +264,6 @@ function AgentProfile() {
           <ListingCarousel title="Sold" items={sold} badge="Sold" />
           <ListingCarousel title="For sale" items={forSale} badge="For sale" />
           <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
-
-          {/* ── Reviews — always last in main column ── */}
           <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
         </div>
 
@@ -279,14 +314,12 @@ function ReviewsSection({
   currentUserId: string | null;
 }) {
   const qc = useQueryClient();
-  const [showForm, setShowForm]     = useState(false);
-  const [editingId, setEditingId]   = useState<string | null>(null);
-  const [page, setPage]             = useState(0);
-
-  // form state
-  const [rating, setRating]   = useState(5);
-  const [title, setTitle]     = useState("");
-  const [body, setBody]       = useState("");
+  const [showForm, setShowForm]   = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [page, setPage]           = useState(0);
+  const [rating, setRating]       = useState(5);
+  const [title, setTitle]         = useState("");
+  const [body, setBody]           = useState("");
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["agent-reviews", agentId],
@@ -301,28 +334,17 @@ function ReviewsSection({
     },
   });
 
-  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const avgRating    = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const ratingCounts = [5, 4, 3, 2, 1].map((n) => ({ n, count: reviews.filter((r) => r.rating === n).length }));
-  const myReview = reviews.find((r) => r.reviewer_id === currentUserId);
-  const pageCount = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
+  const myReview     = reviews.find((r) => r.reviewer_id === currentUserId);
+  const pageCount    = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
   const visibleReviews = reviews.slice(page * REVIEWS_PER_PAGE, (page + 1) * REVIEWS_PER_PAGE);
 
   function startEdit(r: Review) {
-    setEditingId(r.id);
-    setRating(r.rating);
-    setTitle(r.title ?? "");
-    setBody(r.body);
-    setShowForm(true);
+    setEditingId(r.id); setRating(r.rating); setTitle(r.title ?? ""); setBody(r.body); setShowForm(true);
     setTimeout(() => document.getElementById("review-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
-
-  function resetForm() {
-    setShowForm(false);
-    setEditingId(null);
-    setRating(5);
-    setTitle("");
-    setBody("");
-  }
+  function resetForm() { setShowForm(false); setEditingId(null); setRating(5); setTitle(""); setBody(""); }
 
   const upsert = useMutation({
     mutationFn: async () => {
@@ -355,16 +377,14 @@ function ReviewsSection({
 
   if (isLoading) return null;
 
-  const sectionLabel = `${roleLabel} Reviews`;
   const canReview = !!currentUserId && !isOwnProfile;
 
   return (
     <div>
-      {/* ── Header row ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-bold">
-            {sectionLabel}
+            {roleLabel} Reviews
             <span className="ml-2 font-normal text-muted-foreground">({reviews.length})</span>
           </h2>
           {reviews.length > 0 && (
@@ -375,15 +395,10 @@ function ReviewsSection({
             </div>
           )}
         </div>
-        {canReview && !myReview && !showForm && (
-          <Button size="sm" onClick={() => setShowForm(true)}>Write a review</Button>
-        )}
-        {canReview && myReview && !showForm && (
-          <Button size="sm" variant="outline" onClick={() => startEdit(myReview)}>Edit your review</Button>
-        )}
+        {canReview && !myReview && !showForm && <Button size="sm" onClick={() => setShowForm(true)}>Write a review</Button>}
+        {canReview && myReview && !showForm && <Button size="sm" variant="outline" onClick={() => startEdit(myReview)}>Edit your review</Button>}
       </div>
 
-      {/* ── Rating breakdown bar ── */}
       {reviews.length > 0 && (
         <div className="mt-4 space-y-1.5">
           {ratingCounts.map(({ n, count }) => (
@@ -391,10 +406,7 @@ function ReviewsSection({
               <span className="w-4 shrink-0 text-right text-muted-foreground">{n}</span>
               <Star className="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-yellow-400 transition-all"
-                  style={{ width: reviews.length ? `${(count / reviews.length) * 100}%` : "0%" }}
-                />
+                <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: reviews.length ? `${(count / reviews.length) * 100}%` : "0%" }} />
               </div>
               <span className="w-5 shrink-0 text-muted-foreground">{count}</span>
             </div>
@@ -402,52 +414,31 @@ function ReviewsSection({
         </div>
       )}
 
-      {/* ── Write / edit form ── */}
       {showForm && canReview && (
         <div id="review-form" className="mt-6 rounded-2xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-semibold">{editingId ? "Edit your review" : `Review this ${roleLabel}`}</h3>
           <div className="mt-4 space-y-4">
-            <div>
-              <Label>Your rating</Label>
-              <div className="mt-1.5"><StarRating value={rating} onChange={setRating} /></div>
-            </div>
+            <div><Label>Your rating</Label><div className="mt-1.5"><StarRating value={rating} onChange={setRating} /></div></div>
             <div>
               <Label>Title (optional)</Label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Summarize your experience"
-                className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Summarize your experience" className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" />
             </div>
             <div>
               <Label>Your review</Label>
-              <textarea
-                required
-                rows={4}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder={`Tell others about your experience working with this ${roleLabel.toLowerCase()}…`}
-                className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-              />
+              <textarea required rows={4} value={body} onChange={(e) => setBody(e.target.value)} placeholder={`Tell others about your experience working with this ${roleLabel.toLowerCase()}…`} className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm" />
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => upsert.mutate()} disabled={upsert.isPending}>
-                {upsert.isPending ? "Submitting…" : editingId ? "Save changes" : "Submit review"}
-              </Button>
+              <Button onClick={() => upsert.mutate()} disabled={upsert.isPending}>{upsert.isPending ? "Submitting…" : editingId ? "Save changes" : "Submit review"}</Button>
               <Button variant="outline" onClick={resetForm}>Cancel</Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── No reviews yet ── */}
       {reviews.length === 0 && !showForm && (
         <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">No reviews yet — be the first to leave one.</p>
-          {canReview && (
-            <Button size="sm" className="mt-4" onClick={() => setShowForm(true)}>Write a review</Button>
-          )}
+          {canReview && <Button size="sm" className="mt-4" onClick={() => setShowForm(true)}>Write a review</Button>}
           {!currentUserId && (
             <p className="mt-3 text-sm text-muted-foreground">
               <Link to="/auth" className="text-primary hover:underline">Sign in</Link> to leave a review.
@@ -456,41 +447,18 @@ function ReviewsSection({
         </div>
       )}
 
-      {/* ── Review grid — Zillow-style 2 columns ── */}
       {reviews.length > 0 && (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {visibleReviews.map((r) => (
-              <ReviewCard
-                key={r.id}
-                review={r}
-                isOwn={r.reviewer_id === currentUserId}
-                onEdit={() => startEdit(r)}
-                onDelete={() => { if (confirm("Delete your review?")) del.mutate(r.id); }}
-              />
+              <ReviewCard key={r.id} review={r} isOwn={r.reviewer_id === currentUserId} onEdit={() => startEdit(r)} onDelete={() => { if (confirm("Delete your review?")) del.mutate(r.id); }} />
             ))}
           </div>
-
-          {/* Pagination */}
           {pageCount > 1 && (
             <div className="mt-6 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent disabled:opacity-40"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent disabled:opacity-40" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
               <span className="text-sm text-muted-foreground">Page {page + 1} of {pageCount}</span>
-              <button
-                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-                disabled={page === pageCount - 1}
-                className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent disabled:opacity-40"
-                aria-label="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              <button onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))} disabled={page === pageCount - 1} className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent disabled:opacity-40" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
             </div>
           )}
         </>
@@ -504,14 +472,12 @@ function ReviewCard({ review, isOwn, onEdit, onDelete }: { review: Review; isOwn
   const TRUNCATE_AT = 220;
   const needsTruncation = review.body.length > TRUNCATE_AT;
   const displayBody = expanded || !needsTruncation ? review.body : review.body.slice(0, TRUNCATE_AT) + "…";
-
   const initials = (review.reviewer?.full_name ?? "?").slice(0, 1).toUpperCase();
   const dateStr = new Date(review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
   const reviewerName = review.reviewer?.full_name ?? "Anonymous";
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
-      {/* Top row — stars + flag/actions */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
           <StarRating value={review.rating} size="sm" />
@@ -519,35 +485,18 @@ function ReviewCard({ review, isOwn, onEdit, onDelete }: { review: Review; isOwn
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {isOwn ? (
-            <>
-              <button onClick={onEdit} className="rounded px-2 py-1 text-xs text-primary hover:bg-accent">Edit</button>
-              <button onClick={onDelete} className="rounded px-2 py-1 text-xs text-destructive hover:bg-accent">Delete</button>
-            </>
+            <><button onClick={onEdit} className="rounded px-2 py-1 text-xs text-primary hover:bg-accent">Edit</button><button onClick={onDelete} className="rounded px-2 py-1 text-xs text-destructive hover:bg-accent">Delete</button></>
           ) : (
-            <button title="Report review" className="rounded p-1 text-muted-foreground/50 hover:bg-accent hover:text-muted-foreground">
-              <Flag className="h-3.5 w-3.5" />
-            </button>
+            <button title="Report review" className="rounded p-1 text-muted-foreground/50 hover:bg-accent hover:text-muted-foreground"><Flag className="h-3.5 w-3.5" /></button>
           )}
         </div>
       </div>
-
-      {/* Title */}
       {review.title && <p className="font-semibold leading-snug">{review.title}</p>}
-
-      {/* Body */}
       <p className="text-sm leading-relaxed text-foreground/80">{displayBody}</p>
-      {needsTruncation && (
-        <button onClick={() => setExpanded(!expanded)} className="self-start text-sm font-semibold text-primary hover:underline">
-          {expanded ? "Show less" : "Show more"}
-        </button>
-      )}
-
-      {/* Reviewer avatar row */}
+      {needsTruncation && <button onClick={() => setExpanded(!expanded)} className="self-start text-sm font-semibold text-primary hover:underline">{expanded ? "Show less" : "Show more"}</button>}
       <div className="flex items-center gap-2 border-t border-border pt-3">
         <div className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-bold text-primary-foreground">
-          {review.reviewer?.avatar_url
-            ? <img src={review.reviewer.avatar_url} alt={reviewerName} className="h-full w-full object-cover" />
-            : initials}
+          {review.reviewer?.avatar_url ? <img src={review.reviewer.avatar_url} alt={reviewerName} className="h-full w-full object-cover" /> : initials}
         </div>
         <span className="text-xs font-medium">{reviewerName}</span>
       </div>
@@ -591,9 +540,7 @@ function CarouselShell({ title, count, children }: { title: string; count?: numb
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">
-          {title}{count != null && <span className="ml-1 font-normal text-muted-foreground">({count})</span>}
-        </h2>
+        <h2 className="font-display text-xl font-bold">{title}{count != null && <span className="ml-1 font-normal text-muted-foreground">({count})</span>}</h2>
         <div className="flex gap-1.5">
           <button aria-label="Scroll left" onClick={() => ref.current?.scrollBy({ left: -300, behavior: "smooth" })} className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"><ChevronLeft className="h-4 w-4" /></button>
           <button aria-label="Scroll right" onClick={() => ref.current?.scrollBy({ left: 300, behavior: "smooth" })} className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"><ChevronRight className="h-4 w-4" /></button>
