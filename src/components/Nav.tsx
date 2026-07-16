@@ -57,24 +57,14 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const mobileTransparent = overlay && !scrolled;
 
   return (
-    <header
-      className={[
-        "z-40 w-full transition-all duration-300",
-        overlay
-          ? scrolled
-            ? "fixed top-0 border-b border-border/60 bg-background/95 backdrop-blur"
-            : "absolute top-0 bg-transparent"
-          : "sticky top-0 border-b border-border/60 bg-background/85 backdrop-blur",
-        "md:sticky md:border-b md:border-border/60 md:bg-background/85 md:backdrop-blur md:top-0",
-      ].join(" ")}
-    >
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur transition-all duration-300">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <button aria-label="Open menu" className={["grid h-10 w-10 place-items-center rounded-full transition md:hidden", mobileTransparent ? "text-white" : "text-foreground"].join(" ")}>
+              <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
                 <Menu className="h-6 w-6" />
               </button>
             </SheetTrigger>
@@ -121,7 +111,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className={["border", mobileTransparent ? "h-9 w-9 border-white/60" : "h-10 w-10 border-border md:h-12 md:w-12"].join(" ")}>
+                  {/* Avatar is always h-12 w-12 on every page — no size variation */}
+                  <Avatar className="h-12 w-12 border border-border">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
                   </Avatar>
@@ -197,12 +188,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            mobileTransparent
-              ? <Link to="/auth" className="text-sm font-semibold text-white md:hidden">Sign in</Link>
-              : null
-          )}
-          {!user && (
-            <Button asChild size="sm" className={mobileTransparent ? "hidden md:inline-flex" : ""}>
+            <Button asChild size="sm">
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
