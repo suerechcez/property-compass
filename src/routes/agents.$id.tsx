@@ -113,9 +113,11 @@ function AgentProfile() {
     },
   });
 
-  // Fetch reviews here so the avg rating is available for the stats row
-  const { data: reviews = [] } = useQuery({
-    queryKey: ["agent-reviews", id],
+  // Ratings-only query for the profile card summary.
+  // Uses a DISTINCT key ("agent-review-ratings") so it never collides with
+  // the full reviews query ("agent-reviews") used by ReviewsSection below.
+  const { data: ratingRows = [] } = useQuery({
+    queryKey: ["agent-review-ratings", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("agent_reviews")
@@ -134,16 +136,18 @@ function AgentProfile() {
 
   const stats = useMemo(() => {
     const prices = listings.map((p) => Number(p.price)).filter((n) => n > 0);
-    const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
+    const avgRating = ratingRows.length
+      ? ratingRows.reduce((s, r) => s + r.rating, 0) / ratingRows.length
+      : null;
     return {
       count: sales.length,
       minPrice: prices.length ? Math.min(...prices) : null,
       maxPrice: prices.length ? Math.max(...prices) : null,
       avgPrice: prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0,
-      reviewCount: reviews.length,
+      reviewCount: ratingRows.length,
       avgRating,
     };
-  }, [sales, listings, reviews]);
+  }, [sales, listings, ratingRows]);
 
   async function handleShare() {
     const url = window.location.href;
@@ -163,7 +167,6 @@ function AgentProfile() {
 
   return (
     <div className="site-page">
-      {/* ── Header ── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <p className="text-sm text-muted-foreground">
@@ -173,7 +176,7 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
-            {/* Profile card — fully centered */}
+            {/* Profile card */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -183,7 +186,6 @@ function AgentProfile() {
                 </div>
               </div>
 
-              {/* ── Centered body ── */}
               <div className="flex flex-col items-center bg-card p-6 text-center">
                 {profile.license_number && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
@@ -192,7 +194,6 @@ function AgentProfile() {
                 )}
                 <h1 className="mt-2 font-display text-2xl font-bold">{profile.full_name ?? roleLabel}</h1>
 
-                {/* ── Reviews summary between title and agency ── */}
                 {stats.avgRating !== null && (
                   <div className="mt-1 flex items-center justify-center gap-1.5">
                     <div className="flex gap-0.5">
@@ -210,10 +211,7 @@ function AgentProfile() {
                 <p className="text-sm text-muted-foreground">One Higala {roleLabel}</p>
 
                 <div className="mt-4 flex w-full justify-center gap-2">
-                  <Button
-                    className="flex-1"
-                    onClick={() => document.getElementById("contact-agent")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  >
+                  <Button className="flex-1" onClick={() => document.getElementById("contact-agent")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                     Contact {roleLabel}
                   </Button>
                   <Button variant="outline" size="icon" aria-label="Share profile" onClick={handleShare}>
@@ -246,7 +244,6 @@ function AgentProfile() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-6 sm:grid-cols-4">
             <Stat label="Sales" value={String(stats.count)} />
             <Stat label="Listings" value={String(listings.length)} />
@@ -256,7 +253,6 @@ function AgentProfile() {
         </div>
       </section>
 
-      {/* ── Main + Sidebar ── */}
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
@@ -321,6 +317,9 @@ function ReviewsSection({
   const [title, setTitle]         = useState("");
   const [body, setBody]           = useState("");
 
+  // "agent-reviews" key — full objects with body + reviewer join.
+  // Deliberately different from "agent-review-ratings" used in AgentProfile
+  // so the two queries never overwrite each other's cache entries.
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["agent-reviews", agentId],
     queryFn: async () => {
@@ -361,7 +360,9 @@ function ReviewsSection({
     onSuccess: () => {
       toast.success(editingId ? "Review updated" : "Review submitted — thank you!");
       resetForm();
+      // Invalidate both query keys so the profile card summary updates too
       qc.invalidateQueries({ queryKey: ["agent-reviews", agentId] });
+      qc.invalidateQueries({ queryKey: ["agent-review-ratings", agentId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to submit review"),
   });
@@ -371,7 +372,11 @@ function ReviewsSection({
       const { error } = await supabase.from("agent_reviews").delete().eq("id", reviewId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Review deleted"); qc.invalidateQueries({ queryKey: ["agent-reviews", agentId] }); },
+    onSuccess: () => {
+      toast.success("Review deleted");
+      qc.invalidateQueries({ queryKey: ["agent-reviews", agentId] });
+      qc.invalidateQueries({ queryKey: ["agent-review-ratings", agentId] });
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
 
@@ -470,8 +475,9 @@ function ReviewsSection({
 function ReviewCard({ review, isOwn, onEdit, onDelete }: { review: Review; isOwn: boolean; onEdit: () => void; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const TRUNCATE_AT = 220;
-  const needsTruncation = review.body.length > TRUNCATE_AT;
-  const displayBody = expanded || !needsTruncation ? review.body : review.body.slice(0, TRUNCATE_AT) + "…";
+  const body = review.body ?? "";
+  const needsTruncation = body.length > TRUNCATE_AT;
+  const displayBody = expanded || !needsTruncation ? body : body.slice(0, TRUNCATE_AT) + "…";
   const initials = (review.reviewer?.full_name ?? "?").slice(0, 1).toUpperCase();
   const dateStr = new Date(review.created_at).toLocaleDateString("en-US", { year: "numeric", month: "numeric", day: "numeric" });
   const reviewerName = review.reviewer?.full_name ?? "Anonymous";
