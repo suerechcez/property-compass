@@ -16,17 +16,17 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
-  Users, ClipboardList, BarChart3,
+  Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
   Plus, X, type LucideIcon,
 } from "lucide-react";
 
 type Tab =
   | "overview" | "listings" | "sales" | "forecast"
-  | "admin-users" | "admin-requests" | "admin-tracking";
+  | "admin-users" | "admin-requests" | "admin-listings" | "admin-tracking";
 
 const TABS: Tab[] = [
   "overview", "listings", "sales", "forecast",
-  "admin-users", "admin-requests", "admin-tracking",
+  "admin-users", "admin-requests", "admin-listings", "admin-tracking",
 ];
 
 export const Route = createFileRoute("/dashboard")({
@@ -38,23 +38,25 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const TAB_ICONS: Record<Tab, LucideIcon> = {
-  overview:         LayoutDashboard,
-  listings:         Building2,
-  sales:            Wallet,
-  forecast:         Sparkles,
-  "admin-users":    Users,
-  "admin-requests": ClipboardList,
-  "admin-tracking": BarChart3,
+  overview:          LayoutDashboard,
+  listings:          Building2,
+  sales:             Wallet,
+  forecast:          Sparkles,
+  "admin-users":     Users,
+  "admin-requests":  ClipboardList,
+  "admin-listings":  CheckCircle2,
+  "admin-tracking":  BarChart3,
 };
 
 const TAB_LABELS: Record<Tab, string> = {
-  overview:         "Overview",
-  listings:         "My listings",
-  sales:            "Sales",
-  forecast:         "AI forecast",
-  "admin-users":    "Users & Roles",
-  "admin-requests": "C/A Requests",
-  "admin-tracking": "C/A Tracking",
+  overview:          "Overview",
+  listings:          "My listings",
+  sales:             "Sales",
+  forecast:          "AI forecast",
+  "admin-users":     "Users & Roles",
+  "admin-requests":  "C/A Requests",
+  "admin-listings":  "Listing Queue",
+  "admin-tracking":  "C/A Tracking",
 };
 
 const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
@@ -106,6 +108,7 @@ function Dashboard() {
     { id: "forecast",         show: canManageListings },
     { id: "admin-users",      show: isAdmin },
     { id: "admin-requests",   show: isAdmin },
+    { id: "admin-listings",   show: isAdmin },
     { id: "admin-tracking",   show: isAdmin },
   ];
   const visibleTabs = tabs.filter((t) => t.show);
@@ -127,13 +130,14 @@ function Dashboard() {
         <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} isAdmin={isAdmin} />
 
         <div className="mt-6 min-w-0">
-          {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
-          {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
-          {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
-          {tab === "forecast"         && <Forecast />}
-          {tab === "admin-users"      && isAdmin && <UsersRoles />}
-          {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
-          {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
+          {tab === "overview"        && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
+          {tab === "listings"        && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales"           && <Sales userId={user.id} isDeveloper={elevated} />}
+          {tab === "forecast"        && <Forecast />}
+          {tab === "admin-users"     && isAdmin && <UsersRoles />}
+          {tab === "admin-requests"  && isAdmin && <CommissionerRequests />}
+          {tab === "admin-listings"  && isAdmin && <ListingQueue />}
+          {tab === "admin-tracking"  && isAdmin && <CommissionerTracking />}
         </div>
       </div>
     </div>
@@ -148,7 +152,7 @@ function DashboardTopNav({
   onChange: (t: Tab) => void;
   isAdmin: boolean;
 }) {
-  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking"];
+  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-listings", "admin-tracking"];
   const nonAdminTabs = tabs.filter((t) => !adminTabs.includes(t.id));
   const adminTabsVisible = tabs.filter((t) => adminTabs.includes(t.id));
 
@@ -172,13 +176,15 @@ function DashboardTopNav({
       </nav>
       {isAdmin && adminTabsVisible.length > 0 && (
         <nav className="mt-1 flex gap-1 overflow-x-auto pt-1">
-          <span className="mr-1 flex items-center text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">Admin</span>
+          <span className="mr-1 flex items-center px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</span>
           {adminTabsVisible.map((t) => <Pill key={t.id} id={t.id} />)}
         </nav>
       )}
     </div>
   );
 }
+
+// ── Overview ─────────────────────────────────────────────────────────────────
 
 function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isCommissioner: boolean; isDeveloper: boolean }) {
   const { data: stats } = useQuery({
@@ -250,6 +256,17 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Listings ──────────────────────────────────────────────────────────────────
+
+const STATUS_BADGE: Record<string, string> = {
+  pending:   "bg-yellow-100 text-yellow-800",
+  published: "bg-green-100 text-green-800",
+  rejected:  "bg-red-100 text-red-800",
+  draft:     "bg-gray-100 text-gray-600",
+  sold:      "bg-blue-100 text-blue-800",
+  rented:    "bg-purple-100 text-purple-800",
+};
+
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
   const { data: properties = [], isLoading } = useQuery({
@@ -290,12 +307,19 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
         <tbody>
           {properties.map((p) => (
             <tr key={p.id} className="border-t border-border">
-              <td className="px-4 py-3"><Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link><div className="text-xs text-muted-foreground">{p.location ?? "—"}</div></td>
+              <td className="px-4 py-3">
+                <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
+                <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+              </td>
               <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
-              <td className="px-4 py-3 capitalize">{p.status}</td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  {p.status === "pending" ? "⏳ Pending review" : p.status === "rejected" ? "❌ Rejected" : p.status}
+                </span>
+              </td>
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
               <td className="px-4 py-3 text-right whitespace-nowrap">
-                {p.status !== "sold" && <Button size="sm" variant="outline" onClick={() => { if (confirm(`Mark "${p.title}" as sold?`)) markSold.mutate(p); }}>Mark as Sold</Button>}
+                {p.status !== "sold" && p.status === "published" && <Button size="sm" variant="outline" onClick={() => { if (confirm(`Mark "${p.title}" as sold?`)) markSold.mutate(p); }}>Mark as Sold</Button>}
                 <Button size="sm" variant="outline" className="ml-2" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>
                 <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>Delete</Button>
               </td>
@@ -306,6 +330,194 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
     </div>
   );
 }
+
+// ── Admin: Listing Approval Queue ─────────────────────────────────────────────
+
+function ListingQueue() {
+  const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+  const [filter, setFilter] = useState<"pending" | "all">("pending");
+
+  const { data: listings = [], isLoading } = useQuery({
+    queryKey: ["admin-listing-queue", filter],
+    queryFn: async () => {
+      let q = supabase
+        .from("properties")
+        .select("*, profiles(full_name)")
+        .order("created_at", { ascending: false });
+      if (filter === "pending") q = q.eq("status", "pending");
+      else q = q.in("status", ["pending", "published", "rejected"]);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const decide = useMutation({
+    mutationFn: async ({ id, action, note }: { id: string; action: "approve" | "reject"; note?: string }) => {
+      const newStatus = action === "approve" ? "published" : "rejected";
+      const update: Record<string, unknown> = { status: newStatus };
+      if (action === "reject" && note) update.rejection_note = note;
+      const { error } = await supabase.from("properties").update(update).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.action === "approve" ? "Listing approved and published!" : "Listing rejected.");
+      qc.invalidateQueries({ queryKey: ["admin-listing-queue"] });
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      setOpenId(null);
+      setRejectNote("");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const pendingCount = listings.filter((l) => l.status === "pending").length;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Listing Approval Queue</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review listings submitted by commissioners and agents before they go live.
+              {pendingCount > 0 && filter === "pending" && (
+                <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                  {pendingCount} pending
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
+            {(["pending", "all"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-full px-3 py-1 capitalize transition ${filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {f === "pending" ? "Pending only" : "All listings"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <p className="text-muted-foreground">Loading…</p>
+      ) : listings.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-green-400" />
+          <p className="mt-3 font-medium">All clear — no pending listings.</p>
+          <p className="text-sm text-muted-foreground">New submissions from commissioners will appear here.</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Listing</th>
+                <th className="px-4 py-3">Agent</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listings.map((p) => {
+                const isOpen = openId === p.id;
+                const agentName = (p as { profiles?: { full_name?: string | null } }).profiles?.full_name ?? "—";
+                return (
+                  <>
+                    <tr key={p.id} className="border-t border-border">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+                            {p.images?.[0]
+                              ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
+                              : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No img</div>
+                            }
+                          </div>
+                          <div>
+                            <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
+                            <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{agentName}</td>
+                      <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
+                      <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {p.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => decide.mutate({ id: p.id, action: "approve" })}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10"
+                              onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}
+                            >
+                              <XCircle className="mr-1 h-3.5 w-3.5" />{isOpen ? "Cancel" : "Reject"}
+                            </Button>
+                          </>
+                        )}
+                        {p.status !== "pending" && (
+                          <Button size="sm" variant="outline" asChild>
+                            <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Reject panel */}
+                    {isOpen && p.status === "pending" && (
+                      <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
+                        <td colSpan={7} className="px-4 py-4">
+                          <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
+                          <div className="flex gap-2">
+                            <Input
+                              value={rejectNote}
+                              onChange={(e) => setRejectNote(e.target.value)}
+                              placeholder="e.g. Missing photos, inaccurate price…"
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}
+                            >
+                              Confirm rejection
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Sales ─────────────────────────────────────────────────────────────────────
 
 type GroupBy = "day" | "month";
 
@@ -446,6 +658,8 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
   );
 }
 
+// ── Forecast ──────────────────────────────────────────────────────────────────
+
 function Forecast() {
   const predict = useServerFn(predictSales);
   const [result, setResult] = useState<{ summary: string; forecast: { month: string; projected: number }[] } | null>(null);
@@ -494,7 +708,7 @@ function Forecast() {
   );
 }
 
-// ── Admin: Users & Roles ─────────────────────────────────────────────────────
+// ── Admin: Users & Roles ──────────────────────────────────────────────────────
 
 function UsersRoles() {
   const qc = useQueryClient();
@@ -567,7 +781,7 @@ function UsersRoles() {
   );
 }
 
-// ── Admin: C/A Requests ──────────────────────────────────────────────────────
+// ── Admin: C/A Requests ───────────────────────────────────────────────────────
 
 function CommissionerRequests() {
   const qc = useQueryClient();
@@ -645,7 +859,7 @@ function CommissionerRequests() {
   );
 }
 
-// ── Admin: C/A Tracking ──────────────────────────────────────────────────────
+// ── Admin: C/A Tracking ───────────────────────────────────────────────────────
 
 function CommissionerTracking() {
   const { data: users = [] } = useQuery({
