@@ -113,32 +113,24 @@ function AgentProfile() {
     },
   });
 
-  // Ratings-only query for the profile card summary.
-  // Uses a DISTINCT key ("agent-review-ratings") so it never collides with
-  // the full reviews query ("agent-reviews") used by ReviewsSection below.
   const { data: ratingRows = [] } = useQuery({
     queryKey: ["agent-review-ratings", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("agent_reviews")
-        .select("rating")
-        .eq("agent_id", id);
+      const { data, error } = await supabase.from("agent_reviews").select("rating").eq("agent_id", id);
       if (error) throw error;
       return (data ?? []) as { rating: number }[];
     },
   });
 
-  const sold     = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
-  const forSale  = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
-  const forRent  = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
-  const featured = useMemo(() => listings.filter((p) => p.is_featured && p.status !== "sold"), [listings]);
+  const sold        = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
+  const forSale     = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
+  const forRent     = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
+  const featured    = useMemo(() => listings.filter((p) => p.is_featured && p.status !== "sold"), [listings]);
   const galleryImages = useMemo(() => listings.flatMap((p) => p.images ?? []).slice(0, 10), [listings]);
 
   const stats = useMemo(() => {
     const prices = listings.map((p) => Number(p.price)).filter((n) => n > 0);
-    const avgRating = ratingRows.length
-      ? ratingRows.reduce((s, r) => s + r.rating, 0) / ratingRows.length
-      : null;
+    const avgRating = ratingRows.length ? ratingRows.reduce((s, r) => s + r.rating, 0) / ratingRows.length : null;
     return {
       count: sales.length,
       minPrice: prices.length ? Math.min(...prices) : null,
@@ -176,7 +168,6 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
-            {/* Profile card */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -185,7 +176,6 @@ function AgentProfile() {
                     : (profile.full_name ?? "A").slice(0, 1).toUpperCase()}
                 </div>
               </div>
-
               <div className="flex flex-col items-center bg-card p-6 text-center">
                 {profile.license_number && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
@@ -193,7 +183,6 @@ function AgentProfile() {
                   </span>
                 )}
                 <h1 className="mt-2 font-display text-2xl font-bold">{profile.full_name ?? roleLabel}</h1>
-
                 {stats.avgRating !== null && (
                   <div className="mt-1 flex items-center justify-center gap-1.5">
                     <div className="flex gap-0.5">
@@ -205,11 +194,9 @@ function AgentProfile() {
                     <span className="text-xs text-muted-foreground">({stats.reviewCount} review{stats.reviewCount !== 1 ? "s" : ""})</span>
                   </div>
                 )}
-
                 <p className="mt-1.5 text-sm text-muted-foreground">{profile.title ?? roleLabel}</p>
                 {profile.agency_name && <p className="mt-1 text-sm font-medium">{profile.agency_name}</p>}
                 <p className="text-sm text-muted-foreground">One Higala {roleLabel}</p>
-
                 <div className="mt-4 flex w-full justify-center gap-2">
                   <Button className="flex-1" onClick={() => document.getElementById("contact-agent")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                     Contact {roleLabel}
@@ -218,7 +205,6 @@ function AgentProfile() {
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
-
                 {(profile.email || profile.phone) && (
                   <div className="mt-4 w-full space-y-1.5 border-t border-border pt-4 text-sm">
                     {profile.email && (
@@ -236,7 +222,6 @@ function AgentProfile() {
               </div>
             </div>
 
-            {/* Listing gallery */}
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {galleryImages.length > 0
                 ? <ImageGallery images={galleryImages} />
@@ -262,7 +247,6 @@ function AgentProfile() {
           <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
           <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
         </div>
-
         <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
           <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
         </aside>
@@ -317,9 +301,6 @@ function ReviewsSection({
   const [title, setTitle]         = useState("");
   const [body, setBody]           = useState("");
 
-  // "agent-reviews" key — full objects with body + reviewer join.
-  // Deliberately different from "agent-review-ratings" used in AgentProfile
-  // so the two queries never overwrite each other's cache entries.
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["agent-reviews", agentId],
     queryFn: async () => {
@@ -333,10 +314,9 @@ function ReviewsSection({
     },
   });
 
-  const avgRating    = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-  const ratingCounts = [5, 4, 3, 2, 1].map((n) => ({ n, count: reviews.filter((r) => r.rating === n).length }));
-  const myReview     = reviews.find((r) => r.reviewer_id === currentUserId);
-  const pageCount    = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
+  const avgRating      = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const myReview       = reviews.find((r) => r.reviewer_id === currentUserId);
+  const pageCount      = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
   const visibleReviews = reviews.slice(page * REVIEWS_PER_PAGE, (page + 1) * REVIEWS_PER_PAGE);
 
   function startEdit(r: Review) {
@@ -360,7 +340,6 @@ function ReviewsSection({
     onSuccess: () => {
       toast.success(editingId ? "Review updated" : "Review submitted — thank you!");
       resetForm();
-      // Invalidate both query keys so the profile card summary updates too
       qc.invalidateQueries({ queryKey: ["agent-reviews", agentId] });
       qc.invalidateQueries({ queryKey: ["agent-review-ratings", agentId] });
     },
@@ -386,6 +365,7 @@ function ReviewsSection({
 
   return (
     <div>
+      {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-bold">
@@ -404,21 +384,7 @@ function ReviewsSection({
         {canReview && myReview && !showForm && <Button size="sm" variant="outline" onClick={() => startEdit(myReview)}>Edit your review</Button>}
       </div>
 
-      {reviews.length > 0 && (
-        <div className="mt-4 space-y-1.5">
-          {ratingCounts.map(({ n, count }) => (
-            <div key={n} className="flex items-center gap-2 text-xs">
-              <span className="w-4 shrink-0 text-right text-muted-foreground">{n}</span>
-              <Star className="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: reviews.length ? `${(count / reviews.length) * 100}%` : "0%" }} />
-              </div>
-              <span className="w-5 shrink-0 text-muted-foreground">{count}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* ── Write / edit form ── */}
       {showForm && canReview && (
         <div id="review-form" className="mt-6 rounded-2xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-semibold">{editingId ? "Edit your review" : `Review this ${roleLabel}`}</h3>
@@ -440,6 +406,7 @@ function ReviewsSection({
         </div>
       )}
 
+      {/* ── No reviews yet ── */}
       {reviews.length === 0 && !showForm && (
         <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">No reviews yet — be the first to leave one.</p>
@@ -452,6 +419,7 @@ function ReviewsSection({
         </div>
       )}
 
+      {/* ── Review cards grid ── */}
       {reviews.length > 0 && (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
