@@ -22,11 +22,11 @@ import {
 
 type Tab =
   | "overview" | "listings" | "sales" | "forecast"
-  | "admin-users" | "admin-requests" | "admin-listings" | "admin-tracking";
+  | "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
 
 const TABS: Tab[] = [
   "overview", "listings", "sales", "forecast",
-  "admin-users", "admin-requests", "admin-listings", "admin-tracking",
+  "admin-users", "admin-requests", "admin-tracking", "admin-listings",
 ];
 
 export const Route = createFileRoute("/dashboard")({
@@ -38,25 +38,25 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const TAB_ICONS: Record<Tab, LucideIcon> = {
-  overview:          LayoutDashboard,
-  listings:          Building2,
-  sales:             Wallet,
-  forecast:          Sparkles,
-  "admin-users":     Users,
-  "admin-requests":  ClipboardList,
-  "admin-listings":  CheckCircle2,
-  "admin-tracking":  BarChart3,
+  overview:           LayoutDashboard,
+  listings:           Building2,
+  sales:              Wallet,
+  forecast:           Sparkles,
+  "admin-users":      Users,
+  "admin-requests":   ClipboardList,
+  "admin-tracking":   BarChart3,
+  "admin-listings":   CheckCircle2,
 };
 
 const TAB_LABELS: Record<Tab, string> = {
-  overview:          "Overview",
-  listings:          "My listings",
-  sales:             "Sales",
-  forecast:          "AI forecast",
-  "admin-users":     "Users & Roles",
-  "admin-requests":  "C/A Requests",
-  "admin-listings":  "Listing Queue",
-  "admin-tracking":  "C/A Tracking",
+  overview:           "Overview",
+  listings:           "My listings",
+  sales:              "Sales",
+  forecast:           "AI forecast",
+  "admin-users":      "Users & Roles",
+  "admin-requests":   "C/A Requests",
+  "admin-tracking":   "C/A Tracking",
+  "admin-listings":   "Listing Queue",
 };
 
 const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
@@ -102,14 +102,14 @@ function Dashboard() {
   }
 
   const tabs: { id: Tab; show: boolean }[] = [
-    { id: "overview",         show: true },
-    { id: "listings",         show: canManageListings },
-    { id: "sales",            show: canManageListings },
-    { id: "forecast",         show: canManageListings },
-    { id: "admin-users",      show: isAdmin },
-    { id: "admin-requests",   show: isAdmin },
-    { id: "admin-listings",   show: isAdmin },
-    { id: "admin-tracking",   show: isAdmin },
+    { id: "overview",          show: true },
+    { id: "listings",          show: canManageListings },
+    { id: "sales",             show: canManageListings },
+    { id: "forecast",          show: canManageListings },
+    { id: "admin-users",       show: isAdmin },
+    { id: "admin-requests",    show: isAdmin },
+    { id: "admin-tracking",    show: isAdmin },
+    { id: "admin-listings",    show: isAdmin },
   ];
   const visibleTabs = tabs.filter((t) => t.show);
 
@@ -130,14 +130,14 @@ function Dashboard() {
         <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} isAdmin={isAdmin} />
 
         <div className="mt-6 min-w-0">
-          {tab === "overview"        && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
-          {tab === "listings"        && <Listings userId={user.id} isDeveloper={elevated} />}
-          {tab === "sales"           && <Sales userId={user.id} isDeveloper={elevated} />}
-          {tab === "forecast"        && <Forecast />}
-          {tab === "admin-users"     && isAdmin && <UsersRoles />}
-          {tab === "admin-requests"  && isAdmin && <CommissionerRequests />}
-          {tab === "admin-listings"  && isAdmin && <ListingQueue />}
-          {tab === "admin-tracking"  && isAdmin && <CommissionerTracking />}
+          {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
+          {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
+          {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
+          {tab === "forecast"         && <Forecast />}
+          {tab === "admin-users"      && isAdmin && <UsersRoles />}
+          {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
+          {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
+          {tab === "admin-listings"   && isAdmin && <ListingQueue />}
         </div>
       </div>
     </div>
@@ -152,7 +152,7 @@ function DashboardTopNav({
   onChange: (t: Tab) => void;
   isAdmin: boolean;
 }) {
-  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-listings", "admin-tracking"];
+  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
   const nonAdminTabs = tabs.filter((t) => !adminTabs.includes(t.id));
   const adminTabsVisible = tabs.filter((t) => adminTabs.includes(t.id));
 
@@ -184,7 +184,7 @@ function DashboardTopNav({
   );
 }
 
-// ── Overview ─────────────────────────────────────────────────────────────────
+// ── Overview ──────────────────────────────────────────────────────────────────
 
 function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isCommissioner: boolean; isDeveloper: boolean }) {
   const { data: stats } = useQuery({
@@ -319,7 +319,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               </td>
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
               <td className="px-4 py-3 text-right whitespace-nowrap">
-                {p.status !== "sold" && p.status === "published" && <Button size="sm" variant="outline" onClick={() => { if (confirm(`Mark "${p.title}" as sold?`)) markSold.mutate(p); }}>Mark as Sold</Button>}
+                {p.status === "published" && <Button size="sm" variant="outline" onClick={() => { if (confirm(`Mark "${p.title}" as sold?`)) markSold.mutate(p); }}>Mark as Sold</Button>}
                 <Button size="sm" variant="outline" className="ml-2" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>
                 <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>Delete</Button>
               </td>
@@ -339,18 +339,39 @@ function ListingQueue() {
   const [rejectNote, setRejectNote] = useState("");
   const [filter, setFilter] = useState<"pending" | "all">("pending");
 
-  const { data: listings = [], isLoading } = useQuery({
+  const { data: listings = [], isLoading, error } = useQuery({
     queryKey: ["admin-listing-queue", filter],
     queryFn: async () => {
+      // Fetch properties without attempting a FK join on commissioner_id
+      // (commissioner_id → auth.users, not profiles, so PostgREST can't auto-join)
       let q = supabase
         .from("properties")
-        .select("*, profiles(full_name)")
+        .select("id, title, location, price, status, property_type, images, created_at, commissioner_id, for_rent")
         .order("created_at", { ascending: false });
-      if (filter === "pending") q = q.eq("status", "pending");
-      else q = q.in("status", ["pending", "published", "rejected"]);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
+
+      if (filter === "pending") {
+        q = q.eq("status", "pending");
+      } else {
+        q = q.in("status", ["pending", "published", "rejected"]);
+      }
+
+      const { data: props, error: propErr } = await q;
+      if (propErr) throw propErr;
+      if (!props || props.length === 0) return [];
+
+      // Separately fetch agent names from profiles
+      const commissionerIds = [...new Set(props.map((p) => p.commissioner_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", commissionerIds);
+
+      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+
+      return props.map((p) => ({
+        ...p,
+        agentName: profileMap.get(p.commissioner_id) ?? "—",
+      }));
     },
   });
 
@@ -382,7 +403,7 @@ function ListingQueue() {
             <h2 className="font-display text-xl font-semibold">Listing Approval Queue</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Review listings submitted by commissioners and agents before they go live.
-              {pendingCount > 0 && filter === "pending" && (
+              {pendingCount > 0 && (
                 <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
                   {pendingCount} pending
                 </span>
@@ -405,10 +426,14 @@ function ListingQueue() {
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
+      ) : error ? (
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+          Failed to load listings: {error instanceof Error ? error.message : "Unknown error"}
+        </div>
       ) : listings.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <CheckCircle2 className="mx-auto h-10 w-10 text-green-400" />
-          <p className="mt-3 font-medium">All clear — no pending listings.</p>
+          <p className="mt-3 font-medium">All clear — no {filter === "pending" ? "pending" : ""} listings.</p>
           <p className="text-sm text-muted-foreground">New submissions from commissioners will appear here.</p>
         </div>
       ) : (
@@ -428,7 +453,6 @@ function ListingQueue() {
             <tbody>
               {listings.map((p) => {
                 const isOpen = openId === p.id;
-                const agentName = (p as { profiles?: { full_name?: string | null } }).profiles?.full_name ?? "—";
                 return (
                   <>
                     <tr key={p.id} className="border-t border-border">
@@ -446,7 +470,7 @@ function ListingQueue() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{agentName}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{p.agentName}</td>
                       <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
                       <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
                       <td className="px-4 py-3">
@@ -458,19 +482,10 @@ function ListingQueue() {
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {p.status === "pending" && (
                           <>
-                            <Button
-                              size="sm"
-                              onClick={() => decide.mutate({ id: p.id, action: "approve" })}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
+                            <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
                               <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Approve
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10"
-                              onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}
-                            >
+                            <Button size="sm" variant="outline" className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}>
                               <XCircle className="mr-1 h-3.5 w-3.5" />{isOpen ? "Cancel" : "Reject"}
                             </Button>
                           </>
@@ -483,23 +498,13 @@ function ListingQueue() {
                       </td>
                     </tr>
 
-                    {/* Reject panel */}
                     {isOpen && p.status === "pending" && (
                       <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
                         <td colSpan={7} className="px-4 py-4">
                           <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
                           <div className="flex gap-2">
-                            <Input
-                              value={rejectNote}
-                              onChange={(e) => setRejectNote(e.target.value)}
-                              placeholder="e.g. Missing photos, inaccurate price…"
-                              className="flex-1"
-                            />
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}
-                            >
+                            <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
+                            <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>
                               Confirm rejection
                             </Button>
                           </div>
