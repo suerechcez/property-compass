@@ -31,7 +31,7 @@ export function ListingForm({
     title: string;
     description: string | null;
     property_type: PropertyTypeValue;
-    status: "draft" | "published" | "sold" | "rented";
+    status: "draft" | "pending" | "published" | "sold" | "rented" | "rejected";
     price: number | string;
     location: string | null;
     bedrooms: number | null;
@@ -46,16 +46,13 @@ export function ListingForm({
   };
 }) {
   const navigate = useNavigate();
-  // authReady is true only after BOTH the session check AND the roles fetch have
-  // completed — eliminates every race window between loading/rolesLoaded.
-  const { user, isCommissioner, isAgent, authReady } = useAuth();
+  const { user, isCommissioner, isAgent, isAdmin, authReady } = useAuth();
   const canPost = isCommissioner || isAgent;
-  // One-shot ref so TOKEN_REFRESHED re-renders can never re-fire the guard.
   const guardFired = useRef(false);
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [type, setType] = useState<PropertyTypeValue>(initial?.property_type ?? "condo");
-  const [status, setStatus] = useState(initial?.status ?? "published");
+  const [status, setStatus] = useState(initial?.status ?? "pending");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [location, setLocation] = useState(initial?.location ?? "");
   const [bedrooms, setBedrooms] = useState(initial?.bedrooms?.toString() ?? "");
@@ -70,7 +67,6 @@ export function ListingForm({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Prefill contact info from the user's profile on a new listing.
   useEffect(() => {
     if (!user || mode === "edit") return;
     supabase
@@ -87,21 +83,9 @@ export function ListingForm({
   }, [user, mode]);
 
   useEffect(() => {
-    // Wait until both session and roles are fully settled.
     if (!authReady) return;
-
-    // No session at all — go to auth.
-    if (!user) {
-      navigate({ to: "/auth" });
-      return;
-    }
-
-    // Edit mode: no role guard needed. RLS on the DB enforces ownership;
-    // running the guard here races against role resolution on fresh navigation.
+    if (!user) { navigate({ to: "/auth" }); return; }
     if (mode === "edit") return;
-
-    // Create mode: block non-commissioners/agents. One-shot so re-renders
-    // after a token refresh can never fire this again on the same mount.
     if (!canPost && !guardFired.current) {
       guardFired.current = true;
       toast.error("You need a commissioner or agent role to post listings.");
@@ -114,9 +98,7 @@ export function ListingForm({
     setUploading(true);
     try {
       const uploaded: string[] = [];
-      for (const f of Array.from(files)) {
-        uploaded.push(await uploadPropertyImage(f, user.id));
-      }
+      for (const f of Array.from(files)) uploaded.push(await uploadPropertyImage(f, user.id));
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -129,12 +111,17 @@ export function ListingForm({
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+
+    // Non-admin commissioners/agents always submit as pending for review.
+    // Admins editing an existing listing can freely set status.
+    const resolvedStatus = mode === "create" && !isAdmin ? "pending" : status;
+
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
       title,
       description: description || null,
       property_type: type,
-      status,
+      status: resolvedStatus,
       price: Number(price) || 0,
       location: location || null,
       bedrooms: bedrooms ? Number(bedrooms) : null,
@@ -156,13 +143,9 @@ export function ListingForm({
         toast.success("Listing updated");
         navigate({ to: "/properties/$id", params: { id: initial.id } });
       } else {
-        const { data, error } = await supabase
-          .from("properties")
-          .insert(payload)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.from("properties").insert(payload).select("id").single();
         if (error) throw error;
-        toast.success("Listing posted");
+        toast.success("Listing submitted for admin review!");
         navigate({ to: "/properties/$id", params: { id: data.id } });
       }
     } catch (e) {
@@ -172,9 +155,6 @@ export function ListingForm({
     }
   }
 
-  // In create mode, hold the loading screen until authReady — prevents any
-  // flash of the form or a premature redirect before roles are confirmed.
-  // In edit mode, render immediately; the parent gates on data availability.
   if (mode === "create" && !authReady) {
     return (
       <div className="min-h-screen site-page">
@@ -193,8 +173,22 @@ export function ListingForm({
           {mode === "edit" ? "Edit listing" : "Post a property"}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Customize photos and details so buyers and renters know exactly what they're getting.
+          {mode === "create"
+            ? "Fill in the details below. Your listing will be reviewed by an admin before it goes live."
+            : "Customize photos and details so buyers and renters know exactly what they're getting."}
         </p>
+
+        {/* Pending/rejected notice for edit mode */}
+        {mode === "edit" && initial?.status === "pending" && (
+          <div className="mt-4 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            ⏳ This listing is <strong>pending admin review</strong> and is not yet visible to the public.
+          </div>
+        )}
+        {mode === "edit" && initial?.status === "rejected" && (
+          <div className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+            ❌ This listing was <strong>rejected</strong> by an admin. Update the details and resubmit.
+          </div>
+        )}
 
         <form onSubmit={save} className="mt-10 space-y-8">
           <Section title="Photos">
@@ -213,13 +207,7 @@ export function ListingForm({
               ))}
               <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
                 {uploading ? "Uploading…" : "+ Add photos"}
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => onFiles(e.target.files)}
-                />
+                <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onFiles(e.target.files)} />
               </label>
             </div>
           </Section>
@@ -230,37 +218,30 @@ export function ListingForm({
                 <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sunset Penthouse — Cagayan de Oro" />
               </Field>
               <Field label="Type">
-                <select
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={type}
-                  onChange={(e) => setType(e.target.value as PropertyTypeValue)}
-                >
+                <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={type} onChange={(e) => setType(e.target.value as PropertyTypeValue)}>
                   {PROPERTY_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </Field>
-              <Field label="Status">
-                <select
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as typeof status)}
-                >
-                  {PROPERTY_STATUS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-                {status === "sold" && initial?.status !== "sold" && (
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    Saving will log this as a sale on your Sales tab.
-                  </p>
-                )}
-              </Field>
+
+              {/* Status selector — only shown to admins editing an existing listing */}
+              {mode === "edit" && isAdmin && (
+                <Field label="Status">
+                  <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+                    {[...PROPERTY_STATUS, { value: "pending", label: "Pending review" }, { value: "rejected", label: "Rejected" }].map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                  {status === "sold" && initial?.status !== "sold" && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">Saving will log this as a sale on your Sales tab.</p>
+                  )}
+                </Field>
+              )}
+
               <Field label="Price (PHP ₱)">
                 <Input type="number" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} />
               </Field>
               <Field label="Location" full>
-                <Input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="House no., Barangay, Street, City"
-                />
+                <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="House no., Barangay, Street, City" />
               </Field>
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
@@ -275,24 +256,13 @@ export function ListingForm({
           </Section>
 
           <Section title="Contact information">
-            <p className="text-sm text-muted-foreground">
-              Shown to buyers and renters on this listing so they can reach you directly.
-            </p>
+            <p className="text-sm text-muted-foreground">Shown to buyers and renters on this listing so they can reach you directly.</p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <Field label="Phone number">
-                <Input
-                  type="tel"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                />
+                <Input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
               </Field>
               <Field label="Email (Gmail or other)">
-                <Input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="you@gmail.com"
-                />
+                <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="you@gmail.com" />
               </Field>
             </div>
           </Section>
@@ -301,18 +271,14 @@ export function ListingForm({
             <Textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell buyers what makes this property special…" />
             <div className="mt-4">
               <Label>Highlights (comma separated)</Label>
-              <Input
-                value={features}
-                onChange={(e) => setFeatures(e.target.value)}
-                placeholder="Sea view, Pool, Gated, Furnished"
-              />
+              <Input value={features} onChange={(e) => setFeatures(e.target.value)} placeholder="Sea view, Pool, Gated, Furnished" />
             </div>
           </Section>
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Cancel</Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Publish listing"}
+              {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Submit for review"}
             </Button>
           </div>
         </form>
