@@ -230,56 +230,76 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
+      {/* Stat cards — fixed height so all four are identical squares */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
+
       {isCommissioner && (
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-display text-xl font-semibold">{isDeveloper ? "All listings" : "Your listings"}</h2>
-          {listingsLoading ? <p className="mt-4 text-muted-foreground">Loading…</p> : myListings.length === 0 ? <p className="mt-4 text-muted-foreground">No listings yet.</p> : (
+          {listingsLoading ? (
+            <p className="mt-4 text-muted-foreground">Loading…</p>
+          ) : myListings.length === 0 ? (
+            <p className="mt-4 text-muted-foreground">No listings yet.</p>
+          ) : (
             <div className="mt-4 divide-y divide-border">
               {myListings.map((p) => (
-                <Link key={p.id} to="/properties/$id" params={{ id: p.id }} className="flex items-center gap-4 -mx-2 rounded-lg px-2 py-5 transition hover:bg-accent">
-                  <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
+                /* Fixed-height row: h-28 keeps every listing card the same size */
+                <Link
+                  key={p.id}
+                  to="/properties/$id"
+                  params={{ id: p.id }}
+                  className="flex h-28 items-center gap-4 -mx-2 rounded-lg px-2 transition hover:bg-accent overflow-hidden"
+                >
+                  {/* Fixed square thumbnail */}
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
+                      : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-display text-xl font-bold leading-tight">{p.title}</h3>
+
+                  {/* Text — clamped so they never push the row taller */}
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="truncate font-display text-base font-bold leading-tight">{p.title}</h3>
                       <div className="shrink-0 text-right">
-                        <p className="font-display text-xl font-semibold text-primary whitespace-nowrap">
+                        <p className="font-display text-base font-semibold text-primary whitespace-nowrap">
                           {formatPrice(p.price)}
                           {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
                         </p>
                         {p.status !== "published" && (
-                          <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                             {STATUS_LABEL[p.status] ?? p.status}
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="mt-1 text-base text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-foreground/70">{p.description || "No description provided yet."}</p>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-foreground/70">{p.description || "No description provided yet."}</p>
                   </div>
                 </Link>
               ))}
             </div>
           )}
-          <div className="mt-4 flex justify-end"><Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button></div>
+          <div className="mt-4 flex justify-end">
+            <Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+/* Fixed-height stat card — h-28 gives a consistent square feel across all four */
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="flex h-28 flex-col justify-between rounded-2xl border border-border bg-card p-5">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 font-display text-3xl font-semibold">{value}</p>
+      <p className="font-display text-3xl font-semibold leading-none">{value}</p>
     </div>
   );
 }
@@ -317,12 +337,11 @@ function StatusDropdown({
   if (NO_DROPDOWN_STATUSES.has(property.status)) return null;
 
   const options = LISTING_STATUS_OPTIONS.filter((o) => {
-    if (o.value === property.status) return false;                    // already this status
-    if (o.value === "rented" && !property.for_rent) return false;    // not a rental listing
+    if (o.value === property.status) return false;
+    if (o.value === "rented" && !property.for_rent) return false;
     return true;
   });
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -351,10 +370,7 @@ function StatusDropdown({
             <button
               key={o.value}
               className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`}
-              onClick={() => {
-                setOpen(false);
-                onSelect(o.value);
-              }}
+              onClick={() => { setOpen(false); onSelect(o.value); }}
             >
               {o.label}
             </button>
@@ -435,7 +451,8 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
         </thead>
         <tbody>
           {properties.map((p) => (
-            <tr key={p.id} className="border-t border-border">
+            /* Fixed row height keeps the table uniform */
+            <tr key={p.id} className="h-16 border-t border-border">
               <td className="px-4 py-3">
                 <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
                 <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
@@ -568,11 +585,11 @@ function ListingQueue() {
                 const isOpen = openId === p.id;
                 return (
                   <>
-                    <tr key={p.id} className="border-t border-border">
+                    <tr key={p.id} className="h-16 border-t border-border">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-                            {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No img</div>}
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                            {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">—</div>}
                           </div>
                           <div>
                             <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
@@ -751,7 +768,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
           <tbody>
             {sales.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
             : sales.map((s) => (
-              <tr key={s.id} className="border-t border-border">
+              <tr key={s.id} className="h-16 border-t border-border">
                 <td className="px-4 py-3">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
                 <td className="px-4 py-3">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
                 <td className="px-4 py-3">{s.buyer_name ?? "—"}</td>
@@ -802,9 +819,10 @@ function Forecast() {
               <h3 className="font-display text-lg font-semibold">Projected volume — next 3 months</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {result.forecast.map((f) => (
-                  <div key={f.month} className="rounded-xl border border-border bg-surface p-4">
+                  /* Fixed-height forecast cards to match stat cards */
+                  <div key={f.month} className="flex h-28 flex-col justify-between rounded-xl border border-border bg-surface p-5">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">{f.month}</p>
-                    <p className="mt-1 font-display text-2xl font-semibold text-primary">{formatPrice(f.projected)}</p>
+                    <p className="font-display text-2xl font-semibold text-primary leading-none">{formatPrice(f.projected)}</p>
                   </div>
                 ))}
               </div>
@@ -857,7 +875,7 @@ function UsersRoles() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-border">
+              <tr key={u.id} className="h-16 border-t border-border">
                 <td className="px-4 py-3">
                   <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
                   <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
@@ -938,7 +956,7 @@ function CommissionerRequests() {
               const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
               return (
                 <>
-                  <tr key={r.id} className="border-t border-border">
+                  <tr key={r.id} className="h-16 border-t border-border">
                     <td className="px-4 py-3"><div className="font-medium">{displayName}</div><div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
                     <td className="px-4 py-3">{r.requested_role ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
@@ -1016,7 +1034,7 @@ function CommissionerTracking() {
             : commissioners.map((c) => {
               const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
               return (
-                <tr key={c.id} className="border-t border-border">
+                <tr key={c.id} className="h-16 border-t border-border">
                   <td className="px-4 py-3"><Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link></td>
                   <td className="px-4 py-3 text-right">{s.count}</td>
                   <td className="px-4 py-3 text-right font-medium">{formatPrice(s.volume)}</td>
