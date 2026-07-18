@@ -129,25 +129,6 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  html {
-    /* Always reserve space for the vertical scrollbar, whether or not the
-       current page is actually tall enough to need one. Without this,
-       navigating from a short page (no scrollbar) to a tall one (scrollbar
-       appears) — or opening/closing a dropdown/dialog that temporarily
-       locks scrolling — shifts the entire page a few pixels horizontally,
-       since the viewport's available width briefly changes. */
-    scrollbar-gutter: stable;
-  }
-
-  /* Radix UI (used by shadcn DropdownMenu, Dialog, Sheet, etc.) injects
-     `padding-right: <scrollbar-width>px` on <body> when it locks scroll to
-     prevent layout shift. But because we already use `scrollbar-gutter: stable`
-     on <html>, the gutter space is permanently reserved — Radix's compensation
-     becomes a double-correction that adds an empty white strip on the right.
-     Forcing padding-right to 0 here lets our scrollbar-gutter do the job alone. */
-  body[style*="padding-right"] {
-    padding-right: 0 !important;
-  }
 
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
