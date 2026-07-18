@@ -108,17 +108,24 @@ export function ListingForm({
     }
   }
 
+  // True only when the current user is an admin reviewing SOMEONE ELSE'S listing.
+  // If the admin also posted the listing (commissioner+admin), they don't get the
+  // status control — they edit it like a normal commissioner.
+  const isAdminReviewing =
+    mode === "edit" &&
+    isAdmin &&
+    !!initial &&
+    initial.commissioner_id !== user?.id;
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
 
-    // Non-admin commissioners/agents:
-    //   - create: always pending
-    //   - edit: keep the current status unchanged (no status control for them)
-    // Admins: can set any status freely via the dropdown
+    // Admins reviewing someone else's listing → use the dropdown status
+    // Everyone else → keep the current status unchanged (or pending on create)
     const resolvedStatus =
-      isAdmin ? status :
+      isAdminReviewing ? status :
       mode === "create" ? "pending" :
       initial?.status ?? "pending";
 
@@ -144,8 +151,7 @@ export function ListingForm({
       if (mode === "edit" && initial) {
         const { error } = await supabase.from("properties").update(payload).eq("id", initial.id);
         if (error) throw error;
-        // Only admins can set sold; log sale record if admin does so
-        if (isAdmin && status === "sold" && initial.status !== "sold") {
+        if (isAdminReviewing && status === "sold" && initial.status !== "sold") {
           await ensureSaleRecord(initial.id, payload.commissioner_id, payload.price);
         }
         toast.success("Listing updated");
@@ -163,7 +169,6 @@ export function ListingForm({
     }
   }
 
-  // Mark as rented — available to non-admin commissioners/agents for published for-rent listings
   async function markRented() {
     if (!initial) return;
     setMarkingRented(true);
@@ -191,7 +196,8 @@ export function ListingForm({
     );
   }
 
-  const isNonAdminEdit = mode === "edit" && !isAdmin;
+  // Non-admin edit = any edit where the user is NOT reviewing someone else's listing as admin
+  const isNonAdminEdit = mode === "edit" && !isAdminReviewing;
 
   return (
     <div className="min-h-screen site-page">
@@ -207,7 +213,7 @@ export function ListingForm({
             : "Customize photos and details so buyers and renters know exactly what they're getting."}
         </p>
 
-        {/* Status notices */}
+        {/* Status notices for own listings */}
         {isNonAdminEdit && initial?.status === "pending" && (
           <div className="mt-4 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
             ⏳ This listing is <strong>pending admin review</strong> and is not yet visible to the public.
@@ -246,7 +252,8 @@ export function ListingForm({
             </div>
           </Section>
 
-          <Section title="Basics">
+          {/* "Basics" renamed to "Information" */}
+          <Section title="Information">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Title" full>
                 <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sunset Penthouse — Cagayan de Oro" />
@@ -257,8 +264,8 @@ export function ListingForm({
                 </select>
               </Field>
 
-              {/* Status selector — ADMINS ONLY on edit */}
-              {mode === "edit" && isAdmin && (
+              {/* Status selector — ONLY for admins reviewing SOMEONE ELSE'S listing */}
+              {isAdminReviewing && (
                 <Field label="Status">
                   <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
                     {[...PROPERTY_STATUS, { value: "pending", label: "Pending review" }, { value: "rejected", label: "Rejected" }].map((s) => (
@@ -310,7 +317,7 @@ export function ListingForm({
           </Section>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Mark as Rented — only non-admin, published, for_rent listings */}
+            {/* Mark as Rented — only for own published for-rent listings */}
             {isNonAdminEdit && initial?.for_rent && initial.status === "published" && (
               <Button
                 type="button"
