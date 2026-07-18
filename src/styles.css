@@ -29,6 +29,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -44,14 +45,24 @@
   --color-gold-foreground: var(--gold-foreground);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
-  --color-primary-glow: var(--primary-glow);
 }
 
 @utility bg-gradient-hero { background-image: var(--gradient-hero); }
 @utility bg-gradient-primary { background-image: var(--gradient-primary); }
 @utility bg-gradient-surface { background-image: var(--gradient-surface); }
 @utility shadow-elegant { box-shadow: var(--shadow-elegant); }
-@utility shadow-soft { box-shadow: var(--shadow-soft);
+@utility shadow-soft { box-shadow: var(--shadow-soft); }
+
+/* Makes pages stretch to full viewport height so the footer is always
+   pinned to the bottom even when the content is short. Every route that
+   wraps its output in <div className="site-page"> inherits this. */
+@utility site-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+@utility site-page > footer {
+  margin-top: auto;
 }
 
 :root {
