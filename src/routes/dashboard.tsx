@@ -288,10 +288,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 type StatusOption = { label: string; value: string; className: string };
 
+// All possible status transitions a commissioner/agent can make.
+// "sold" is intentionally absent — it's a one-way terminal action handled separately.
 const LISTING_STATUS_OPTIONS: StatusOption[] = [
-  { label: "Draft",  value: "draft",  className: "text-gray-700 hover:bg-gray-50" },
-  { label: "Sold",   value: "sold",   className: "text-blue-700 hover:bg-blue-50" },
-  { label: "Rented", value: "rented", className: "text-purple-700 hover:bg-purple-50" },
+  { label: "Published", value: "published", className: "text-green-700 hover:bg-green-50" },
+  { label: "Draft",     value: "draft",     className: "text-gray-700 hover:bg-gray-50" },
+  { label: "Rented",    value: "rented",    className: "text-purple-700 hover:bg-purple-50" },
+  { label: "Sold",      value: "sold",      className: "text-blue-700 hover:bg-blue-50" },
 ];
 
 function StatusDropdown({
@@ -306,10 +309,10 @@ function StatusDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Only show options that make sense for this listing
+  // Filter out options that don't apply to this listing
   const options = LISTING_STATUS_OPTIONS.filter((o) => {
-    if (o.value === "rented" && !property.for_rent) return false;
-    if (o.value === property.status) return false;
+    if (o.value === property.status) return false;           // already this status
+    if (o.value === "rented" && !property.for_rent) return false; // not a rental
     return true;
   });
 
@@ -322,7 +325,8 @@ function StatusDropdown({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (options.length === 0) return null;
+  // Always show the dropdown for non-sold listings (sold is terminal)
+  if (property.status === "sold" || options.length === 0) return null;
 
   return (
     <div className="relative" ref={ref}>
@@ -337,7 +341,7 @@ function StatusDropdown({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </Button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+        <div className="absolute right-0 z-50 mt-1 min-w-[130px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
           {options.map((o) => (
             <button
               key={o.value}
@@ -384,8 +388,9 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
     newStatus: string,
   ) {
     const confirmMsg =
-      newStatus === "sold"   ? `Mark "${p.title}" as sold? This will log it under Sales.` :
-      newStatus === "rented" ? `Mark "${p.title}" as rented? It will remain visible in Browse.` :
+      newStatus === "sold"      ? `Mark "${p.title}" as sold? This will log it under Sales.` :
+      newStatus === "rented"    ? `Mark "${p.title}" as rented? It will remain visible in Browse.` :
+      newStatus === "published" ? `Re-publish "${p.title}"? It will be visible in Browse.` :
       `Move "${p.title}" back to Draft?`;
 
     if (!confirm(confirmMsg)) return;
@@ -397,7 +402,11 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       } else {
         const { error } = await supabase.from("properties").update({ status: newStatus }).eq("id", p.id);
         if (error) throw error;
-        toast.success(newStatus === "rented" ? "Marked as rented." : "Moved to Draft.");
+        toast.success(
+          newStatus === "rented"    ? "Marked as rented." :
+          newStatus === "published" ? "Listing re-published." :
+          "Moved to Draft.",
+        );
       }
       qc.invalidateQueries({ queryKey: ["my-listings"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
@@ -440,14 +449,12 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
               <td className="px-4 py-3 text-right whitespace-nowrap">
                 <div className="flex items-center justify-end gap-2">
-                  {/* Status dropdown — only for published listings */}
-                  {p.status === "published" && (
-                    <StatusDropdown
-                      property={p}
-                      onSelect={(val) => handleStatusChange(p, val)}
-                      loading={loadingId === p.id}
-                    />
-                  )}
+                  {/* Status dropdown — shown for all non-sold listings */}
+                  <StatusDropdown
+                    property={p}
+                    onSelect={(val) => handleStatusChange(p, val)}
+                    loading={loadingId === p.id}
+                  />
                   <Button size="sm" variant="outline" asChild>
                     <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
                   </Button>
