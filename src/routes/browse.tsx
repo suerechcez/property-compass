@@ -12,12 +12,6 @@ import { Search, LogIn } from "lucide-react";
 
 type ListingFilter = "all" | "sale" | "rent";
 
-// Hero photo, shown as the background of the heading/search box on every
-// /browse view (All listings, For Sale, and For Rent alike). Upload the file
-// to /public/hero-browse.jpg (or .png — either extension works, the <img>
-// below tries .jpg first and falls back to .png automatically). It's
-// absolutely positioned to fill just that box (object-cover), so it never
-// spills into the nav above or the filter-chip row below.
 const HERO_BROWSE_JPG = "/hero-browse.jpg";
 const HERO_BROWSE_PNG = "/hero-browse.png";
 
@@ -44,25 +38,17 @@ function Browse() {
   const [heroSrc, setHeroSrc] = useState(HERO_BROWSE_JPG);
   const [heroHidden, setHeroHidden] = useState(false);
 
-  // Buy/Rent/Browse all route to this same "/browse" path with different search
-  // params, so the component doesn't remount between them — only re-sync local
-  // state here when the URL's filter/q actually changes (e.g. clicking Buy then
-  // Rent), without clobbering the user's own in-page chip/search edits otherwise.
-  useEffect(() => {
-    setListingFilter(urlFilter);
-  }, [urlFilter]);
-
-  useEffect(() => {
-    setQ(urlQ);
-  }, [urlQ]);
+  useEffect(() => { setListingFilter(urlFilter); }, [urlFilter]);
+  useEffect(() => { setQ(urlQ); }, [urlQ]);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties", "list", type],
     queryFn: async () => {
+      // Include both published AND rented listings — rented properties stay visible
       let query = supabase
         .from("properties")
         .select("*")
-        .eq("status", "published")
+        .in("status", ["published", "rented"])
         .order("created_at", { ascending: false });
       if (type !== "all") query = query.eq("property_type", type);
       const { data, error } = await query;
@@ -89,8 +75,6 @@ function Browse() {
       <div className="flex">
         <SideBar />
         <div className="min-w-0 flex-1">
-          {/* ── Search + heading — hero photo lives as this box's own background,
-                 confined to this section only ── */}
           <section className="relative overflow-hidden border-b border-border bg-surface">
             {!heroHidden && (
               <img
@@ -121,18 +105,11 @@ function Browse() {
             </div>
           </section>
 
-          {/* ── Buy / Rent / All + property-type filter chips ── */}
           <section className="border-b border-border">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-4 sm:py-5">
-              <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>
-                All listings
-              </FilterChip>
-              <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>
-                For Sale
-              </FilterChip>
-              <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>
-                For Rent
-              </FilterChip>
+              <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
+              <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>For Sale</FilterChip>
+              <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>For Rent</FilterChip>
               <span className="mx-1 h-5 w-px bg-border" />
               <FilterChip active={type === "all"} onClick={() => setType("all")}>All types</FilterChip>
               {PROPERTY_TYPES.map((t) => (
@@ -143,13 +120,10 @@ function Browse() {
             </div>
           </section>
 
-          {/* ── "Listing Updates" — mobile only, sits between the category
-                 chips and the grid, opens the updates feed as a fullscreen HUD ── */}
           <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden">
             <SideBarMobileTrigger />
           </div>
 
-          {/* ── Listings grid ── */}
           <section className="mx-auto max-w-7xl px-6 py-6 sm:py-12">
             {isLoading ? (
               <p className="text-muted-foreground">Loading listings…</p>
@@ -202,7 +176,10 @@ function Browse() {
                           {p.is_owner_listed && (
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>
                           )}
-                          {p.for_rent && (
+                          {p.status === "rented" && (
+                            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>
+                          )}
+                          {p.for_rent && p.status !== "rented" && (
                             <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>
                           )}
                         </div>
