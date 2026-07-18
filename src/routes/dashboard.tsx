@@ -246,19 +246,19 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                     {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
+                    {/* Title row: badge + price always on the same line, never wraps below */}
+                    <div className="flex items-center justify-between gap-3">
                       <h3 className="font-display text-xl font-bold leading-tight">{p.title}</h3>
-                      {/* Price + status badge stacked on the right */}
-                      <div className="shrink-0 text-right">
-                        <p className="font-display text-xl font-semibold text-primary">
-                          {formatPrice(p.price)}
-                          {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
-                        </p>
+                      <div className="flex shrink-0 items-center gap-2">
                         {p.status !== "published" && (
-                          <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                             {STATUS_LABEL[p.status] ?? p.status}
                           </span>
                         )}
+                        <p className="font-display text-xl font-semibold text-primary whitespace-nowrap">
+                          {formatPrice(p.price)}
+                          {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
+                        </p>
                       </div>
                     </div>
                     <p className="mt-1 text-base text-muted-foreground">{p.location ?? "Location TBD"}</p>
