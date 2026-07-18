@@ -6,8 +6,9 @@ import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star } from "lucide-react";
+import { Phone, Mail, Star, Heart } from "lucide-react";
 import { toast } from "sonner";
+import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
@@ -36,9 +37,6 @@ function PropertyDetail() {
       if (error) throw error;
       if (!property) return null;
 
-      // Fetch the commissioner's public profile separately — properties.commissioner_id
-      // references auth.users (not profiles) directly, so there's no FK for PostgREST
-      // to auto-embed profiles through in a single select.
       const { data: agent } = await supabase
         .from("profiles")
         .select("full_name, avatar_url, title, phone, email")
@@ -48,6 +46,27 @@ function PropertyDetail() {
       return { ...property, agent };
     },
   });
+
+  const { data: favoriteIds = new Set<string>() } = useQuery({
+    enabled: !!user,
+    queryKey: ["favorite-ids"],
+    queryFn: fetchFavoriteIds,
+  });
+
+  const favoriteMutation = useMutation({
+    mutationFn: ({ isFav }: { isFav: boolean }) => toggleFavorite(id, isFav),
+    onSuccess: (_, { isFav }) => {
+      qc.invalidateQueries({ queryKey: ["favorite-ids"] });
+      qc.invalidateQueries({ queryKey: ["favorites-page"] });
+      toast.success(isFav ? "Removed from favorites" : "Saved to favorites");
+    },
+    onError: () => toast.error("Failed to update favorites"),
+  });
+
+  function handleHeart() {
+    if (!user) { navigate({ to: "/favorites" }); return; }
+    favoriteMutation.mutate({ isFav: favoriteIds.has(id) });
+  }
 
   const toggleFeatured = useMutation({
     mutationFn: async (next: boolean) => {
@@ -82,6 +101,7 @@ function PropertyDetail() {
   const canEdit = user && (user.id === data.commissioner_id || isDeveloper || isAdmin);
   const contactPhone = data.contact_phone || data.agent?.phone;
   const contactEmail = data.contact_email || data.agent?.email;
+  const isFav = favoriteIds.has(id);
 
   return (
     <div className="min-h-screen site-page">
@@ -109,22 +129,34 @@ function PropertyDetail() {
               {formatPrice(data.price)}
               {data.for_rent && <span className="text-lg text-muted-foreground"> /mo</span>}
             </p>
-            {canEdit && (
-              <div className="mt-3 flex flex-wrap justify-end gap-2">
-                <Button
-                  variant={data.is_featured ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleFeatured.mutate(!data.is_featured)}
-                  disabled={toggleFeatured.isPending}
-                >
-                  <Star className={`h-4 w-4 ${data.is_featured ? "fill-current" : ""}`} />
-                  {data.is_featured ? "Remove from Featured Sales" : "Place as Featured Sale"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/listings/$id/edit", params: { id: data.id } })}>
-                  Edit listing
-                </Button>
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              {/* Heart / favorite button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleHeart}
+                className={isFav ? "border-destructive text-destructive hover:bg-destructive/10" : ""}
+              >
+                <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+                {isFav ? "Saved" : "Save"}
+              </Button>
+              {canEdit && (
+                <>
+                  <Button
+                    variant={data.is_featured ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleFeatured.mutate(!data.is_featured)}
+                    disabled={toggleFeatured.isPending}
+                  >
+                    <Star className={`h-4 w-4 ${data.is_featured ? "fill-current" : ""}`} />
+                    {data.is_featured ? "Remove from Featured Sales" : "Place as Featured Sale"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => navigate({ to: "/listings/$id/edit", params: { id: data.id } })}>
+                    Edit listing
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -173,7 +205,6 @@ function PropertyDetail() {
               </dl>
             </aside>
 
-            {/* ── Agent / contact card ── */}
             <aside className="rounded-2xl border border-border bg-card p-6">
               <h3 className="font-display text-lg font-semibold">Listed by</h3>
               <Link

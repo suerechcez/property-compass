@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
@@ -9,7 +9,9 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn } from "lucide-react";
+import { Search, LogIn, Heart } from "lucide-react";
+import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
+import { toast } from "sonner";
 
 type ListingFilter = "all" | "sale" | "rent";
 
@@ -33,6 +35,8 @@ export const Route = createFileRoute("/browse")({
 function Browse() {
   const { filter: urlFilter, q: urlQ } = Route.useSearch();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
@@ -52,6 +56,29 @@ function Browse() {
       return data ?? [];
     },
   });
+
+  const { data: favoriteIds = new Set<string>() } = useQuery({
+    enabled: !!user,
+    queryKey: ["favorite-ids"],
+    queryFn: fetchFavoriteIds,
+  });
+
+  const favoriteMutation = useMutation({
+    mutationFn: ({ id, isFav }: { id: string; isFav: boolean }) => toggleFavorite(id, isFav),
+    onSuccess: (_, { isFav }) => {
+      qc.invalidateQueries({ queryKey: ["favorite-ids"] });
+      qc.invalidateQueries({ queryKey: ["favorites-page"] });
+      toast.success(isFav ? "Removed from favorites" : "Saved to favorites");
+    },
+    onError: () => toast.error("Failed to update favorites"),
+  });
+
+  function handleHeart(e: React.MouseEvent, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate({ to: "/favorites" }); return; }
+    favoriteMutation.mutate({ id, isFav: favoriteIds.has(id) });
+  }
 
   const filtered = properties.filter((p) => {
     const matchesQuery = q ? (p.title + " " + (p.location ?? "")).toLowerCase().includes(q.toLowerCase()) : true;
@@ -117,29 +144,42 @@ function Browse() {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-                {filtered.map((p) => (
-                  <Link key={p.id} to="/properties/$id" params={{ id: p.id }} className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="aspect-[4/3] overflow-hidden bg-muted">
-                      {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}
-                    </div>
-                    <div className="p-4 sm:p-5">
-                      <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
-                        <span>{typeLabel(p.property_type)}</span>
-                        <div className="flex gap-1.5">
-                          {p.is_owner_listed && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>}
-                          {p.status === "rented" && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>}
-                          {p.for_rent && p.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
+                {filtered.map((p) => {
+                  const isFav = favoriteIds.has(p.id);
+                  return (
+                    <div key={p.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-lg">
+                      <Link to="/properties/$id" params={{ id: p.id }} className="block">
+                        <div className="aspect-[4/3] overflow-hidden bg-muted">
+                          {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}
                         </div>
-                      </div>
-                      <h3 className="mt-2 font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                      <p className="mt-3 font-display text-xl font-semibold text-primary sm:mt-4 sm:text-2xl">
-                        {formatPrice(p.price)}
-                        {p.for_rent && <span className="text-base text-muted-foreground"> /mo</span>}
-                      </p>
+                        <div className="p-4 sm:p-5">
+                          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
+                            <span>{typeLabel(p.property_type)}</span>
+                            <div className="flex gap-1.5">
+                              {p.is_owner_listed && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>}
+                              {p.status === "rented" && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>}
+                              {p.for_rent && p.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
+                            </div>
+                          </div>
+                          <h3 className="mt-2 font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
+                          <p className="mt-3 font-display text-xl font-semibold text-primary sm:mt-4 sm:text-2xl">
+                            {formatPrice(p.price)}
+                            {p.for_rent && <span className="text-base text-muted-foreground"> /mo</span>}
+                          </p>
+                        </div>
+                      </Link>
+                      {/* Heart / favorite button */}
+                      <button
+                        onClick={(e) => handleHeart(e, p.id)}
+                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
+                        aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+                      >
+                        <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+                      </button>
                     </div>
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
