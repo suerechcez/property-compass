@@ -86,6 +86,23 @@ function formatYAxis(v: number): string {
   return `₱${v}`;
 }
 
+const STATUS_BADGE: Record<string, string> = {
+  pending:   "bg-yellow-100 text-yellow-800",
+  published: "bg-green-100 text-green-800",
+  rejected:  "bg-red-100 text-red-800",
+  draft:     "bg-gray-100 text-gray-600",
+  sold:      "bg-blue-100 text-blue-800",
+  rented:    "bg-purple-100 text-purple-800",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  pending:   "⏳ Pending review",
+  rejected:  "❌ Rejected",
+  draft:     "Draft",
+  sold:      "Sold",
+  rented:    "Rented",
+};
+
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -229,9 +246,20 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                     {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <h3 className="font-display text-xl font-bold leading-tight">{p.title}</h3>
-                      <p className="shrink-0 font-display text-xl font-semibold text-primary">{formatPrice(p.price)}{p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}</p>
+                      {/* Price + status badge stacked on the right */}
+                      <div className="shrink-0 text-right">
+                        <p className="font-display text-xl font-semibold text-primary">
+                          {formatPrice(p.price)}
+                          {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
+                        </p>
+                        {p.status !== "published" && (
+                          <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                            {STATUS_LABEL[p.status] ?? p.status}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="mt-1 text-base text-muted-foreground">{p.location ?? "Location TBD"}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-foreground/70">{p.description || "No description provided yet."}</p>
@@ -257,15 +285,6 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 // ── Listings ──────────────────────────────────────────────────────────────────
-
-const STATUS_BADGE: Record<string, string> = {
-  pending:   "bg-yellow-100 text-yellow-800",
-  published: "bg-green-100 text-green-800",
-  rejected:  "bg-red-100 text-red-800",
-  draft:     "bg-gray-100 text-gray-600",
-  sold:      "bg-blue-100 text-blue-800",
-  rented:    "bg-purple-100 text-purple-800",
-};
 
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
@@ -314,7 +333,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
               <td className="px-4 py-3">
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                  {p.status === "pending" ? "⏳ Pending review" : p.status === "rejected" ? "❌ Rejected" : p.status}
+                  {STATUS_LABEL[p.status] ?? p.status}
                 </span>
               </td>
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
@@ -342,8 +361,6 @@ function ListingQueue() {
   const { data: listings = [], isLoading, error } = useQuery({
     queryKey: ["admin-listing-queue", filter],
     queryFn: async () => {
-      // Fetch properties without attempting a FK join on commissioner_id
-      // (commissioner_id → auth.users, not profiles, so PostgREST can't auto-join)
       let q = supabase
         .from("properties")
         .select("id, title, location, price, status, property_type, images, created_at, commissioner_id, for_rent")
@@ -359,7 +376,6 @@ function ListingQueue() {
       if (propErr) throw propErr;
       if (!props || props.length === 0) return [];
 
-      // Separately fetch agent names from profiles
       const commissionerIds = [...new Set(props.map((p) => p.commissioner_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -475,7 +491,7 @@ function ListingQueue() {
                       <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {p.status}
+                          {STATUS_LABEL[p.status] ?? p.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
