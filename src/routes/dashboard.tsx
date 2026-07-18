@@ -337,7 +337,7 @@ function StatusDropdown({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </Button>
       {open && (
-        <div className="absolute right-0 z-20 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute right-0 z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
           {options.map((o) => (
             <button
               key={o.value}
@@ -419,7 +419,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="rounded-2xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
           <tr><th className="px-4 py-3">Title</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Price</th><th /></tr>
