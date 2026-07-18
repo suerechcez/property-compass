@@ -104,6 +104,43 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
+// ── Shared table shell ────────────────────────────────────────────────────────
+// Every tab uses this so padding, border-radius and thead style are identical.
+
+function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <table className="w-full text-sm">
+        <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
+          {head}
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+// Every tab section header lives in a card with the same p-6 padding.
+function SectionCard({ title, subtitle, action, children }: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-xl font-semibold">{title}</h2>
+          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -116,7 +153,7 @@ function Dashboard() {
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
   if (loading || !user) {
-    return <div className="site-page"><Nav /><div className="mx-auto max-w-6xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="site-page"><Nav /><div className="mx-auto max-w-7xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
   const tabs: { id: Tab; show: boolean }[] = [
@@ -134,7 +171,8 @@ function Dashboard() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      {/* Widened to max-w-7xl so tables have generous horizontal room */}
+      <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
@@ -230,7 +268,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
-      {/* Stat cards — fixed height so all four are identical squares */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
@@ -239,8 +276,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
       </div>
 
       {isCommissioner && (
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="font-display text-xl font-semibold">{isDeveloper ? "All listings" : "Your listings"}</h2>
+        <SectionCard title={isDeveloper ? "All listings" : "Your listings"}>
           {listingsLoading ? (
             <p className="mt-4 text-muted-foreground">Loading…</p>
           ) : myListings.length === 0 ? (
@@ -248,21 +284,17 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
           ) : (
             <div className="mt-4 divide-y divide-border">
               {myListings.map((p) => (
-                /* Fixed-height row: h-28 keeps every listing card the same size */
                 <Link
                   key={p.id}
                   to="/properties/$id"
                   params={{ id: p.id }}
                   className="flex h-28 items-center gap-4 -mx-2 rounded-lg px-2 transition hover:bg-accent overflow-hidden"
                 >
-                  {/* Fixed square thumbnail */}
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                     {p.images?.[0]
                       ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
                       : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
-
-                  {/* Text — clamped so they never push the row taller */}
                   <div className="min-w-0 flex-1 overflow-hidden">
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="truncate font-display text-base font-bold leading-tight">{p.title}</h3>
@@ -288,13 +320,12 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
           <div className="mt-4 flex justify-end">
             <Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button>
           </div>
-        </div>
+        </SectionCard>
       )}
     </div>
   );
 }
 
-/* Fixed-height stat card — h-28 gives a consistent square feel across all four */
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex h-28 flex-col justify-between rounded-2xl border border-border bg-card p-5">
@@ -304,27 +335,20 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ── Status dropdown for Listings tab ──────────────────────────────────────────
+// ── Status dropdown ───────────────────────────────────────────────────────────
 
 type StatusOption = { label: string; value: string; className: string };
 
-// Statuses a commissioner/agent can self-transition to.
-// "published" is intentionally absent — that goes through admin approval queue.
-// "pending" and "rejected" are read-only from the agent's side.
 const LISTING_STATUS_OPTIONS: StatusOption[] = [
   { label: "Draft",  value: "draft",  className: "text-gray-700 hover:bg-gray-50" },
   { label: "Rented", value: "rented", className: "text-purple-700 hover:bg-purple-50" },
   { label: "Sold",   value: "sold",   className: "text-blue-700 hover:bg-blue-50" },
 ];
 
-// Statuses where the dropdown makes no sense for the agent:
-// - sold/pending/rejected: terminal or admin-controlled
 const NO_DROPDOWN_STATUSES = new Set(["sold", "pending", "rejected"]);
 
 function StatusDropdown({
-  property,
-  onSelect,
-  loading,
+  property, onSelect, loading,
 }: {
   property: { id: string; status: string; for_rent: boolean; title: string };
   onSelect: (value: string) => void;
@@ -333,7 +357,6 @@ function StatusDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Hide entirely for terminal/admin-controlled statuses
   if (NO_DROPDOWN_STATUSES.has(property.status)) return null;
 
   const options = LISTING_STATUS_OPTIONS.filter((o) => {
@@ -354,24 +377,13 @@ function StatusDropdown({
 
   return (
     <div className="relative" ref={ref}>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={loading}
-        onClick={() => setOpen((o) => !o)}
-        className="gap-1"
-        title="Update status"
-      >
+      <Button size="sm" variant="outline" disabled={loading} onClick={() => setOpen((o) => !o)} className="gap-1" title="Update status">
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </Button>
       {open && (
         <div className="absolute right-0 z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
           {options.map((o) => (
-            <button
-              key={o.value}
-              className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`}
-              onClick={() => { setOpen(false); onSelect(o.value); }}
-            >
+            <button key={o.value} className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`} onClick={() => { setOpen(false); onSelect(o.value); }}>
               {o.label}
             </button>
           ))}
@@ -444,45 +456,46 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <table className="w-full text-sm">
-        <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-          <tr><th className="px-4 py-3">Title</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Price</th><th /></tr>
-        </thead>
-        <tbody>
-          {properties.map((p) => (
-            /* Fixed row height keeps the table uniform */
-            <tr key={p.id} className="h-16 border-t border-border">
-              <td className="px-4 py-3">
-                <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
-                <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
-              </td>
-              <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
-              <td className="px-4 py-3">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                  {STATUS_LABEL[p.status] ?? p.status}
-                </span>
-              </td>
-              <td className="px-4 py-3">{formatPrice(p.price)}</td>
-              <td className="px-4 py-3 text-right whitespace-nowrap">
-                <div className="flex items-center justify-end gap-2">
-                  <StatusDropdown
-                    property={p}
-                    onSelect={(val) => handleStatusChange(p, val)}
-                    loading={loadingId === p.id}
-                  />
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>
-                    Delete
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-6">
+      <SectionCard title="My listings" subtitle="Manage your property listings, update their status, or edit details." />
+      <DashTable
+        head={
+          <tr>
+            <th className="px-5 py-4">Title</th>
+            <th className="px-5 py-4">Type</th>
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4">Price</th>
+            <th />
+          </tr>
+        }
+      >
+        {properties.map((p) => (
+          <tr key={p.id} className="h-20 border-t border-border">
+            <td className="px-5 py-4">
+              <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
+              <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+            </td>
+            <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
+            <td className="px-5 py-4">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                {STATUS_LABEL[p.status] ?? p.status}
+              </span>
+            </td>
+            <td className="px-5 py-4 font-medium">{formatPrice(p.price)}</td>
+            <td className="px-5 py-4 text-right whitespace-nowrap">
+              <div className="flex items-center justify-end gap-2">
+                <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>
+                  Delete
+                </Button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </DashTable>
     </div>
   );
 }
@@ -536,28 +549,26 @@ function ListingQueue() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold">Listing Approval Queue</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Review listings submitted by commissioners and agents before they go live.
-              {pendingCount > 0 && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
-                  {pendingCount} pending
-                </span>
-              )}
-            </p>
+      <SectionCard
+        title="Listing Approval Queue"
+        subtitle={`Review listings submitted by commissioners and agents before they go live.`}
+        action={
+          <div className="flex items-center gap-3">
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">
+                {pendingCount} pending
+              </span>
+            )}
+            <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
+              {(["pending", "all"] as const).map((f) => (
+                <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-3 py-1 capitalize transition ${filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  {f === "pending" ? "Pending only" : "All listings"}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
-            {(["pending", "all"] as const).map((f) => (
-              <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-3 py-1 capitalize transition ${filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {f === "pending" ? "Pending only" : "All listings"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {isLoading ? <p className="text-muted-foreground">Loading…</p>
       : error ? (
@@ -571,76 +582,77 @@ function ListingQueue() {
           <p className="text-sm text-muted-foreground">New submissions from commissioners will appear here.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Listing</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Price</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Submitted</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listings.map((p) => {
-                const isOpen = openId === p.id;
-                return (
-                  <>
-                    <tr key={p.id} className="h-16 border-t border-border">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                            {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">—</div>}
-                          </div>
-                          <div>
-                            <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
-                            <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{p.agentName}</td>
-                      <td className="px-4 py-3">{typeLabel(p.property_type)}</td>
-                      <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                          {STATUS_LABEL[p.status] ?? p.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        {p.status === "pending" && (
-                          <>
-                            <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
-                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Approve
-                            </Button>
-                            <Button size="sm" variant="outline" className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}>
-                              <XCircle className="mr-1 h-3.5 w-3.5" />{isOpen ? "Cancel" : "Reject"}
-                            </Button>
-                          </>
-                        )}
-                        {p.status !== "pending" && (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                    {isOpen && p.status === "pending" && (
-                      <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
-                        <td colSpan={7} className="px-4 py-4">
-                          <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
-                          <div className="flex gap-2">
-                            <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
-                            <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>Confirm rejection</Button>
-                          </div>
-                        </td>
-                      </tr>
+        <DashTable
+          head={
+            <tr>
+              <th className="px-5 py-4">Listing</th>
+              <th className="px-5 py-4">Agent</th>
+              <th className="px-5 py-4">Type</th>
+              <th className="px-5 py-4">Price</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4">Submitted</th>
+              <th className="px-5 py-4 text-right">Actions</th>
+            </tr>
+          }
+        >
+          {listings.map((p) => {
+            const isOpen = openId === p.id;
+            return (
+              <>
+                <tr key={p.id} className="h-20 border-t border-border">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                        {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">—</div>}
+                      </div>
+                      <div>
+                        <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
+                        <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-muted-foreground">{p.agentName}</td>
+                  <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
+                  <td className="px-5 py-4 font-medium">{formatPrice(p.price)}</td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-5 py-4 text-right whitespace-nowrap">
+                    {p.status === "pending" && (
+                      <>
+                        <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}>
+                          <XCircle className="mr-1 h-3.5 w-3.5" />{isOpen ? "Cancel" : "Reject"}
+                        </Button>
+                      </>
                     )}
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    {p.status !== "pending" && (
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+                {isOpen && p.status === "pending" && (
+                  <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
+                    <td colSpan={7} className="px-5 py-4">
+                      <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
+                      <div className="flex gap-2">
+                        <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
+                        <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>Confirm rejection</Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
+            );
+          })}
+        </DashTable>
       )}
     </div>
   );
@@ -713,6 +725,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
 
   return (
     <div className="space-y-8">
+      {/* Log / edit form */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h2>
@@ -746,7 +759,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
               ))}
             </div>
           </div>
-          <div className="mt-4 h-64">
+          <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
@@ -760,29 +773,35 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Property</th><th className="px-4 py-3">Buyer</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Commission</th><th /></tr>
-          </thead>
-          <tbody>
-            {sales.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales logged yet.</td></tr>
-            : sales.map((s) => (
-              <tr key={s.id} className="h-16 border-t border-border">
-                <td className="px-4 py-3">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
-                <td className="px-4 py-3">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
-                <td className="px-4 py-3">{s.buyer_name ?? "—"}</td>
-                <td className="px-4 py-3 font-medium">{formatPrice(s.amount)}</td>
-                <td className="px-4 py-3 text-primary">{formatPrice(s.commission)}</td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <Button size="sm" variant="outline" onClick={() => startEdit(s)}>Edit</Button>
-                  <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}>Delete</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DashTable
+        head={
+          <tr>
+            <th className="px-5 py-4">Date</th>
+            <th className="px-5 py-4">Property</th>
+            <th className="px-5 py-4">Buyer</th>
+            <th className="px-5 py-4">Amount</th>
+            <th className="px-5 py-4">Commission</th>
+            <th />
+          </tr>
+        }
+      >
+        {sales.length === 0
+          ? <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">No sales logged yet.</td></tr>
+          : sales.map((s) => (
+            <tr key={s.id} className="h-20 border-t border-border">
+              <td className="px-5 py-4">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
+              <td className="px-5 py-4">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
+              <td className="px-5 py-4">{s.buyer_name ?? "—"}</td>
+              <td className="px-5 py-4 font-medium">{formatPrice(s.amount)}</td>
+              <td className="px-5 py-4 text-primary">{formatPrice(s.commission)}</td>
+              <td className="px-5 py-4 text-right whitespace-nowrap">
+                <Button size="sm" variant="outline" onClick={() => startEdit(s)}>Edit</Button>
+                <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}>Delete</Button>
+              </td>
+            </tr>
+          ))
+        }
+      </DashTable>
     </div>
   );
 }
@@ -803,15 +822,11 @@ function Forecast() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold">AI sales forecast</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
-          </div>
-          <Button onClick={run} disabled={loading}>{loading ? "Analyzing…" : "Run forecast"}</Button>
-        </div>
-      </div>
+      <SectionCard
+        title="AI sales forecast"
+        subtitle="Analyze your logged sales and project the next three months."
+        action={<Button onClick={run} disabled={loading}>{loading ? "Analyzing…" : "Run forecast"}</Button>}
+      />
       {result && (
         <>
           {result.forecast.length > 0 && (
@@ -819,7 +834,6 @@ function Forecast() {
               <h3 className="font-display text-lg font-semibold">Projected volume — next 3 months</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {result.forecast.map((f) => (
-                  /* Fixed-height forecast cards to match stat cards */
                   <div key={f.month} className="flex h-28 flex-col justify-between rounded-xl border border-border bg-surface p-5">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">{f.month}</p>
                     <p className="font-display text-2xl font-semibold text-primary leading-none">{formatPrice(f.projected)}</p>
@@ -865,48 +879,48 @@ function UsersRoles() {
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Users & Roles</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Manage who can post listings and who has admin access.</p>
-      <div className="mt-5 overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">User</th><th className="px-4 py-3">Roles</th><th className="px-4 py-3 text-right">Actions</th></tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="h-16 border-t border-border">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
-                  <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
-                      const isRevocable = r === "commissioner" || r === "agent";
-                      return (
-                        <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2 pr-1 text-xs">
-                          {r}
-                          {isRevocable && (
-                            <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                              <X className="h-3 w-3" />
-                            </button>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
-                  {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
-                  {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-6">
+      <SectionCard title="Users & Roles" subtitle="Manage who can post listings and who has admin access." />
+      <DashTable
+        head={
+          <tr>
+            <th className="px-5 py-4">User</th>
+            <th className="px-5 py-4">Roles</th>
+            <th className="px-5 py-4 text-right">Actions</th>
+          </tr>
+        }
+      >
+        {users.map((u) => (
+          <tr key={u.id} className="h-20 border-t border-border">
+            <td className="px-5 py-4">
+              <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
+              <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
+            </td>
+            <td className="px-5 py-4">
+              <div className="flex flex-wrap gap-1">
+                {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
+                  const isRevocable = r === "commissioner" || r === "agent";
+                  return (
+                    <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs">
+                      {r}
+                      {isRevocable && (
+                        <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            </td>
+            <td className="px-5 py-4 text-right whitespace-nowrap">
+              {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
+              {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
+              {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
+            </td>
+          </tr>
+        ))}
+      </DashTable>
     </div>
   );
 }
@@ -940,51 +954,63 @@ function CommissionerRequests() {
   });
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner / Agent Requests</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Review pending applications and approve or deny them.</p>
-      <div className="mt-5 overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Applicant</th><th className="px-4 py-3">Requested role</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Actions</th></tr>
-          </thead>
-          <tbody>
-            {requests.length === 0 ? <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending requests.</td></tr>
-            : requests.map((r) => {
-              const isOpen = openId === r.id;
-              const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
-              const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
-              return (
-                <>
-                  <tr key={r.id} className="h-16 border-t border-border">
-                    <td className="px-4 py-3"><div className="font-medium">{displayName}</div><div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
-                    <td className="px-4 py-3">{r.requested_role ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
-                    <td className="px-4 py-3">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
-                    <td className="px-4 py-3 text-right"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
+    <div className="space-y-6">
+      <SectionCard title="Commissioner / Agent Requests" subtitle="Review pending applications and approve or deny them." />
+      <DashTable
+        head={
+          <tr>
+            <th className="px-5 py-4">Applicant</th>
+            <th className="px-5 py-4">Requested role</th>
+            <th className="px-5 py-4">Date</th>
+            <th className="px-5 py-4 text-right">Actions</th>
+          </tr>
+        }
+      >
+        {requests.length === 0
+          ? <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No pending requests.</td></tr>
+          : requests.map((r) => {
+            const isOpen = openId === r.id;
+            const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
+            const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
+            return (
+              <>
+                <tr key={r.id} className="h-20 border-t border-border">
+                  <td className="px-5 py-4">
+                    <div className="font-medium">{displayName}</div>
+                    <div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
+                  </td>
+                  <td className="px-5 py-4">
+                    {r.requested_role
+                      ? <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{requestedLabel}</span>
+                      : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-5 py-4">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-5 py-4 text-right">
+                    <Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button>
+                  </td>
+                </tr>
+                {isOpen && (
+                  <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
+                    <td colSpan={4} className="px-5 py-6">
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p><p className="mt-1 text-sm">{displayName}</p></div>
+                        <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p><p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p></div>
+                        <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</p><p className="mt-1 text-sm">{r.email ?? r.profile?.email ?? "—"}</p></div>
+                      </div>
+                      <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/85">{r.reason ?? r.note ?? "No reason provided."}</p></div>
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <Button size="sm" variant={r.requested_role === "commissioner" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
+                        <Button size="sm" variant={r.requested_role === "agent" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
+                      </div>
+                    </td>
                   </tr>
-                  {isOpen && (
-                    <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
-                      <td colSpan={4} className="px-4 py-5">
-                        <div className="grid gap-4 sm:grid-cols-3">
-                          <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p><p className="mt-1 text-sm">{displayName}</p></div>
-                          <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p><p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p></div>
-                          <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</p><p className="mt-1 text-sm">{r.email ?? r.profile?.email ?? "—"}</p></div>
-                        </div>
-                        <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/85">{r.reason ?? r.note ?? "No reason provided."}</p></div>
-                        <div className="mt-5 flex flex-wrap gap-2">
-                          <Button size="sm" variant={r.requested_role === "commissioner" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
-                          <Button size="sm" variant={r.requested_role === "agent" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                )}
+              </>
+            );
+          })
+        }
+      </DashTable>
     </div>
   );
 }
@@ -1021,31 +1047,37 @@ function CommissionerTracking() {
   }, [sales]);
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-display text-xl font-semibold">Commissioner / Agent Tracking</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Monitor sales performance across all commissioners and agents.</p>
-      <div className="mt-5 overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-            <tr><th className="px-4 py-3">Agent</th><th className="px-4 py-3 text-right">Deals</th><th className="px-4 py-3 text-right">Volume</th><th className="px-4 py-3 text-right">Commission</th><th className="px-4 py-3">Last sale</th></tr>
-          </thead>
-          <tbody>
-            {commissioners.length === 0 ? <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
-            : commissioners.map((c) => {
-              const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
-              return (
-                <tr key={c.id} className="h-16 border-t border-border">
-                  <td className="px-4 py-3"><Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link></td>
-                  <td className="px-4 py-3 text-right">{s.count}</td>
-                  <td className="px-4 py-3 text-right font-medium">{formatPrice(s.volume)}</td>
-                  <td className="px-4 py-3 text-right text-primary">{formatPrice(s.commission)}</td>
-                  <td className="px-4 py-3">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-6">
+      <SectionCard title="Commissioner / Agent Tracking" subtitle="Monitor sales performance across all commissioners and agents." />
+      <DashTable
+        head={
+          <tr>
+            <th className="px-5 py-4">Agent</th>
+            <th className="px-5 py-4 text-right">Deals</th>
+            <th className="px-5 py-4 text-right">Volume</th>
+            <th className="px-5 py-4 text-right">Commission</th>
+            <th className="px-5 py-4">Last sale</th>
+          </tr>
+        }
+      >
+        {commissioners.length === 0
+          ? <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
+          : commissioners.map((c) => {
+            const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
+            return (
+              <tr key={c.id} className="h-20 border-t border-border">
+                <td className="px-5 py-4">
+                  <Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
+                </td>
+                <td className="px-5 py-4 text-right">{s.count}</td>
+                <td className="px-5 py-4 text-right font-medium">{formatPrice(s.volume)}</td>
+                <td className="px-5 py-4 text-right text-primary">{formatPrice(s.commission)}</td>
+                <td className="px-5 py-4">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+              </tr>
+            );
+          })
+        }
+      </DashTable>
     </div>
   );
 }
