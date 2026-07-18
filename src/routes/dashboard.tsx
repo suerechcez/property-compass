@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
   Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
-  Plus, X, type LucideIcon,
+  Plus, X, ChevronUp, ChevronDown, type LucideIcon,
 } from "lucide-react";
 
 type Tab =
@@ -101,6 +101,7 @@ const STATUS_LABEL: Record<string, string> = {
   draft:     "Draft",
   sold:      "Sold",
   rented:    "Rented",
+  published: "Published",
 };
 
 function Dashboard() {
@@ -246,19 +247,18 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                     {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
                   </div>
                   <div className="min-w-0 flex-1">
-                    {/* Title row: badge + price always on the same line, never wraps below */}
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <h3 className="font-display text-xl font-bold leading-tight">{p.title}</h3>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {p.status !== "published" && (
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                            {STATUS_LABEL[p.status] ?? p.status}
-                          </span>
-                        )}
+                      <div className="shrink-0 text-right">
                         <p className="font-display text-xl font-semibold text-primary whitespace-nowrap">
                           {formatPrice(p.price)}
                           {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
                         </p>
+                        {p.status !== "published" && (
+                          <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                            {STATUS_LABEL[p.status] ?? p.status}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <p className="mt-1 text-base text-muted-foreground">{p.location ?? "Location TBD"}</p>
@@ -284,10 +284,84 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Status dropdown for Listings tab ──────────────────────────────────────────
+
+type StatusOption = { label: string; value: string; className: string };
+
+const LISTING_STATUS_OPTIONS: StatusOption[] = [
+  { label: "Draft",  value: "draft",  className: "text-gray-700 hover:bg-gray-50" },
+  { label: "Sold",   value: "sold",   className: "text-blue-700 hover:bg-blue-50" },
+  { label: "Rented", value: "rented", className: "text-purple-700 hover:bg-purple-50" },
+];
+
+function StatusDropdown({
+  property,
+  onSelect,
+  loading,
+}: {
+  property: { id: string; status: string; for_rent: boolean; title: string };
+  onSelect: (value: string) => void;
+  loading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Only show options that make sense for this listing
+  const options = LISTING_STATUS_OPTIONS.filter((o) => {
+    if (o.value === "rented" && !property.for_rent) return false;
+    if (o.value === property.status) return false;
+    return true;
+  });
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  if (options.length === 0) return null;
+
+  return (
+    <div className="relative" ref={ref}>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={loading}
+        onClick={() => setOpen((o) => !o)}
+        className="gap-1"
+        title="Update status"
+      >
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </Button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`}
+              onClick={() => {
+                setOpen(false);
+                onSelect(o.value);
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Listings ──────────────────────────────────────────────────────────────────
 
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["my-listings", userId, isDeveloper],
     queryFn: async () => {
@@ -298,16 +372,43 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       return data ?? [];
     },
   });
+
   const del = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("properties").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Listing deleted"); qc.invalidateQueries({ queryKey: ["my-listings"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
   });
-  const markSold = useMutation({
-    mutationFn: async (p: { id: string; commissioner_id: string; price: number | string }) => { await markPropertySold(p.id, p.commissioner_id, Number(p.price)); },
-    onSuccess: () => { toast.success("Marked as sold"); qc.invalidateQueries({ queryKey: ["my-listings"] }); qc.invalidateQueries({ queryKey: ["sales"] }); qc.invalidateQueries({ queryKey: ["dashboard-stats"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
+
+  async function handleStatusChange(
+    p: { id: string; commissioner_id: string; price: number | string; status: string; for_rent: boolean; title: string },
+    newStatus: string,
+  ) {
+    const confirmMsg =
+      newStatus === "sold"   ? `Mark "${p.title}" as sold? This will log it under Sales.` :
+      newStatus === "rented" ? `Mark "${p.title}" as rented? It will remain visible in Browse.` :
+      `Move "${p.title}" back to Draft?`;
+
+    if (!confirm(confirmMsg)) return;
+    setLoadingId(p.id);
+    try {
+      if (newStatus === "sold") {
+        await markPropertySold(p.id, p.commissioner_id, Number(p.price));
+        toast.success("Marked as sold — logged under Sales.");
+      } else {
+        const { error } = await supabase.from("properties").update({ status: newStatus }).eq("id", p.id);
+        if (error) throw error;
+        toast.success(newStatus === "rented" ? "Marked as rented." : "Moved to Draft.");
+      }
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      qc.invalidateQueries({ queryKey: ["overview-listings"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update status");
+    } finally {
+      setLoadingId(null);
+    }
+  }
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (properties.length === 0) return (
@@ -338,9 +439,22 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               </td>
               <td className="px-4 py-3">{formatPrice(p.price)}</td>
               <td className="px-4 py-3 text-right whitespace-nowrap">
-                {p.status === "published" && <Button size="sm" variant="outline" onClick={() => { if (confirm(`Mark "${p.title}" as sold?`)) markSold.mutate(p); }}>Mark as Sold</Button>}
-                <Button size="sm" variant="outline" className="ml-2" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>
-                <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>Delete</Button>
+                <div className="flex items-center justify-end gap-2">
+                  {/* Status dropdown — only for published listings */}
+                  {p.status === "published" && (
+                    <StatusDropdown
+                      property={p}
+                      onSelect={(val) => handleStatusChange(p, val)}
+                      loading={loadingId === p.id}
+                    />
+                  )}
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>
+                    Delete
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}
@@ -365,29 +479,15 @@ function ListingQueue() {
         .from("properties")
         .select("id, title, location, price, status, property_type, images, created_at, commissioner_id, for_rent")
         .order("created_at", { ascending: false });
-
-      if (filter === "pending") {
-        q = q.eq("status", "pending");
-      } else {
-        q = q.in("status", ["pending", "published", "rejected"]);
-      }
-
+      if (filter === "pending") q = q.eq("status", "pending");
+      else q = q.in("status", ["pending", "published", "rejected"]);
       const { data: props, error: propErr } = await q;
       if (propErr) throw propErr;
       if (!props || props.length === 0) return [];
-
       const commissionerIds = [...new Set(props.map((p) => p.commissioner_id).filter(Boolean))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", commissionerIds);
-
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", commissionerIds);
       const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-
-      return props.map((p) => ({
-        ...p,
-        agentName: profileMap.get(p.commissioner_id) ?? "—",
-      }));
+      return props.map((p) => ({ ...p, agentName: profileMap.get(p.commissioner_id) ?? "—" }));
     },
   });
 
@@ -428,11 +528,7 @@ function ListingQueue() {
           </div>
           <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
             {(["pending", "all"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-full px-3 py-1 capitalize transition ${filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
+              <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-3 py-1 capitalize transition ${filter === f ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {f === "pending" ? "Pending only" : "All listings"}
               </button>
             ))}
@@ -440,9 +536,8 @@ function ListingQueue() {
         </div>
       </div>
 
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading…</p>
-      ) : error ? (
+      {isLoading ? <p className="text-muted-foreground">Loading…</p>
+      : error ? (
         <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
           Failed to load listings: {error instanceof Error ? error.message : "Unknown error"}
         </div>
@@ -457,12 +552,8 @@ function ListingQueue() {
           <table className="w-full text-sm">
             <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Listing</th>
-                <th className="px-4 py-3">Agent</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3">Listing</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Price</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Submitted</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -475,10 +566,7 @@ function ListingQueue() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-                            {p.images?.[0]
-                              ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
-                              : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No img</div>
-                            }
+                            {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">No img</div>}
                           </div>
                           <div>
                             <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
@@ -513,16 +601,13 @@ function ListingQueue() {
                         )}
                       </td>
                     </tr>
-
                     {isOpen && p.status === "pending" && (
                       <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
                         <td colSpan={7} className="px-4 py-4">
                           <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
                           <div className="flex gap-2">
                             <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
-                            <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>
-                              Confirm rejection
-                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>Confirm rejection</Button>
                           </div>
                         </td>
                       </tr>
