@@ -92,16 +92,18 @@ function Browse() {
     <div className="min-h-screen site-page">
       <Nav />
       <div className="flex flex-1">
-        <SideBar />
+        {/* Listing Updates sidebar — logged-in users only */}
+        {user && <SideBar />}
+
         <div className="flex min-w-0 flex-1 flex-col">
           <section className="relative overflow-hidden border-b border-border bg-surface">
             {!heroHidden && (
               <img src={heroSrc} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }} />
             )}
-            {!heroHidden && <div className="absolute inset-0 bg-surface/30" />}
+            {!heroHidden && <div className="absolute inset-0 bg-black/40" />}
             <div className="relative mx-auto max-w-7xl px-6 py-6 sm:py-8">
-              <h1 className="font-display text-2xl font-semibold drop-shadow-sm sm:text-3xl">{heading}</h1>
-              <p className="mt-1 text-sm text-muted-foreground drop-shadow-sm sm:text-base">Condos, hotels, raw land, and resell properties across Cagayan de Oro City.</p>
+              <h1 className="font-display text-2xl font-semibold text-white drop-shadow sm:text-3xl">{heading}</h1>
+              <p className="mt-1 text-sm text-white/90 drop-shadow sm:text-base">Condos, hotels, raw land, and resell properties across Cagayan de Oro City.</p>
               <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5">
                 <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
@@ -122,9 +124,12 @@ function Browse() {
             </div>
           </section>
 
-          <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden">
-            <SideBarMobileTrigger />
-          </div>
+          {/* Listing Updates mobile trigger — logged-in users only */}
+          {user && (
+            <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden">
+              <SideBarMobileTrigger />
+            </div>
+          )}
 
           <section className="mx-auto max-w-7xl px-6 py-6 sm:py-12">
             {isLoading ? (
