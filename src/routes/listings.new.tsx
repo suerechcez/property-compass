@@ -66,6 +66,7 @@ export function ListingForm({
   const [contactEmail, setContactEmail] = useState(initial?.contact_email ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [markingRented, setMarkingRented] = useState(false);
 
   useEffect(() => {
     if (!user || mode === "edit") return;
@@ -112,9 +113,14 @@ export function ListingForm({
     if (!user) return;
     setSaving(true);
 
-    // Non-admin commissioners/agents always submit as pending for review.
-    // Admins editing an existing listing can freely set status.
-    const resolvedStatus = mode === "create" && !isAdmin ? "pending" : status;
+    // Non-admin commissioners/agents:
+    //   - create: always pending
+    //   - edit: keep the current status unchanged (no status control for them)
+    // Admins: can set any status freely via the dropdown
+    const resolvedStatus =
+      isAdmin ? status :
+      mode === "create" ? "pending" :
+      initial?.status ?? "pending";
 
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
@@ -133,11 +139,13 @@ export function ListingForm({
       contact_phone: contactPhone || null,
       contact_email: contactEmail || null,
     };
+
     try {
       if (mode === "edit" && initial) {
         const { error } = await supabase.from("properties").update(payload).eq("id", initial.id);
         if (error) throw error;
-        if (status === "sold" && initial.status !== "sold") {
+        // Only admins can set sold; log sale record if admin does so
+        if (isAdmin && status === "sold" && initial.status !== "sold") {
           await ensureSaleRecord(initial.id, payload.commissioner_id, payload.price);
         }
         toast.success("Listing updated");
@@ -155,6 +163,25 @@ export function ListingForm({
     }
   }
 
+  // Mark as rented — available to non-admin commissioners/agents for published for-rent listings
+  async function markRented() {
+    if (!initial) return;
+    setMarkingRented(true);
+    try {
+      const { error } = await supabase
+        .from("properties")
+        .update({ status: "rented" })
+        .eq("id", initial.id);
+      if (error) throw error;
+      toast.success("Marked as rented — listing remains visible in Browse.");
+      navigate({ to: "/properties/$id", params: { id: initial.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to mark as rented");
+    } finally {
+      setMarkingRented(false);
+    }
+  }
+
   if (mode === "create" && !authReady) {
     return (
       <div className="min-h-screen site-page">
@@ -163,6 +190,8 @@ export function ListingForm({
       </div>
     );
   }
+
+  const isNonAdminEdit = mode === "edit" && !isAdmin;
 
   return (
     <div className="min-h-screen site-page">
@@ -178,15 +207,20 @@ export function ListingForm({
             : "Customize photos and details so buyers and renters know exactly what they're getting."}
         </p>
 
-        {/* Pending/rejected notice for edit mode */}
-        {mode === "edit" && initial?.status === "pending" && (
+        {/* Status notices */}
+        {isNonAdminEdit && initial?.status === "pending" && (
           <div className="mt-4 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
             ⏳ This listing is <strong>pending admin review</strong> and is not yet visible to the public.
           </div>
         )}
-        {mode === "edit" && initial?.status === "rejected" && (
+        {isNonAdminEdit && initial?.status === "rejected" && (
           <div className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-            ❌ This listing was <strong>rejected</strong> by an admin. Update the details and resubmit.
+            ❌ This listing was <strong>rejected</strong> by an admin. Update the details and save to resubmit.
+          </div>
+        )}
+        {isNonAdminEdit && initial?.status === "rented" && (
+          <div className="mt-4 rounded-xl border border-purple-300 bg-purple-50 px-4 py-3 text-sm text-purple-800">
+            🏠 This listing is marked as <strong>rented</strong> and is still visible in Browse.
           </div>
         )}
 
@@ -223,7 +257,7 @@ export function ListingForm({
                 </select>
               </Field>
 
-              {/* Status selector — only shown to admins editing an existing listing */}
+              {/* Status selector — ADMINS ONLY on edit */}
               {mode === "edit" && isAdmin && (
                 <Field label="Status">
                   <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
@@ -232,7 +266,7 @@ export function ListingForm({
                     ))}
                   </select>
                   {status === "sold" && initial?.status !== "sold" && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">Saving will log this as a sale on your Sales tab.</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">Saving will log this as a sale on the Sales tab.</p>
                   )}
                 </Field>
               )}
@@ -275,11 +309,28 @@ export function ListingForm({
             </div>
           </Section>
 
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Cancel</Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Submit for review"}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Mark as Rented — only non-admin, published, for_rent listings */}
+            {isNonAdminEdit && initial?.for_rent && initial.status === "published" && (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                disabled={markingRented}
+                onClick={() => {
+                  if (confirm("Mark this property as rented? It will stay visible in Browse with a Rented badge."))
+                    markRented();
+                }}
+              >
+                {markingRented ? "Saving…" : "🏠 Mark as Rented"}
+              </Button>
+            )}
+            <div className="ml-auto flex gap-3">
+              <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Cancel</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Submit for review"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
