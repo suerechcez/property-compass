@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { LogIn } from "lucide-react";
@@ -21,7 +22,6 @@ function AboutPage() {
     <div className="min-h-screen site-page">
       <Nav />
 
-      {/* Zillow-style: big bold centered block on a solid dark-navy field */}
       <section className="bg-primary">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
           <h1 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">
@@ -64,15 +64,7 @@ function AboutPage() {
         </div>
       </section>
 
-      <footer className="border-t border-border bg-gradient-to-b from-background to-primary/5">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-8 text-sm text-muted-foreground sm:flex-row">
-          <div className="text-center sm:text-left">
-            <p className="font-display font-semibold text-foreground">One Higala Properties Inc.</p>
-            <p className="italic">Bringing you home, the higala way</p>
-          </div>
-          <p>© {new Date().getFullYear()} One Higala Properties Inc.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
