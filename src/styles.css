@@ -138,6 +138,17 @@
        since the viewport's available width briefly changes. */
     scrollbar-gutter: stable;
   }
+
+  /* Radix UI (used by shadcn DropdownMenu, Dialog, Sheet, etc.) injects
+     `padding-right: <scrollbar-width>px` on <body> when it locks scroll to
+     prevent layout shift. But because we already use `scrollbar-gutter: stable`
+     on <html>, the gutter space is permanently reserved — Radix's compensation
+     becomes a double-correction that adds an empty white strip on the right.
+     Forcing padding-right to 0 here lets our scrollbar-gutter do the job alone. */
+  body[style*="padding-right"] {
+    padding-right: 0 !important;
+  }
+
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
     font-weight: 500;
