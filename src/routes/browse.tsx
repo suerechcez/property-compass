@@ -64,9 +64,9 @@ function Browse() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      <div className="flex">
+      <div className="flex flex-1">
         <SideBar />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <section className="relative overflow-hidden border-b border-border bg-surface">
             {!heroHidden && (
               <img src={heroSrc} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }} />
@@ -144,7 +144,9 @@ function Browse() {
             )}
           </section>
 
-          <Footer />
+          <div className="mt-auto">
+            <Footer />
+          </div>
         </div>
       </div>
     </div>
