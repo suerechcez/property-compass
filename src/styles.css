@@ -53,18 +53,6 @@
 @utility shadow-elegant { box-shadow: var(--shadow-elegant); }
 @utility shadow-soft { box-shadow: var(--shadow-soft); }
 
-/* Makes pages stretch to full viewport height so the footer is always
-   pinned to the bottom even when the content is short. Every route that
-   wraps its output in <div className="site-page"> inherits this. */
-@utility site-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 100dvh;
-}
-@utility site-page > footer {
-  margin-top: auto;
-}
-
 :root {
   --radius: 0.75rem;
   /* One Higala brand palette, sampled from the logo: deep navy #032E8D + orange #F59F13 */
@@ -154,5 +142,16 @@
     font-family: var(--font-display);
     font-weight: 500;
     letter-spacing: normal;
+  }
+
+  /* Sticky footer: pages wrapped in .site-page fill the full viewport
+     height and push <footer> to the bottom on short pages. */
+  .site-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .site-page > footer {
+    margin-top: auto;
   }
 }
