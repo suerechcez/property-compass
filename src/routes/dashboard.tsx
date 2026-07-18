@@ -104,8 +104,7 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
-// ── Shared table shell ────────────────────────────────────────────────────────
-// Every tab uses this so padding, border-radius and thead style are identical.
+// ── Shared components — every tab uses these so sizing is always identical ────
 
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -120,7 +119,6 @@ function DashTable({ head, children }: { head: React.ReactNode; children: React.
   );
 }
 
-// Every tab section header lives in a card with the same p-6 padding.
 function SectionCard({ title, subtitle, action, children }: {
   title: string;
   subtitle?: string;
@@ -140,6 +138,8 @@ function SectionCard({ title, subtitle, action, children }: {
     </div>
   );
 }
+
+// ── Dashboard shell ───────────────────────────────────────────────────────────
 
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -171,7 +171,6 @@ function Dashboard() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      {/* Widened to max-w-7xl so tables have generous horizontal room */}
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -246,11 +245,20 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", userId, isDeveloper],
     queryFn: async () => {
-      const propsQ = isDeveloper ? supabase.from("properties").select("id,status", { count: "exact" }) : supabase.from("properties").select("id,status", { count: "exact" }).eq("commissioner_id", userId);
-      const salesQ = isDeveloper ? supabase.from("sales").select("amount,commission") : supabase.from("sales").select("amount,commission").eq("commissioner_id", userId);
+      const propsQ = isDeveloper
+        ? supabase.from("properties").select("id,status", { count: "exact" })
+        : supabase.from("properties").select("id,status", { count: "exact" }).eq("commissioner_id", userId);
+      const salesQ = isDeveloper
+        ? supabase.from("sales").select("amount,commission")
+        : supabase.from("sales").select("amount,commission").eq("commissioner_id", userId);
       const [{ data: props, count: propsCount }, { data: sales }] = await Promise.all([propsQ, salesQ]);
       const totalSales = (sales ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      return { propsCount: propsCount ?? 0, published: (props ?? []).filter((p) => p.status === "published").length, salesCount: (sales ?? []).length, totalSales };
+      return {
+        propsCount: propsCount ?? 0,
+        published: (props ?? []).filter((p) => p.status === "published").length,
+        salesCount: (sales ?? []).length,
+        totalSales,
+      };
     },
   });
 
@@ -268,6 +276,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
+      {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
@@ -275,52 +284,64 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
 
+      {/* Listings section — identical structure to every other tab */}
       {isCommissioner && (
-        <SectionCard title={isDeveloper ? "All listings" : "Your listings"}>
+        <>
+          <SectionCard
+            title={isDeveloper ? "All listings" : "Your listings"}
+            subtitle="A snapshot of your current properties."
+            action={<Button variant="outline" asChild><Link to="/browse">Browse all</Link></Button>}
+          />
           {listingsLoading ? (
-            <p className="mt-4 text-muted-foreground">Loading…</p>
+            <p className="text-muted-foreground">Loading…</p>
           ) : myListings.length === 0 ? (
-            <p className="mt-4 text-muted-foreground">No listings yet.</p>
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+              <p className="text-muted-foreground">No listings yet.</p>
+              <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
+            </div>
           ) : (
-            <div className="mt-4 divide-y divide-border">
+            <DashTable
+              head={
+                <tr>
+                  <th className="px-5 py-4">Property</th>
+                  <th className="px-5 py-4">Type</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4">Price</th>
+                  <th className="px-5 py-4">Location</th>
+                </tr>
+              }
+            >
               {myListings.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/properties/$id"
-                  params={{ id: p.id }}
-                  className="flex h-28 items-center gap-4 -mx-2 rounded-lg px-2 transition hover:bg-accent overflow-hidden"
-                >
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {p.images?.[0]
-                      ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
-                      : <div className="absolute inset-0 grid place-items-center font-display text-lg text-muted-foreground">H</div>}
-                  </div>
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="truncate font-display text-base font-bold leading-tight">{p.title}</h3>
-                      <div className="shrink-0 text-right">
-                        <p className="font-display text-base font-semibold text-primary whitespace-nowrap">
-                          {formatPrice(p.price)}
-                          {p.for_rent && <span className="text-sm text-muted-foreground"> /mo</span>}
-                        </p>
-                        {p.status !== "published" && (
-                          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                            {STATUS_LABEL[p.status] ?? p.status}
-                          </span>
-                        )}
+                <tr key={p.id} className="h-20 border-t border-border">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                        {p.images?.[0]
+                          ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
+                          : <div className="absolute inset-0 grid place-items-center font-display text-sm text-muted-foreground">H</div>}
+                      </div>
+                      <div className="min-w-0">
+                        <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-medium hover:text-primary">{p.title}</Link>
+                        <p className="truncate text-xs text-muted-foreground">{p.description || "No description yet."}</p>
                       </div>
                     </div>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-foreground/70">{p.description || "No description provided yet."}</p>
-                  </div>
-                </Link>
+                  </td>
+                  <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 font-medium whitespace-nowrap">
+                    {formatPrice(p.price)}
+                    {p.for_rent && <span className="text-xs text-muted-foreground"> /mo</span>}
+                  </td>
+                  <td className="px-5 py-4 text-muted-foreground">{p.location ?? "TBD"}</td>
+                </tr>
               ))}
-            </div>
+            </DashTable>
           )}
-          <div className="mt-4 flex justify-end">
-            <Button variant="outline" asChild><Link to="/browse">Browse listings</Link></Button>
-          </div>
-        </SectionCard>
+        </>
       )}
     </div>
   );
@@ -393,7 +414,7 @@ function StatusDropdown({
   );
 }
 
-// ── Listings ──────────────────────────────────────────────────────────────────
+// ── Listings tab ──────────────────────────────────────────────────────────────
 
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
@@ -551,7 +572,7 @@ function ListingQueue() {
     <div className="space-y-6">
       <SectionCard
         title="Listing Approval Queue"
-        subtitle={`Review listings submitted by commissioners and agents before they go live.`}
+        subtitle="Review listings submitted by commissioners and agents before they go live."
         action={
           <div className="flex items-center gap-3">
             {pendingCount > 0 && (
@@ -721,11 +742,16 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
     return format(new Date(val), "MMM d");
   };
 
-  const chartColors = useMemo(() => ({ border: cssVar("--border"), mutedFg: cssVar("--muted-foreground"), primary: cssVar("--primary"), card: cssVar("--card"), cardFg: cssVar("--card-foreground") }), []);
+  const chartColors = useMemo(() => ({
+    border: cssVar("--border"),
+    mutedFg: cssVar("--muted-foreground"),
+    primary: cssVar("--primary"),
+    card: cssVar("--card"),
+    cardFg: cssVar("--card-foreground"),
+  }), []);
 
   return (
     <div className="space-y-8">
-      {/* Log / edit form */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h2>
@@ -868,12 +894,18 @@ function UsersRoles() {
   });
 
   const grant = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "agent" | "admin" }) => { const { error } = await supabase.from("user_roles").insert({ user_id: userId, role }); if (error) throw error; },
+    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "agent" | "admin" }) => {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+      if (error) throw error;
+    },
     onSuccess: () => { toast.success("Role granted"); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const revoke = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => { const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role); if (error) throw error; },
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+      if (error) throw error;
+    },
     onSuccess: (_d, v) => { toast.success(`${v.role} role revoked`); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -898,19 +930,21 @@ function UsersRoles() {
             </td>
             <td className="px-5 py-4">
               <div className="flex flex-wrap gap-1">
-                {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
-                  const isRevocable = r === "commissioner" || r === "agent";
-                  return (
-                    <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs">
-                      {r}
-                      {isRevocable && (
-                        <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </span>
-                  );
-                })}
+                {u.roles.length === 0
+                  ? <span className="text-muted-foreground">—</span>
+                  : u.roles.map((r) => {
+                    const isRevocable = r === "commissioner" || r === "agent";
+                    return (
+                      <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs">
+                        {r}
+                        {isRevocable && (
+                          <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
               </div>
             </td>
             <td className="px-5 py-4 text-right whitespace-nowrap">
@@ -934,7 +968,11 @@ function CommissionerRequests() {
   const { data: requests = [] } = useQuery({
     queryKey: ["commissioner-requests"],
     queryFn: async () => {
-      const { data: reqs } = await supabase.from("commissioner_requests").select("id, user_id, status, created_at, note, full_name, phone, email, reason, requested_role").eq("status", "pending").order("created_at", { ascending: false });
+      const { data: reqs } = await supabase
+        .from("commissioner_requests")
+        .select("id, user_id, status, created_at, note, full_name, phone, email, reason, requested_role")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
       const ids = Array.from(new Set((reqs ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase.from("profiles").select("id, full_name, email, phone").in("id", ids);
@@ -945,11 +983,22 @@ function CommissionerRequests() {
 
   const decide = useMutation({
     mutationFn: async ({ id, userId, role }: { id: string; userId: string; role: "commissioner" | "agent" | null }) => {
-      if (role) { const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role }); if (rerr && !rerr.message.includes("duplicate")) throw rerr; }
-      const { error } = await supabase.from("commissioner_requests").update({ status: role ? "approved" : "denied", decided_at: new Date().toISOString() }).eq("id", id);
+      if (role) {
+        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role });
+        if (rerr && !rerr.message.includes("duplicate")) throw rerr;
+      }
+      const { error } = await supabase
+        .from("commissioner_requests")
+        .update({ status: role ? "approved" : "denied", decided_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_d, v) => { toast.success(v.role ? `Approved as ${v.role}` : "Request denied"); qc.invalidateQueries({ queryKey: ["commissioner-requests"] }); qc.invalidateQueries({ queryKey: ["all-users"] }); setOpenId(null); },
+    onSuccess: (_d, v) => {
+      toast.success(v.role ? `Approved as ${v.role}` : "Request denied");
+      qc.invalidateQueries({ queryKey: ["commissioner-requests"] });
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+      setOpenId(null);
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -1032,7 +1081,11 @@ function CommissionerTracking() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ["admin-all-sales"],
-    queryFn: async () => { const { data, error } = await supabase.from("sales").select("commissioner_id, amount, commission, sale_date").order("sale_date", { ascending: false }); if (error) throw error; return data ?? []; },
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sales").select("commissioner_id, amount, commission, sale_date").order("sale_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const byAgent = useMemo(() => {
