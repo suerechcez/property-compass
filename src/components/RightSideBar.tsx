@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Search, Bell, Heart } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -39,6 +39,10 @@ const ITEMS: SidebarItem[] = [
 export function RightSideBar() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const routerState = useRouterState();
+
+  // Hide on the dashboard — it's a floating fixed widget meant for main pages only
+  if (routerState.location.pathname.startsWith("/dashboard")) return null;
 
   return (
     <aside
