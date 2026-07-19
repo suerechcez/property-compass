@@ -118,6 +118,7 @@ function ProfilePage() {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  // Fields gated to commissioners, agents, admins and developers only
   const showProfessionalFields = isCommissioner || isAgent || isAdmin || isDeveloper;
 
   if (loading || !user) {
@@ -138,6 +139,7 @@ function ProfilePage() {
           </Button>
         </div>
 
+        {/* Avatar */}
         <div className="mt-8 rounded-2xl border border-border bg-card p-6">
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
             <div className="grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold shadow">
@@ -154,8 +156,7 @@ function ProfilePage() {
                 <Input id="avatar" type="file" accept="image/*" onChange={onPickAvatar} disabled={uploading} className="max-w-xs" />
                 {avatarUrl && (
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size="sm" variant="ghost"
                     onClick={async () => {
                       setAvatarUrl(null);
                       await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
@@ -175,10 +176,8 @@ function ProfilePage() {
           <RoleApplicationBanner isCommissioner={isCommissioner} isAgent={isAgent} />
         )}
 
-        <form
-          className="mt-6 space-y-6"
-          onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
-        >
+        <form className="mt-6 space-y-6" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+          {/* ── Basic info ── */}
           <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
             <h2 className="font-display text-xl font-semibold">Basic info</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -186,39 +185,45 @@ function ProfilePage() {
                 <Label>Full name</Label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Juan Dela Cruz" />
               </div>
-              <div>
-                <Label>Job title</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Licensed Real Estate Broker" />
-              </div>
+              {/* Job title — professionals only */}
+              {showProfessionalFields && (
+                <div>
+                  <Label>Job title</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Licensed Real Estate Broker" />
+                </div>
+              )}
               <div>
                 <Label>Email</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
                 <Label>Phone</Label>
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              {/* Years of experience — professionals only */}
+              {showProfessionalFields && (
+                <div>
+                  <Label>Years of experience</Label>
+                  <Input type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />
+                </div>
+              )}
+            </div>
+            {/* Bio — professionals only */}
+            {showProfessionalFields && (
+              <div>
+                <Label>Bio</Label>
+                <textarea
+                  rows={5}
+                  className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell buyers about your specialties, neighborhoods you serve in Cagayan de Oro City, and what makes working with you different."
                 />
               </div>
-              <div>
-                <Label>Years of experience</Label>
-                <Input type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <Label>Bio</Label>
-              <textarea
-                rows={5}
-                className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell buyers about your specialties, neighborhoods you serve in Cagayan de Oro City, and what makes working with you different."
-              />
-            </div>
+            )}
           </section>
 
+          {/* ── Professional fields ── */}
           {showProfessionalFields && (
             <>
               <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
@@ -231,35 +236,19 @@ function ProfilePage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label>PRC license number</Label>
-                    <Input
-                      value={licenseNumber}
-                      onChange={(e) => setLicenseNumber(e.target.value)}
-                      placeholder="e.g. 0012345"
-                    />
+                    <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} placeholder="e.g. 0012345" />
                   </div>
                   <div>
                     <Label>Agency / brokerage</Label>
-                    <Input
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      placeholder="e.g. One Higala Properties Inc."
-                    />
+                    <Input value={agencyName} onChange={(e) => setAgencyName(e.target.value)} placeholder="e.g. One Higala Properties Inc." />
                   </div>
                   <div className="sm:col-span-2">
                     <Label>Languages spoken</Label>
-                    <Input
-                      value={languages}
-                      onChange={(e) => setLanguages(e.target.value)}
-                      placeholder="English, Cebuano, Tagalog"
-                    />
+                    <Input value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="English, Cebuano, Tagalog" />
                   </div>
                   <div className="sm:col-span-2">
                     <Label>Facebook page or profile</Label>
-                    <Input
-                      value={facebookUrl}
-                      onChange={(e) => setFacebookUrl(e.target.value)}
-                      placeholder="https://facebook.com/yourpage"
-                    />
+                    <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/yourpage" />
                   </div>
                 </div>
               </section>
@@ -273,11 +262,7 @@ function ProfilePage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {PROPERTY_TYPES.map((t) => (
-                    <Chip
-                      key={t.value}
-                      active={specialties.includes(t.value)}
-                      onClick={() => toggle(specialties, setSpecialties, t.value)}
-                    >
+                    <Chip key={t.value} active={specialties.includes(t.value)} onClick={() => toggle(specialties, setSpecialties, t.value)}>
                       {t.label}
                     </Chip>
                   ))}
@@ -296,12 +281,9 @@ function ProfilePage() {
 function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
     <button
-      type="button"
-      onClick={onClick}
+      type="button" onClick={onClick}
       className={`rounded-full border px-3 py-1 text-xs transition ${
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background text-foreground/70 hover:bg-accent"
+        active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground/70 hover:bg-accent"
       }`}
     >
       {children}
