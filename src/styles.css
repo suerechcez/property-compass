@@ -146,4 +146,25 @@
   .site-page > footer {
     margin-top: auto;
   }
+
+  /* Agent/commissioner directory cards (Find an Agent page). Written
+     as plain, hand-authored CSS rather than a Tailwind arbitrary-value
+     utility (e.g. w-[calc(50%-1rem)]) so the exact card width can
+     never be dropped by content-scanning/purging — it always ships
+     in the compiled stylesheet as-is. This guarantees a card is
+     always the same fixed size and flush against the row's left
+     edge, whether there is 1 result or 20. */
+  .agent-card-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+  .agent-card {
+    width: 100%;
+  }
+  @media (min-width: 768px) {
+    .agent-card {
+      width: calc(50% - 1rem);
+    }
+  }
 }
