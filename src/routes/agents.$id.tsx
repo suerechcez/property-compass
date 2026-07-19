@@ -247,12 +247,14 @@ function AgentProfile() {
         </div>
       </section>
 
-      {/* ── Main content: full width, listings left, contact right ──
-          No max-w cap here — the grid fills the viewport edge to edge
-          with px-8 padding on each side. The contact aside is 360px fixed.
-          pr-20 stops content from sliding under the RightSideBar widget.
+      {/* ── Main content: listings left, contact right ──
+          Capped and centered to the SAME max-w-7xl container as the
+          hero above it, so this section's right edge lines up with
+          the hero's rather than stretching edge-to-edge. pr-20 still
+          reserves clearance so the sticky contact form never sits
+          under the floating RightSideBar widget.
       */}
-      <div className="grid gap-12 px-8 py-10 pr-20 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto max-w-7xl grid gap-12 px-8 py-10 pr-20 lg:grid-cols-[1fr_360px]">
         {/* Left: listing carousels + reviews — takes all remaining width */}
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
