@@ -105,10 +105,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // ── Shared table shell ────────────────────────────────────────────────────────
+// NOTE: no overflow-hidden here — that clips absolutely-positioned dropdowns.
+// The rounded corners are preserved via the border radius on the wrapper div.
 
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="rounded-2xl border border-border bg-card">
       <table className="w-full text-base">
         <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           {head}
@@ -121,7 +123,7 @@ function BigTable({ head, children }: { head: React.ReactNode; children: React.R
 
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="rounded-2xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
           {head}
@@ -184,7 +186,6 @@ function Dashboard() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      {/* max-w-screen-2xl gives tables the full horizontal room they need */}
       <div className="mx-auto max-w-screen-2xl px-8 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -414,7 +415,7 @@ function StatusDropdown({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </Button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1 min-w-[120px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+        <div className="absolute right-0 z-50 mt-1 min-w-[120px] rounded-xl border border-border bg-white shadow-lg">
           {options.map((o) => (
             <button key={o.value} className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`} onClick={() => { setOpen(false); onSelect(o.value); }}>
               {o.label}
@@ -515,7 +516,8 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               </span>
             </td>
             <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
-            <td className="px-6 py-5 text-right whitespace-nowrap">
+            {/* overflow-visible on the last cell so the dropdown escapes the row */}
+            <td className="px-6 py-5 text-right whitespace-nowrap overflow-visible">
               <div className="flex items-center justify-end gap-2">
                 <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
                 <Button size="sm" variant="outline" asChild>
