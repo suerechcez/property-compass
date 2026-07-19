@@ -20,12 +20,12 @@ export const Route = createFileRoute("/agents/")({
 });
 
 const HERO_IMAGE_URL = "/hero-agents.png";
-// Fixed height AND fixed width (md:w-[calc(50%-1rem)]) so every card is
-// exactly the same size no matter how many results are in the row —
-// unlike CSS Grid, a flex item with an explicit width never depends on
-// its siblings to determine its own size.
+// .agent-card / .agent-card-row are plain hand-authored CSS (see
+// styles.css) — NOT Tailwind utilities — so the fixed card width can
+// never be affected by content-scanning/purging. Every card is always
+// h-64 tall and exactly the same width, whether there's 1 result or 20.
 const CARD_CLASS =
-  "group flex w-full md:w-[calc(50%-1rem)] h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
+  "agent-card group flex h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
@@ -121,12 +121,9 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // Flexbox, not CSS Grid: every card has an explicit width
-          // (md:w-[calc(50%-1rem)] baked into CARD_CLASS), so cards are
-          // always the same size and always start flush against the
-          // left edge — regardless of whether there are 1, 2, or 20
-          // results in the row.
-          <div className="flex flex-wrap gap-8">
+          // .agent-card-row is plain CSS (styles.css), not a Tailwind
+          // grid/flex utility — guaranteed present in every build.
+          <div className="agent-card-row">
             {filtered.map((a) => (
               <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
                 {/* Fixed-size avatar */}
