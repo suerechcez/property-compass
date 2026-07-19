@@ -112,15 +112,18 @@ function Browse() {
           </section>
 
           <section className="border-b border-border">
-            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 py-4 sm:py-5">
-              <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
-              <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>For Sale</FilterChip>
-              <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>For Rent</FilterChip>
-              <span className="mx-1 h-5 w-px bg-border" />
-              <FilterChip active={type === "all"} onClick={() => setType("all")}>All types</FilterChip>
-              {PROPERTY_TYPES.map((t) => (
-                <FilterChip key={t.value} active={type === t.value} onClick={() => setType(t.value)}>{t.label}</FilterChip>
-              ))}
+            <div className="mx-auto max-w-7xl px-6 py-4 sm:py-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
+                <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>For Sale</FilterChip>
+                <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>For Rent</FilterChip>
+              </div>
+              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <FilterChip active={type === "all"} onClick={() => setType("all")}>All types</FilterChip>
+                {PROPERTY_TYPES.map((t) => (
+                  <FilterChip key={t.value} active={type === t.value} onClick={() => setType(t.value)}>{t.label}</FilterChip>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -200,7 +203,7 @@ function Browse() {
 
 function FilterChip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`rounded-full border px-4 py-1.5 text-sm transition ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/70 hover:bg-accent"}`}>
+    <button onClick={onClick} className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm transition ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/70 hover:bg-accent"}`}>
       {children}
     </button>
   );
