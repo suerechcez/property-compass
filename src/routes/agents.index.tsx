@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { typeLabel } from "@/lib/property-types";
@@ -20,17 +20,49 @@ export const Route = createFileRoute("/agents/")({
 });
 
 const HERO_IMAGE_URL = "/hero-agents.png";
-// .agent-card / .agent-card-row are plain hand-authored CSS (see
-// styles.css) — NOT Tailwind utilities — so the fixed card width can
-// never be affected by content-scanning/purging. Every card is always
-// h-64 tall and exactly the same width, whether there's 1 result or 20.
-const CARD_CLASS =
-  "agent-card group flex h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
+const CARD_GAP_PX = 32; // matches the row's gap
+const DESKTOP_BREAKPOINT_PX = 768;
+
+// Measures the row's actual rendered pixel width (via ResizeObserver)
+// and computes the exact per-card width in pixels — 2 cards per row
+// on desktop, 1 per row on mobile. The result is applied as an inline
+// `style.width` on each card, which is written straight into the DOM
+// on render and therefore can't be affected by a stale CSS bundle,
+// Tailwind content-scanning, or CDN caching of the stylesheet. This
+// guarantees every card is exactly the same size — whether there's
+// 1 result or 20 — independent of any CSS file at all.
+function useCardWidthPx() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const containerWidth = el.clientWidth;
+      if (containerWidth <= 0) return;
+      if (containerWidth >= DESKTOP_BREAKPOINT_PX) {
+        setCardWidth((containerWidth - CARD_GAP_PX) / 2);
+      } else {
+        setCardWidth(containerWidth);
+      }
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return { containerRef, cardWidth };
+}
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
   const [q, setQ] = useState("");
   const [heroImageOk, setHeroImageOk] = useState(true);
+  const { containerRef, cardWidth } = useCardWidthPx();
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["agents-directory"],
@@ -75,6 +107,10 @@ function AgentsList() {
     }),
     [agents],
   );
+
+  const cardStyle = cardWidth != null
+    ? { width: `${cardWidth}px`, flex: `0 0 ${cardWidth}px` }
+    : undefined;
 
   return (
     <div className="site-page">
@@ -121,11 +157,19 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // .agent-card-row is plain CSS (styles.css), not a Tailwind
-          // grid/flex utility — guaranteed present in every build.
-          <div className="agent-card-row">
+          <div
+            ref={containerRef}
+            className="flex flex-wrap"
+            style={{ gap: `${CARD_GAP_PX}px` }}
+          >
             {filtered.map((a) => (
-              <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
+              <Link
+                key={a.id}
+                to="/agents/$id"
+                params={{ id: a.id }}
+                className="group flex h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl"
+                style={cardStyle}
+              >
                 {/* Fixed-size avatar */}
                 <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold">
                   {a.avatar_url
