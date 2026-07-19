@@ -2,6 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 /** Toggle a property favorite for the current user. Returns the new state (true = favorited). */
 export async function toggleFavorite(propertyId: string, currentlyFavorited: boolean): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be signed in to save favorites.");
+
   if (currentlyFavorited) {
     const { error } = await supabase
       .from("favorites")
@@ -12,7 +15,7 @@ export async function toggleFavorite(propertyId: string, currentlyFavorited: boo
   } else {
     const { error } = await supabase
       .from("favorites")
-      .insert({ property_id: propertyId });
+      .insert({ property_id: propertyId, user_id: user.id });
     if (error) throw error;
     return true;
   }
