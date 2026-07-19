@@ -156,7 +156,7 @@ function AgentProfile() {
     return (
       <div className="site-page">
         <Nav />
-        <div className="mx-auto max-w-7xl p-10 text-muted-foreground">Loading…</div>
+        <div className="p-10 text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -177,7 +177,6 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
-            {/* Profile card */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -232,7 +231,6 @@ function AgentProfile() {
               </div>
             </div>
 
-            {/* Image gallery */}
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {galleryImages.length > 0
                 ? <ImageGallery images={galleryImages} />
@@ -240,7 +238,6 @@ function AgentProfile() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-6 sm:grid-cols-4">
             <Stat label="Sales" value={String(stats.count)} />
             <Stat label="Listings" value={String(listings.length)} />
@@ -250,14 +247,13 @@ function AgentProfile() {
         </div>
       </section>
 
-      {/* ── Main content: listings left, contact right ──
-           max-w-7xl + px-8 gives generous room on both sides.
-           gap-16 pushes the two columns apart like Zillow.
-           pr-20 leaves space for the RightSideBar (fixed, ~60px).
-           The aside is 360px wide — wider than before so the form breathes.
+      {/* ── Main content: full width, listings left, contact right ──
+          No max-w cap here — the grid fills the viewport edge to edge
+          with px-8 padding on each side. The contact aside is 360px fixed.
+          pr-20 stops content from sliding under the RightSideBar widget.
       */}
-      <div className="mx-auto grid max-w-7xl gap-16 px-8 py-10 pr-24 lg:grid-cols-[1fr_360px] lg:pr-24">
-        {/* Left: listing carousels + reviews */}
+      <div className="grid gap-12 px-8 py-10 pr-20 lg:grid-cols-[1fr_360px]">
+        {/* Left: listing carousels + reviews — takes all remaining width */}
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
           {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
@@ -267,7 +263,7 @@ function AgentProfile() {
           <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
         </div>
 
-        {/* Right: sticky contact form */}
+        {/* Right: sticky contact form pinned to the right edge */}
         <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
           <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
         </aside>
@@ -498,8 +494,6 @@ function ReviewCard({ review, isOwn, onEdit, onDelete }: { review: Review; isOwn
     </div>
   );
 }
-
-// ── Supporting components ────────────────────────────────────────────────────
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
