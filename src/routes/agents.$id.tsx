@@ -380,8 +380,6 @@ function ReviewsSection({
             </div>
           )}
         </div>
-        {canReview && !myReview && !showForm && <Button size="sm" onClick={() => setShowForm(true)}>Write a review</Button>}
-        {canReview && myReview && !showForm && <Button size="sm" variant="outline" onClick={() => startEdit(myReview)}>Edit your review</Button>}
       </div>
 
       {/* ── Write / edit form ── */}
@@ -435,6 +433,12 @@ function ReviewsSection({
             </div>
           )}
         </>
+      )}
+
+      {canReview && myReview && !showForm && (
+        <div className="mt-4 flex justify-end">
+          <Button size="sm" variant="outline" onClick={() => startEdit(myReview)}>Edit your review</Button>
+        </div>
       )}
     </div>
   );
