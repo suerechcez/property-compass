@@ -167,9 +167,16 @@ function AgentProfile() {
     <div className="site-page">
       <Nav />
 
-      {/* ── Hero / profile header ── */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-8 py-8">
+      {/* ── Single shared container for the ENTIRE page body ──
+          Both the hero (profile card / gallery / stats) and the
+          lower content (listings, reviews, contact form) live inside
+          this one mx-auto max-w-7xl px-8 wrapper, so their left/right
+          edges are guaranteed to match — they're literally the same
+          box, not two separately-styled ones that have to agree.
+      */}
+      <div className="mx-auto max-w-7xl px-8">
+        {/* ── Hero / profile header ── */}
+        <section className="border-b border-border py-8">
           <p className="text-sm text-muted-foreground">
             <Link to="/agents" className="hover:text-primary">Cagayan de Oro City</Link>
             {" · "}
@@ -244,31 +251,28 @@ function AgentProfile() {
             <Stat label="Price range" value={stats.minPrice != null ? `${formatPrice(stats.minPrice)}–${formatPrice(stats.maxPrice!)}` : "—"} />
             <Stat label="Average price" value={stats.avgPrice ? formatPrice(stats.avgPrice) : "—"} />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Main content: listings left, contact right ──
-          Capped and centered to the SAME max-w-7xl container as the
-          hero above it, so this section's right edge lines up with
-          the hero's rather than stretching edge-to-edge. pr-20 still
-          reserves clearance so the sticky contact form never sits
-          under the floating RightSideBar widget.
-      */}
-      <div className="mx-auto max-w-7xl grid gap-12 px-8 py-10 pr-20 lg:grid-cols-[1fr_360px]">
-        {/* Left: listing carousels + reviews — takes all remaining width */}
-        <div className="min-w-0 space-y-12">
-          <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
-          {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
-          <ListingCarousel title="Sold" items={sold} badge="Sold" />
-          <ListingCarousel title="For sale" items={forSale} badge="For sale" />
-          <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
-          <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
-        </div>
+        {/* ── Main content: listings left, contact right ──
+            Same shared container as the hero above (no separate
+            mx-auto/max-w here) — only its own vertical padding.
+        */}
+        <div className="grid gap-12 py-10 pr-20 lg:grid-cols-[1fr_360px]">
+          {/* Left: listing carousels + reviews — takes all remaining width */}
+          <div className="min-w-0 space-y-12">
+            <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
+            {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
+            <ListingCarousel title="Sold" items={sold} badge="Sold" />
+            <ListingCarousel title="For sale" items={forSale} badge="For sale" />
+            <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
+            <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
+          </div>
 
-        {/* Right: sticky contact form pinned to the right edge */}
-        <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
-          <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
-        </aside>
+          {/* Right: sticky contact form pinned to the right edge */}
+          <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
+            <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
+          </aside>
+        </div>
       </div>
     </div>
   );
