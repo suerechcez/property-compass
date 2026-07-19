@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { Nav } from "@/components/Nav";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatPrice, typeLabel } from "@/lib/property-types";
@@ -28,10 +29,10 @@ export const Route = createFileRoute("/agents/$id")({
   }),
   component: AgentProfile,
   errorComponent: ({ error }) => (
-    <div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div>
+    <div className="site-page"><Nav /><div className="mx-auto max-w-4xl p-10 text-destructive">{error.message}</div></div>
   ),
   notFoundComponent: () => (
-    <div className="mx-auto max-w-4xl p-10">Agent not found.</div>
+    <div className="site-page"><Nav /><div className="mx-auto max-w-4xl p-10">Agent not found.</div></div>
   ),
 });
 
@@ -152,13 +153,21 @@ function AgentProfile() {
   }
 
   if (isLoading || !profile) {
-    return <div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div>;
+    return (
+      <div className="site-page">
+        <Nav />
+        <div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div>
+      </div>
+    );
   }
 
   const isOwnProfile = user?.id === id;
 
   return (
     <div className="site-page">
+      <Nav />
+
+      {/* ── Hero / profile header ── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <p className="text-sm text-muted-foreground">
@@ -168,6 +177,7 @@ function AgentProfile() {
           </p>
 
           <div className="mt-4 grid gap-6 lg:grid-cols-[340px_1fr]">
+            {/* Profile card */}
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="grid place-items-center bg-primary p-8">
                 <div className="grid h-32 w-32 place-items-center overflow-hidden rounded-full border-4 border-white/20 bg-gradient-to-br from-primary-foreground/20 to-primary-foreground/5 font-display text-4xl font-bold text-primary-foreground shadow-lg">
@@ -222,6 +232,7 @@ function AgentProfile() {
               </div>
             </div>
 
+            {/* Image gallery */}
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {galleryImages.length > 0
                 ? <ImageGallery images={galleryImages} />
@@ -229,6 +240,7 @@ function AgentProfile() {
             </div>
           </div>
 
+          {/* Stats row */}
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-6 sm:grid-cols-4">
             <Stat label="Sales" value={String(stats.count)} />
             <Stat label="Listings" value={String(listings.length)} />
@@ -238,7 +250,13 @@ function AgentProfile() {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1fr_320px]">
+      {/* ── Main content: listings left, contact right ── */}
+      {/*
+        pr-20 on the outer container nudges content away from the RightSideBar (fixed, ~60px wide).
+        The contact aside itself is sticky so it follows the scroll.
+      */}
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 pr-24 lg:grid-cols-[1fr_320px] lg:pr-24">
+        {/* Left: listing carousels + reviews */}
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
           {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
@@ -247,6 +265,8 @@ function AgentProfile() {
           <ListingCarousel title="For rent" items={forRent} badge="For rent" isRent />
           <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
         </div>
+
+        {/* Right: sticky contact form */}
         <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
           <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
         </aside>
@@ -365,7 +385,6 @@ function ReviewsSection({
 
   return (
     <div>
-      {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-bold">
@@ -382,7 +401,6 @@ function ReviewsSection({
         </div>
       </div>
 
-      {/* ── Write / edit form ── */}
       {showForm && canReview && (
         <div id="review-form" className="mt-6 rounded-2xl border border-border bg-card p-6">
           <h3 className="font-display text-lg font-semibold">{editingId ? "Edit your review" : `Review this ${roleLabel}`}</h3>
@@ -404,7 +422,6 @@ function ReviewsSection({
         </div>
       )}
 
-      {/* ── No reviews yet ── */}
       {reviews.length === 0 && !showForm && (
         <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">No reviews yet — be the first to leave one.</p>
@@ -417,7 +434,6 @@ function ReviewsSection({
         </div>
       )}
 
-      {/* ── Review cards grid ── */}
       {reviews.length > 0 && (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -590,7 +606,7 @@ function ContactForm({ agentName, agentEmail, roleLabel }: { agentName: string; 
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
       <h2 className="font-display text-xl font-bold">Contact {agentName}</h2>
       <form className="mt-4 space-y-4" onSubmit={submit}>
         <div><Label>Name</Label><input required value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
