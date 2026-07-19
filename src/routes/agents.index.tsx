@@ -20,6 +20,9 @@ export const Route = createFileRoute("/agents/")({
 });
 
 const HERO_IMAGE_URL = "/hero-agents.png";
+// Every card is exactly this tall so they always match each other
+const CARD_CLASS =
+  "group flex w-full h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
@@ -75,7 +78,13 @@ function AgentsList() {
       <Nav />
       <section className="relative h-[420px] overflow-hidden bg-gradient-to-br from-primary/85 via-primary to-primary/70 md:h-[460px]">
         {heroImageOk && (
-          <img src={HERO_IMAGE_URL} alt="One Higala Properties agents and commissioners" className="absolute inset-0 h-full w-full object-cover object-center" loading="eager" onError={() => setHeroImageOk(false)} />
+          <img
+            src={HERO_IMAGE_URL}
+            alt="One Higala Properties agents and commissioners"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            loading="eager"
+            onError={() => setHeroImageOk(false)}
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/30" />
         <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
@@ -85,7 +94,12 @@ function AgentsList() {
           </h1>
           <div className="mt-8 flex w-full max-w-xl items-center gap-3 rounded-full bg-white px-5 py-3 shadow-2xl shadow-black/30">
             <User className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agent name" className="flex-1 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground md:text-base" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Agent name"
+              className="flex-1 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground md:text-base"
+            />
             <Search className="h-5 w-5 shrink-0 text-primary" />
           </div>
           <p className="mt-3 text-sm text-white/80">Find a real estate agent / commissioner</p>
@@ -104,38 +118,52 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // Always 2-column grid on md+; cards start from the left (no centering)
+          // Always a strict 2-column grid; every cell is equal width; cards fill the cell completely
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {filtered.map((a) => (
-              <Link
-                key={a.id}
-                to="/agents/$id"
-                params={{ id: a.id }}
-                // min-h-[220px] ensures every card is the same minimum height
-                className="group flex min-h-[220px] gap-5 rounded-none border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl"
-              >
+              <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
+                {/* Fixed-size avatar */}
                 <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold">
                   {a.avatar_url
                     ? <img src={a.avatar_url} alt={a.full_name ?? "Agent"} className="h-full w-full object-cover" />
                     : (a.full_name ?? "A").slice(0, 1).toUpperCase()}
                 </div>
-                <div className="min-w-0 flex-1">
+
+                {/* Content — overflow-hidden prevents it from stretching the card */}
+                <div className="min-w-0 flex-1 overflow-hidden">
                   <div className="flex flex-wrap gap-1">
-                    {a.roles.includes("commissioner") && <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Commissioner</span>}
-                    {a.roles.includes("agent") && <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Agent</span>}
+                    {a.roles.includes("commissioner") && (
+                      <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Commissioner</span>
+                    )}
+                    {a.roles.includes("agent") && (
+                      <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Agent</span>
+                    )}
                   </div>
-                  <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">{a.full_name ?? "Agent"}</h3>
+                  <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">
+                    {a.full_name ?? "Agent"}
+                  </h3>
                   <p className="truncate text-sm text-muted-foreground">{a.agency_name || "One Higala Properties Inc."}</p>
                   <div className="mt-4 space-y-1.5 text-sm">
-                    {a.email && <p className="flex items-center gap-1.5 truncate text-foreground/80"><Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className="truncate">{a.email}</span></p>}
-                    {a.phone && <p className="flex items-center gap-1.5 text-foreground/80"><Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />{a.phone}</p>}
+                    {a.email && (
+                      <p className="flex items-center gap-1.5 truncate text-foreground/80">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{a.email}</span>
+                      </p>
+                    )}
+                    {a.phone && (
+                      <p className="flex items-center gap-1.5 text-foreground/80">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />{a.phone}
+                      </p>
+                    )}
                     {a.specialties && a.specialties.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
-                        {a.specialties.map((s: string) => <span key={s} className="rounded-full bg-secondary px-2 py-0.5 text-xs">{typeLabel(s)}</span>)}
+                        {a.specialties.map((s: string) => (
+                          <span key={s} className="rounded-full bg-secondary px-2 py-0.5 text-xs">{typeLabel(s)}</span>
+                        ))}
                       </div>
                     )}
                   </div>
-                  {a.bio && <p className="mt-3 line-clamp-3 text-sm text-foreground/70">{a.bio}</p>}
+                  {a.bio && <p className="mt-3 line-clamp-2 text-sm text-foreground/70">{a.bio}</p>}
                 </div>
               </Link>
             ))}
@@ -148,7 +176,11 @@ function AgentsList() {
   );
 }
 
-function RoleTabNav({ tab, onChange, counts }: { tab: RoleTab; onChange: (t: RoleTab) => void; counts: Record<RoleTab, number> }) {
+function RoleTabNav({ tab, onChange, counts }: {
+  tab: RoleTab;
+  onChange: (t: RoleTab) => void;
+  counts: Record<RoleTab, number>;
+}) {
   const items: { id: RoleTab; label: string; icon: typeof Users }[] = [
     { id: "all", label: "All", icon: Users },
     { id: "agent", label: "Agents", icon: Handshake },
@@ -160,8 +192,17 @@ function RoleTabNav({ tab, onChange, counts }: { tab: RoleTab; onChange: (t: Rol
         const Icon = it.icon;
         const isActive = tab === it.id;
         return (
-          <button key={it.id} onClick={() => onChange(it.id)} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${isActive ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
-            <Icon className="h-3.5 w-3.5" />{it.label}<span className="ml-0.5 text-[10px] opacity-70">({counts[it.id]})</span>
+          <button
+            key={it.id}
+            onClick={() => onChange(it.id)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+              isActive
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />{it.label}
+            <span className="ml-0.5 text-[10px] opacity-70">({counts[it.id]})</span>
           </button>
         );
       })}
