@@ -123,10 +123,10 @@ function AgentProfile() {
     },
   });
 
-  const sold        = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
-  const forSale     = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
-  const forRent     = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
-  const featured    = useMemo(() => listings.filter((p) => p.is_featured && p.status !== "sold"), [listings]);
+  const sold          = useMemo(() => listings.filter((p) => p.status === "sold"), [listings]);
+  const forSale       = useMemo(() => listings.filter((p) => p.status === "published" && !p.for_rent), [listings]);
+  const forRent       = useMemo(() => listings.filter((p) => p.status === "published" && p.for_rent), [listings]);
+  const featured      = useMemo(() => listings.filter((p) => p.is_featured && p.status !== "sold"), [listings]);
   const galleryImages = useMemo(() => listings.flatMap((p) => p.images ?? []).slice(0, 10), [listings]);
 
   const stats = useMemo(() => {
@@ -156,7 +156,7 @@ function AgentProfile() {
     return (
       <div className="site-page">
         <Nav />
-        <div className="mx-auto max-w-6xl p-10 text-muted-foreground">Loading…</div>
+        <div className="mx-auto max-w-7xl p-10 text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -169,7 +169,7 @@ function AgentProfile() {
 
       {/* ── Hero / profile header ── */}
       <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mx-auto max-w-7xl px-8 py-8">
           <p className="text-sm text-muted-foreground">
             <Link to="/agents" className="hover:text-primary">Cagayan de Oro City</Link>
             {" · "}
@@ -250,12 +250,13 @@ function AgentProfile() {
         </div>
       </section>
 
-      {/* ── Main content: listings left, contact right ── */}
-      {/*
-        pr-20 on the outer container nudges content away from the RightSideBar (fixed, ~60px wide).
-        The contact aside itself is sticky so it follows the scroll.
+      {/* ── Main content: listings left, contact right ──
+           max-w-7xl + px-8 gives generous room on both sides.
+           gap-16 pushes the two columns apart like Zillow.
+           pr-20 leaves space for the RightSideBar (fixed, ~60px).
+           The aside is 360px wide — wider than before so the form breathes.
       */}
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-10 pr-24 lg:grid-cols-[1fr_320px] lg:pr-24">
+      <div className="mx-auto grid max-w-7xl gap-16 px-8 py-10 pr-24 lg:grid-cols-[1fr_360px] lg:pr-24">
         {/* Left: listing carousels + reviews */}
         <div className="min-w-0 space-y-12">
           <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
