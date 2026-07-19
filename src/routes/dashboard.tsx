@@ -151,10 +151,8 @@ function DashSidebar({
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
-    // If in admin view, exit first then scroll after render
     if (adminTab) {
       onExitAdmin();
-      // Wait one tick for sections to mount, then scroll
       setTimeout(() => {
         document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
@@ -386,7 +384,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
         <h2 className="font-display text-2xl font-semibold">Overview</h2>
       </div>
 
-      {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
@@ -394,7 +391,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
 
-      {/* Property showcase table */}
       {isCommissioner && (
         <>
           <div className="flex items-center justify-between">
@@ -416,7 +412,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                 <tr>
                   <th className="px-6 py-5">Property</th>
                   <th className="px-6 py-5">Type</th>
-                  <th className="px-6 py-5">Status</th>
+                  <th className="px-6 py-5 whitespace-nowrap">Status</th>
                   <th className="px-6 py-5">Price</th>
                   <th className="px-6 py-5">Location</th>
                 </tr>
@@ -438,8 +434,8 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                     </div>
                   </td>
                   <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-                  <td className="px-6 py-5">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
@@ -583,7 +579,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
         <tr>
           <th className="px-6 py-5">Title</th>
           <th className="px-6 py-5">Type</th>
-          <th className="px-6 py-5">Status</th>
+          <th className="px-6 py-5 whitespace-nowrap">Status</th>
           <th className="px-6 py-5">Price</th>
           <th />
         </tr>
@@ -596,8 +592,8 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
             <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
           </td>
           <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-          <td className="px-6 py-5">
-            <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+          <td className="px-6 py-5 whitespace-nowrap">
+            <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
               {STATUS_LABEL[p.status] ?? p.status}
             </span>
           </td>
@@ -703,8 +699,9 @@ function ListingQueue() {
               <th className="px-6 py-5">Agent</th>
               <th className="px-6 py-5">Type</th>
               <th className="px-6 py-5">Price</th>
-              <th className="px-6 py-5">Status</th>
-              <th className="px-6 py-5">Submitted</th>
+              {/* whitespace-nowrap on both the header and the cell prevents "Pending Review" from wrapping */}
+              <th className="px-6 py-5 whitespace-nowrap">Status</th>
+              <th className="px-6 py-5 whitespace-nowrap">Submitted</th>
               <th className="px-6 py-5 text-right">Actions</th>
             </tr>
           }
@@ -728,12 +725,13 @@ function ListingQueue() {
                   <td className="px-6 py-5 text-muted-foreground">{p.agentName}</td>
                   <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
                   <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
-                  <td className="px-6 py-5">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  {/* whitespace-nowrap keeps the badge on one line */}
+                  <td className="px-6 py-5 whitespace-nowrap">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="px-6 py-5 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
                   <td className="px-6 py-5 text-right whitespace-nowrap">
                     {p.status === "pending" && (
                       <>
@@ -1048,7 +1046,7 @@ function CommissionerRequests() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Requests" subtitle="Review pending applications and approve or deny them." />
-      <BigTable head={<tr><th className="px-6 py-5">Applicant</th><th className="px-6 py-5">Requested role</th><th className="px-6 py-5">Date</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
+      <BigTable head={<tr><th className="px-6 py-5">Applicant</th><th className="px-6 py-5">Requested role</th><th className="px-6 py-5 whitespace-nowrap">Date</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
         {requests.length === 0
           ? <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No pending requests.</td></tr>
           : requests.map((r) => {
@@ -1060,7 +1058,7 @@ function CommissionerRequests() {
                 <tr key={r.id} className="h-28 border-t border-border">
                   <td className="px-6 py-5"><div className="font-semibold">{displayName}</div><div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
                   <td className="px-6 py-5">{r.requested_role ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
-                  <td className="px-6 py-5">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-6 py-5 whitespace-nowrap">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
                   <td className="px-6 py-5 text-right"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
                 </tr>
                 {isOpen && (
@@ -1121,7 +1119,7 @@ function CommissionerTracking() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Tracking" subtitle="Monitor sales performance across all commissioners and agents." />
-      <BigTable head={<tr><th className="px-6 py-5">Agent</th><th className="px-6 py-5 text-right">Deals</th><th className="px-6 py-5 text-right">Volume</th><th className="px-6 py-5 text-right">Commission</th><th className="px-6 py-5">Last sale</th></tr>}>
+      <BigTable head={<tr><th className="px-6 py-5">Agent</th><th className="px-6 py-5 text-right">Deals</th><th className="px-6 py-5 text-right">Volume</th><th className="px-6 py-5 text-right">Commission</th><th className="px-6 py-5 whitespace-nowrap">Last sale</th></tr>}>
         {commissioners.length === 0
           ? <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
           : commissioners.map((c) => {
@@ -1132,7 +1130,7 @@ function CommissionerTracking() {
                 <td className="px-6 py-5 text-right">{s.count}</td>
                 <td className="px-6 py-5 text-right font-semibold">{formatPrice(s.volume)}</td>
                 <td className="px-6 py-5 text-right text-primary font-semibold">{formatPrice(s.commission)}</td>
-                <td className="px-6 py-5">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+                <td className="px-6 py-5 whitespace-nowrap">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
               </tr>
             );
           })
