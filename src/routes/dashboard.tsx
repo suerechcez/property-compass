@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
   Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
-  Plus, X, ChevronUp, ChevronDown, type LucideIcon,
+  Plus, X, ChevronUp, ChevronDown, Menu, type LucideIcon,
 } from "lucide-react";
 
 type Tab =
@@ -105,8 +105,6 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // ── Shared table shell ────────────────────────────────────────────────────────
-// NOTE: no overflow-hidden here — that clips absolutely-positioned dropdowns.
-// The rounded corners are preserved via the border radius on the wrapper div.
 
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -154,6 +152,88 @@ function SectionCard({ title, subtitle, action, children }: {
   );
 }
 
+// ── Left sidebar nav ──────────────────────────────────────────────────────────
+
+function DashSidebar({
+  tabs, active, onChange, isAdmin, canManageListings,
+}: {
+  tabs: { id: Tab; show: boolean }[];
+  active: Tab;
+  onChange: (t: Tab) => void;
+  isAdmin: boolean;
+  canManageListings: boolean;
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
+  const mainTabs   = tabs.filter((t) => t.show && !adminTabs.includes(t.id));
+  const adminVisible = tabs.filter((t) => t.show && adminTabs.includes(t.id));
+
+  function NavItem({ id }: { id: Tab }) {
+    const Icon = TAB_ICONS[id];
+    const isActive = active === id;
+    return (
+      <button
+        onClick={() => { onChange(id); setMobileOpen(false); }}
+        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+          isActive
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+        }`}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span>{TAB_LABELS[id]}</span>
+      </button>
+    );
+  }
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col gap-1 p-3">
+      {/* Main nav */}
+      <div className="space-y-0.5">
+        {mainTabs.map((t) => <NavItem key={t.id} id={t.id} />)}
+      </div>
+
+      {/* Admin nav */}
+      {isAdmin && adminVisible.length > 0 && (
+        <>
+          <div className="my-3 border-t border-border" />
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
+          <div className="space-y-0.5">
+            {adminVisible.map((t) => <NavItem key={t.id} id={t.id} />)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile toggle */}
+      <button
+        className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
+        onClick={() => setMobileOpen((o) => !o)}
+      >
+        <Menu className="h-4 w-4" />
+        {TAB_LABELS[active]}
+      </button>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">
+          {sidebarContent}
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden w-56 shrink-0 lg:block">
+        <div className="sticky top-24 rounded-2xl border border-border bg-card">
+          {sidebarContent}
+        </div>
+      </aside>
+    </>
+  );
+}
+
 // ── Dashboard shell ───────────────────────────────────────────────────────────
 
 function Dashboard() {
@@ -181,12 +261,13 @@ function Dashboard() {
     { id: "admin-tracking",    show: isAdmin },
     { id: "admin-listings",    show: isAdmin },
   ];
-  const visibleTabs = tabs.filter((t) => t.show);
 
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      <div className="mx-auto max-w-screen-2xl px-8 py-10">
+      <div className="mx-auto max-w-screen-2xl px-6 py-8">
+
+        {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
@@ -197,59 +278,29 @@ function Dashboard() {
           )}
         </div>
 
-        <DashboardTopNav tabs={visibleTabs} active={tab} onChange={setTab} isAdmin={isAdmin} />
+        {/* Two-column layout: left sidebar + main content */}
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:gap-8">
+          <DashSidebar
+            tabs={tabs}
+            active={tab}
+            onChange={setTab}
+            isAdmin={isAdmin}
+            canManageListings={canManageListings}
+          />
 
-        <div className="mt-6 min-w-0">
-          {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
-          {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
-          {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
-          {tab === "forecast"         && <Forecast />}
-          {tab === "admin-users"      && isAdmin && <UsersRoles />}
-          {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
-          {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
-          {tab === "admin-listings"   && isAdmin && <ListingQueue />}
+          {/* Main content */}
+          <div className="min-w-0 flex-1">
+            {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
+            {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
+            {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
+            {tab === "forecast"         && <Forecast />}
+            {tab === "admin-users"      && isAdmin && <UsersRoles />}
+            {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
+            {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
+            {tab === "admin-listings"   && isAdmin && <ListingQueue />}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function DashboardTopNav({
-  tabs, active, onChange, isAdmin,
-}: {
-  tabs: { id: Tab }[];
-  active: Tab;
-  onChange: (t: Tab) => void;
-  isAdmin: boolean;
-}) {
-  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
-  const nonAdminTabs = tabs.filter((t) => !adminTabs.includes(t.id));
-  const adminTabsVisible = tabs.filter((t) => adminTabs.includes(t.id));
-
-  function Pill({ id }: { id: Tab }) {
-    const Icon = TAB_ICONS[id];
-    const isActive = active === id;
-    return (
-      <button
-        onClick={() => onChange(id)}
-        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-      >
-        <Icon className="h-3.5 w-3.5" />{TAB_LABELS[id]}
-      </button>
-    );
-  }
-
-  return (
-    <div className="mt-8 border-b border-border pb-2">
-      <nav className="flex gap-1 overflow-x-auto">
-        {nonAdminTabs.map((t) => <Pill key={t.id} id={t.id} />)}
-      </nav>
-      {isAdmin && adminTabsVisible.length > 0 && (
-        <nav className="mt-1 flex gap-1 overflow-x-auto pt-1">
-          <span className="mr-1 flex items-center px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</span>
-          {adminTabsVisible.map((t) => <Pill key={t.id} id={t.id} />)}
-        </nav>
-      )}
     </div>
   );
 }
@@ -291,7 +342,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
@@ -300,11 +351,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
       {isCommissioner && (
         <>
-          <SectionCard
-            title={isDeveloper ? "All listings" : "Your listings"}
-            subtitle="A snapshot of your current properties."
-            action={<Button variant="outline" asChild><Link to="/browse">Browse all</Link></Button>}
-          />
           {listingsLoading ? (
             <p className="text-muted-foreground">Loading…</p>
           ) : myListings.length === 0 ? (
@@ -313,46 +359,55 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
               <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
             </div>
           ) : (
-            <BigTable
-              head={
-                <tr>
-                  <th className="px-6 py-5">Property</th>
-                  <th className="px-6 py-5">Type</th>
-                  <th className="px-6 py-5">Status</th>
-                  <th className="px-6 py-5">Price</th>
-                  <th className="px-6 py-5">Location</th>
-                </tr>
-              }
-            >
-              {myListings.map((p) => (
-                <tr key={p.id} className="h-28 border-t border-border">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                        {p.images?.[0]
-                          ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
-                          : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
+            <>
+              <BigTable
+                head={
+                  <tr>
+                    <th className="px-6 py-5">Property</th>
+                    <th className="px-6 py-5">Type</th>
+                    <th className="px-6 py-5">Status</th>
+                    <th className="px-6 py-5">Price</th>
+                    <th className="px-6 py-5">Location</th>
+                  </tr>
+                }
+              >
+                {myListings.map((p) => (
+                  <tr key={p.id} className="h-28 border-t border-border">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                          {p.images?.[0]
+                            ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
+                            : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
+                        </div>
+                        <div className="min-w-0">
+                          <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-semibold hover:text-primary">{p.title}</Link>
+                          <p className="truncate text-sm text-muted-foreground">{p.description || "No description yet."}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-semibold hover:text-primary">{p.title}</Link>
-                        <p className="truncate text-sm text-muted-foreground">{p.description || "No description yet."}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-                  <td className="px-6 py-5">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                      {STATUS_LABEL[p.status] ?? p.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 font-semibold whitespace-nowrap">
-                    {formatPrice(p.price)}
-                    {p.for_rent && <span className="text-sm text-muted-foreground font-normal"> /mo</span>}
-                  </td>
-                  <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
-                </tr>
-              ))}
-            </BigTable>
+                    </td>
+                    <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+                    <td className="px-6 py-5">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {STATUS_LABEL[p.status] ?? p.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 font-semibold whitespace-nowrap">
+                      {formatPrice(p.price)}
+                      {p.for_rent && <span className="text-sm text-muted-foreground font-normal"> /mo</span>}
+                    </td>
+                    <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
+                  </tr>
+                ))}
+              </BigTable>
+
+              {/* "Browse all" moved to bottom of the list */}
+              <div className="flex justify-end">
+                <Button variant="outline" asChild>
+                  <Link to="/browse">Browse all listings →</Link>
+                </Button>
+              </div>
+            </>
           )}
         </>
       )}
@@ -491,7 +546,6 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
 
   return (
     <div className="space-y-6">
-      <SectionCard title="My listings" subtitle="Manage your property listings, update their status, or edit details." />
       <BigTable
         head={
           <tr>
@@ -516,7 +570,6 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
               </span>
             </td>
             <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
-            {/* overflow-visible on the last cell so the dropdown escapes the row */}
             <td className="px-6 py-5 text-right whitespace-nowrap overflow-visible">
               <div className="flex items-center justify-end gap-2">
                 <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
