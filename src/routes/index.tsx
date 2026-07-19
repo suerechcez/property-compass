@@ -49,11 +49,20 @@ function Home() {
             Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
           </p>
 
-          <form action="/browse" method="get" className="mt-8 flex w-full max-w-2xl items-center gap-0 overflow-hidden rounded-xl bg-white shadow-2xl shadow-black/30">
-            <Input name="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0 md:text-base" />
-            <button type="submit" className="flex h-12 items-center gap-2 rounded-r-xl bg-black px-6 text-sm font-semibold text-white transition hover:bg-black/85">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
+          <form action="/browse" method="get" className="mt-8 flex w-full max-w-2xl items-center gap-3 rounded-2xl bg-white px-6 py-3 shadow-2xl shadow-black/30 md:py-4">
+            <Input
+              name="q"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by neighborhood, subdivision, or title…"
+              className="h-10 flex-1 border-0 bg-transparent p-0 text-base text-foreground shadow-none focus-visible:ring-0 md:h-12 md:text-lg"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground transition hover:bg-black/5 md:h-12 md:w-12"
+            >
+              <Search className="h-5 w-5 md:h-6 md:w-6" />
             </button>
           </form>
         </div>
