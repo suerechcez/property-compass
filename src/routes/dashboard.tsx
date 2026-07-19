@@ -104,11 +104,8 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
-// ── Table primitives ──────────────────────────────────────────────────────────
-// BigTable  → Overview, Listings, Admin tabs (tall rows, large text/thumbnails)
-// DashTable → Sales only (kept exactly as before)
+// ── Shared table shell ────────────────────────────────────────────────────────
 
-/** Large table used by every tab EXCEPT Sales */
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -122,7 +119,6 @@ function BigTable({ head, children }: { head: React.ReactNode; children: React.R
   );
 }
 
-/** Standard-size table used only by Sales */
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -170,7 +166,7 @@ function Dashboard() {
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
   if (loading || !user) {
-    return <div className="site-page"><Nav /><div className="mx-auto max-w-7xl px-6 py-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="site-page"><Nav /><div className="mx-auto max-w-screen-2xl px-8 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
   const tabs: { id: Tab; show: boolean }[] = [
@@ -188,7 +184,8 @@ function Dashboard() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      {/* max-w-screen-2xl gives tables the full horizontal room they need */}
+      <div className="mx-auto max-w-screen-2xl px-8 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
@@ -694,7 +691,7 @@ function ListingQueue() {
   );
 }
 
-// ── Sales (unchanged — DashTable kept as-is) ──────────────────────────────────
+// ── Sales ─────────────────────────────────────────────────────────────────────
 
 type GroupBy = "day" | "month";
 
