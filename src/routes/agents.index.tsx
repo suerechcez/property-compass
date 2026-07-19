@@ -20,9 +20,12 @@ export const Route = createFileRoute("/agents/")({
 });
 
 const HERO_IMAGE_URL = "/hero-agents.png";
-// Every card is exactly this tall so they always match each other
+// Fixed height AND fixed width (md:w-[calc(50%-1rem)]) so every card is
+// exactly the same size no matter how many results are in the row —
+// unlike CSS Grid, a flex item with an explicit width never depends on
+// its siblings to determine its own size.
 const CARD_CLASS =
-  "group flex w-full h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
+  "group flex w-full md:w-[calc(50%-1rem)] h-64 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
@@ -118,8 +121,12 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // Always a strict 2-column grid; every cell is equal width; cards fill the cell completely
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          // Flexbox, not CSS Grid: every card has an explicit width
+          // (md:w-[calc(50%-1rem)] baked into CARD_CLASS), so cards are
+          // always the same size and always start flush against the
+          // left edge — regardless of whether there are 1, 2, or 20
+          // results in the row.
+          <div className="flex flex-wrap gap-8">
             {filtered.map((a) => (
               <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
                 {/* Fixed-size avatar */}
