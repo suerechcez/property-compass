@@ -14,35 +14,21 @@ type SidebarItem = {
 };
 
 const ITEMS: SidebarItem[] = [
-  {
-    icon: <Search className="h-5 w-5" />,
-    label: "Search",
-    to: "/browse",
-    authRequired: false,
-  },
-  {
-    icon: <Bell className="h-5 w-5" />,
-    label: "Updates",
-    to: "/updates",
-    authRequired: true,
-    guestTo: "/updates",
-  },
-  {
-    icon: <Heart className="h-5 w-5" />,
-    label: "Favorites",
-    to: "/favorites",
-    authRequired: true,
-    guestTo: "/favorites",
-  },
+  { icon: <Search className="h-5 w-5" />, label: "Search",    to: "/browse",    authRequired: false },
+  { icon: <Bell   className="h-5 w-5" />, label: "Updates",   to: "/updates",   authRequired: true, guestTo: "/updates" },
+  { icon: <Heart  className="h-5 w-5" />, label: "Favorites", to: "/favorites", authRequired: true, guestTo: "/favorites" },
 ];
+
+// Routes where the floating sidebar should never appear
+const HIDDEN_ON = ["/dashboard", "/auth"];
 
 export function RightSideBar() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const routerState = useRouterState();
+  const path = routerState.location.pathname;
 
-  // Hide on the dashboard — it's a floating fixed widget meant for main pages only
-  if (routerState.location.pathname.startsWith("/dashboard")) return null;
+  if (HIDDEN_ON.some((prefix) => path.startsWith(prefix))) return null;
 
   return (
     <aside
