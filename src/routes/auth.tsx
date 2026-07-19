@@ -47,22 +47,23 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
 
   // C/A request fields
-  const [requestRole, setRequestRole]       = useState(false);
-  const [caRole, setCaRole]                 = useState<"commissioner" | "agent">("commissioner");
-  const [caPhone, setCaPhone]               = useState("");
-  const [caEmail, setCaEmail]               = useState(""); // may differ from auth email
-  const [caReason, setCaReason]             = useState("");
+  const [requestRole, setRequestRole] = useState(false);
+  const [caRole, setCaRole]           = useState<"commissioner" | "agent">("commissioner");
+  const [caPhone, setCaPhone]         = useState("");
+  const [caEmail, setCaEmail]         = useState("");
+  const [caReason, setCaReason]       = useState("");
 
   const [loading, setLoading]       = useState(false);
   const [heroSrc, setHeroSrc]       = useState(HERO_AUTH_JPG);
   const [heroHidden, setHeroHidden] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState("");
-  const [requestedCaRole, setRequestedCaRole] = useState<"commissioner" | "agent" | null>(null);
+  const [registeredEmail, setRegisteredEmail]           = useState("");
+  const [requestedCaRole, setRequestedCaRole]           = useState<"commissioner" | "agent" | null>(null);
 
+  // Already signed in → go to landing page, not dashboard
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
 
@@ -87,9 +88,9 @@ function AuthPage() {
       if (mode === "signup") {
         // Validate C/A extra fields if requested
         if (requestRole) {
-          if (!caPhone.trim())   throw new Error("Please enter your phone number for the role application.");
-          if (!caEmail.trim())   throw new Error("Please enter your contact email for the role application.");
-          if (!caReason.trim())  throw new Error("Please provide a reason for your role application.");
+          if (!caPhone.trim())  throw new Error("Please enter your phone number for the role application.");
+          if (!caEmail.trim())  throw new Error("Please enter your contact email for the role application.");
+          if (!caReason.trim()) throw new Error("Please provide a reason for your role application.");
         }
 
         const { data, error } = await supabase.auth.signUp({
@@ -119,28 +120,12 @@ function AuthPage() {
         setAwaitingConfirmation(true);
         return;
       } else {
-        // Sign in
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        // Sign in → always go to the landing page
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        const userId = data.user?.id;
-        if (userId) {
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", userId);
-
-          const roleSet = new Set((roles ?? []).map((r) => r.role));
-          const hasElevatedRole =
-            roleSet.has("commissioner") || roleSet.has("agent") ||
-            roleSet.has("admin")        || roleSet.has("developer");
-
-          toast.success("Signed in.");
-          navigate({ to: hasElevatedRole ? "/dashboard" : "/browse" });
-        } else {
-          toast.success("Signed in.");
-          navigate({ to: "/browse" });
-        }
+        toast.success("Signed in.");
+        navigate({ to: "/" });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
@@ -238,7 +223,7 @@ function AuthPage() {
           </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
-            {/* ── Base fields ── */}
+            {/* Base fields */}
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name">Full name</Label>
@@ -254,7 +239,7 @@ function AuthPage() {
               <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
 
-            {/* ── C/A request toggle ── */}
+            {/* C/A request toggle */}
             {mode === "signup" && (
               <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
                 <input
@@ -269,7 +254,7 @@ function AuthPage() {
               </label>
             )}
 
-            {/* ── C/A extra fields (only when checked) ── */}
+            {/* C/A extra fields */}
             {mode === "signup" && requestRole && (
               <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
                 <div>
