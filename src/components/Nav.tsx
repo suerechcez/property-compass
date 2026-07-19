@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
@@ -24,13 +24,22 @@ import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/s
 const BRAND_ICON_URL = "/brand-icon.png";
 const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
+// Routes where the marketing nav links (Browse / Sell / Find an Agent) should be hidden
+const DASHBOARD_ROUTES = ["/dashboard"];
+
 export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const routerState = useRouterState();
   const [iconOk, setIconOk] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const canManageListings = isCommissioner || isAgent;
+
+  // Hide marketing nav links on the dashboard
+  const isDashboard = DASHBOARD_ROUTES.some((r) =>
+    routerState.location.pathname.startsWith(r)
+  );
 
   useEffect(() => {
     if (!overlay) return;
@@ -54,7 +63,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   }
 
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
-  const mobileTransparent = overlay && !scrolled;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur transition-all duration-300">
@@ -62,35 +70,41 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
-                <Menu className="h-6 w-6" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left" hideClose className="w-full max-w-xs p-0">
-              <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <img src={BRAND_ICON_URL} alt="One Higala" className="h-8 w-8 object-contain" onError={() => {}} />
-                  <span className="text-base font-extrabold tracking-tight text-primary" style={{ fontFamily: "var(--font-montserrat)" }}>ONE HIGALA</span>
+          {/* Only render the hamburger + mobile sheet when not on the dashboard */}
+          {!isDashboard && (
+            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+              <SheetTrigger asChild>
+                <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
+                  <Menu className="h-6 w-6" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" hideClose className="w-full max-w-xs p-0">
+                <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <img src={BRAND_ICON_URL} alt="One Higala" className="h-8 w-8 object-contain" onError={() => {}} />
+                    <span className="text-base font-extrabold tracking-tight text-primary" style={{ fontFamily: "var(--font-montserrat)" }}>ONE HIGALA</span>
+                  </div>
+                  <SheetClose asChild>
+                    <button aria-label="Close menu" className="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"><X className="h-5 w-5" /></button>
+                  </SheetClose>
                 </div>
-                <SheetClose asChild>
-                  <button aria-label="Close menu" className="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"><X className="h-5 w-5" /></button>
-                </SheetClose>
-              </div>
-              <nav className="divide-y divide-border">
-                <SheetClose asChild><Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Browse</Link></SheetClose>
-                <SheetClose asChild><Link to="/sell"   className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Sell</Link></SheetClose>
-                <SheetClose asChild><Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Find an agent</Link></SheetClose>
-              </nav>
-            </SheetContent>
-          </Sheet>
+                <nav className="divide-y divide-border">
+                  <SheetClose asChild><Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Browse</Link></SheetClose>
+                  <SheetClose asChild><Link to="/sell"   className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Sell</Link></SheetClose>
+                  <SheetClose asChild><Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Find an agent</Link></SheetClose>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          )}
 
-          <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-            <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-            <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
-            <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
-          </nav>
+          {/* Desktop nav links — hidden on dashboard */}
+          {!isDashboard && (
+            <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+              <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+              <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
+              <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+            </nav>
+          )}
         </div>
 
         {/* Center — brand */}
@@ -111,7 +125,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  {/* Avatar is always h-12 w-12 on every page — no size variation */}
                   <Avatar className="h-12 w-12 border border-border">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
