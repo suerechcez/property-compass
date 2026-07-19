@@ -49,7 +49,7 @@ function UpdatesPage() {
       <Nav />
       <main className="flex flex-1 flex-col">
         {!user ? (
-          // ── Guest gate (Zillow-style) ──
+          // ── Guest gate ──
           <section className="flex flex-1 items-center bg-surface">
             <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-10 px-8 py-20 md:flex-row md:items-center md:gap-16">
               <div className="max-w-sm shrink-0">
@@ -74,7 +74,6 @@ function UpdatesPage() {
                     else img.style.display = "none";
                   }}
                 />
-                {/* Placeholder shown while image is absent */}
                 <div className="absolute inset-0 -z-10 flex max-w-md items-center justify-center rounded-2xl bg-muted">
                   <Bell className="h-16 w-16 text-muted-foreground/30" />
                 </div>
@@ -82,37 +81,53 @@ function UpdatesPage() {
             </div>
           </section>
         ) : (
-          // ── Authenticated: show listing updates ──
-          <section className="mx-auto w-full max-w-4xl px-6 py-10">
-            <div className="mb-6 flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              <h1 className="font-display text-2xl font-semibold">Listing Updates</h1>
+          // ── Authenticated: enlarged card-style listing updates ──
+          <section className="mx-auto w-full max-w-5xl px-6 py-10">
+            <div className="mb-8 flex items-center gap-2">
+              <Bell className="h-6 w-6 text-primary" />
+              <h1 className="font-display text-3xl font-semibold">Listing Updates</h1>
             </div>
             {recent.length === 0 ? (
               <p className="text-muted-foreground">No listing updates yet — check back soon.</p>
             ) : (
-              <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+              <ul className="space-y-4">
                 {recent.map((p) => (
                   <li key={p.id}>
                     <Link
                       to="/properties/$id"
                       params={{ id: p.id }}
-                      className="group flex items-center gap-4 p-4 transition hover:bg-accent"
+                      className="group flex items-center gap-6 rounded-2xl border border-border bg-card p-5 transition hover:border-primary hover:shadow-md"
                     >
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                      {/* Thumbnail */}
+                      <div className="h-32 w-44 shrink-0 overflow-hidden rounded-xl bg-muted">
                         {p.images?.[0] ? (
-                          <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                          <img
+                            src={p.images[0]}
+                            alt={p.title}
+                            className="h-full w-full object-cover transition group-hover:scale-105"
+                          />
                         ) : (
-                          <div className="grid h-full w-full place-items-center font-display text-xl text-muted-foreground">H</div>
+                          <div className="grid h-full w-full place-items-center font-display text-3xl text-muted-foreground">H</div>
                         )}
                       </div>
+
+                      {/* Details */}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-display font-semibold group-hover:text-primary">{p.title}</p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {typeLabel(p.property_type)} · {formatPrice(p.price)}
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {typeLabel(p.property_type)}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          By {p.commissioner?.full_name ?? "a commissioner"} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                        <p className="mt-1 font-display text-xl font-bold leading-tight group-hover:text-primary">
+                          {p.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {p.location ?? "Location TBD"}
+                        </p>
+                        <p className="mt-3 font-display text-2xl font-semibold text-primary">
+                          {formatPrice(p.price)}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          By {p.commissioner?.full_name ?? "a commissioner"} ·{" "}
+                          {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                         </p>
                       </div>
                     </Link>
