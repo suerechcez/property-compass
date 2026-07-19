@@ -20,24 +20,24 @@ import {
   Plus, X, ChevronUp, ChevronDown, Menu, type LucideIcon,
 } from "lucide-react";
 
-type Tab =
-  | "overview" | "listings" | "sales" | "forecast"
-  | "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
+// Admin tabs are still switched views; non-admin sections are scrollable anchors
+type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
+type ScrollSection = "overview" | "listings" | "sales" | "forecast";
+type ActiveView = ScrollSection | AdminTab;
 
-const TABS: Tab[] = [
-  "overview", "listings", "sales", "forecast",
-  "admin-users", "admin-requests", "admin-tracking", "admin-listings",
-];
+const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
+const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
+const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
-    tab: (TABS.includes(search.tab as Tab) ? search.tab : "overview") as Tab,
+    tab: (ALL_TABS.includes(search.tab as ActiveView) ? search.tab : "overview") as ActiveView,
   }),
   head: () => ({ meta: [{ title: "Dashboard · One Higala Properties Inc." }] }),
   component: Dashboard,
 });
 
-const TAB_ICONS: Record<Tab, LucideIcon> = {
+const TAB_ICONS: Record<ActiveView, LucideIcon> = {
   overview:           LayoutDashboard,
   listings:           Building2,
   sales:              Wallet,
@@ -48,7 +48,7 @@ const TAB_ICONS: Record<Tab, LucideIcon> = {
   "admin-listings":   CheckCircle2,
 };
 
-const TAB_LABELS: Record<Tab, string> = {
+const TAB_LABELS: Record<ActiveView, string> = {
   overview:           "Overview",
   listings:           "My listings",
   sales:              "Sales",
@@ -60,25 +60,21 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
-
 function pickGreeting(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return GREETINGS[(h + Math.floor(Date.now() / (1000 * 60 * 60 * 12))) % GREETINGS.length];
 }
-
 function friendlyName(user: { email?: string | null; user_metadata?: Record<string, unknown> }): string {
   const meta = user.user_metadata ?? {};
   const full = (meta.full_name as string) || (meta.name as string) || "";
   if (full) return full.split(" ")[0];
   return user.email?.split("@")[0] ?? "friend";
 }
-
 function cssVar(name: string): string {
   if (typeof window === "undefined") return "";
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
-
 function formatYAxis(v: number): string {
   if (v >= 1_000_000_000) return `₱${(v / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
   if (v >= 1_000_000)     return `₱${(v / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -94,7 +90,6 @@ const STATUS_BADGE: Record<string, string> = {
   sold:      "bg-blue-100 text-blue-800",
   rented:    "bg-purple-100 text-purple-800",
 };
-
 const STATUS_LABEL: Record<string, string> = {
   pending:   "⏳ Pending review",
   rejected:  "❌ Rejected",
@@ -104,39 +99,30 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
-// ── Shared table shell ────────────────────────────────────────────────────────
+// ── Shared table shells ────────────────────────────────────────────────────────
 
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card">
       <table className="w-full text-base">
-        <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          {head}
-        </thead>
+        <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">{head}</thead>
         <tbody>{children}</tbody>
       </table>
     </div>
   );
 }
-
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card">
       <table className="w-full text-sm">
-        <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">
-          {head}
-        </thead>
+        <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">{head}</thead>
         <tbody>{children}</tbody>
       </table>
     </div>
   );
 }
-
 function SectionCard({ title, subtitle, action, children }: {
-  title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-  children?: React.ReactNode;
+  title: string; subtitle?: string; action?: React.ReactNode; children?: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
@@ -152,28 +138,44 @@ function SectionCard({ title, subtitle, action, children }: {
   );
 }
 
-// ── Left sidebar nav ──────────────────────────────────────────────────────────
+// ── Left sidebar ───────────────────────────────────────────────────────────────
 
 function DashSidebar({
-  tabs, active, onChange, isAdmin, canManageListings,
+  canManageListings, isAdmin, activeSection, onAdminTab, adminTab,
 }: {
-  tabs: { id: Tab; show: boolean }[];
-  active: Tab;
-  onChange: (t: Tab) => void;
-  isAdmin: boolean;
   canManageListings: boolean;
+  isAdmin: boolean;
+  activeSection: ScrollSection;
+  onAdminTab: (t: AdminTab) => void;
+  adminTab: AdminTab | null;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const adminTabs: Tab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
-  const mainTabs   = tabs.filter((t) => t.show && !adminTabs.includes(t.id));
-  const adminVisible = tabs.filter((t) => t.show && adminTabs.includes(t.id));
 
-  function NavItem({ id }: { id: Tab }) {
+  function scrollTo(id: ScrollSection) {
+    setMobileOpen(false);
+    // If currently showing an admin view, scroll to main page first then anchor
+    const el = document.getElementById(`section-${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  const mainItems: { id: ScrollSection; show: boolean }[] = [
+    { id: "overview", show: true },
+    { id: "listings", show: canManageListings },
+    { id: "sales",    show: canManageListings },
+    { id: "forecast", show: canManageListings },
+  ];
+
+  function NavItem({ id, isActive }: { id: ActiveView; isActive: boolean }) {
     const Icon = TAB_ICONS[id];
-    const isActive = active === id;
+    const isAdmin_ = ADMIN_TABS.includes(id as AdminTab);
     return (
       <button
-        onClick={() => { onChange(id); setMobileOpen(false); }}
+        onClick={() => {
+          if (isAdmin_) { onAdminTab(id as AdminTab); setMobileOpen(false); }
+          else scrollTo(id as ScrollSection);
+        }}
         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
           isActive
             ? "bg-primary text-primary-foreground shadow-sm"
@@ -186,21 +188,20 @@ function DashSidebar({
     );
   }
 
-  const sidebarContent = (
-    <div className="flex h-full flex-col gap-1 p-3">
-      {/* Main nav */}
-      <div className="space-y-0.5">
-        {mainTabs.map((t) => <NavItem key={t.id} id={t.id} />)}
-      </div>
+  const currentLabel = adminTab ? TAB_LABELS[adminTab] : TAB_LABELS[activeSection];
 
-      {/* Admin nav */}
-      {isAdmin && adminVisible.length > 0 && (
+  const content = (
+    <div className="flex flex-col gap-1 p-3">
+      {mainItems.filter((t) => t.show).map((t) => (
+        <NavItem key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} />
+      ))}
+      {isAdmin && (
         <>
           <div className="my-3 border-t border-border" />
           <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
-          <div className="space-y-0.5">
-            {adminVisible.map((t) => <NavItem key={t.id} id={t.id} />)}
-          </div>
+          {ADMIN_TABS.map((t) => (
+            <NavItem key={t} id={t} isActive={adminTab === t} />
+          ))}
         </>
       )}
     </div>
@@ -213,60 +214,61 @@ function DashSidebar({
         className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
       >
-        <Menu className="h-4 w-4" />
-        {TAB_LABELS[active]}
+        <Menu className="h-4 w-4" />{currentLabel}
       </button>
-
-      {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">
-          {sidebarContent}
-        </div>
+        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{content}</div>
       )}
-
-      {/* Desktop sidebar */}
+      {/* Desktop */}
       <aside className="hidden w-56 shrink-0 lg:block">
-        <div className="sticky top-24 rounded-2xl border border-border bg-card">
-          {sidebarContent}
-        </div>
+        <div className="sticky top-24 rounded-2xl border border-border bg-card">{content}</div>
       </aside>
     </>
   );
 }
 
-// ── Dashboard shell ───────────────────────────────────────────────────────────
+// ── Dashboard shell ────────────────────────────────────────────────────────────
 
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { tab: urlTab } = Route.useSearch();
-  const [tab, setTab] = useState<Tab>(urlTab);
   const elevated = isAdmin || isDeveloper;
   const canManageListings = isCommissioner || isAgent;
 
-  useEffect(() => { setTab(urlTab); }, [urlTab]);
+  // Admin tabs are switched; scroll sections are anchors
+  const [adminTab, setAdminTab] = useState<AdminTab | null>(
+    ADMIN_TABS.includes(urlTab as AdminTab) ? (urlTab as AdminTab) : null
+  );
+  const [activeSection, setActiveSection] = useState<ScrollSection>("overview");
+
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
+
+  // Intersection observer to highlight the active sidebar section while scrolling
+  useEffect(() => {
+    if (adminTab) return; // don't track scroll when in admin view
+    const observers: IntersectionObserver[] = [];
+    SCROLL_SECTIONS.forEach((id) => {
+      const el = document.getElementById(`section-${id}`);
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
+        { rootMargin: "-30% 0px -60% 0px" }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [adminTab]);
 
   if (loading || !user) {
     return <div className="site-page"><Nav /><div className="mx-auto max-w-screen-2xl px-8 py-10 text-muted-foreground">Loading…</div></div>;
   }
 
-  const tabs: { id: Tab; show: boolean }[] = [
-    { id: "overview",          show: true },
-    { id: "listings",          show: canManageListings },
-    { id: "sales",             show: canManageListings },
-    { id: "forecast",          show: canManageListings },
-    { id: "admin-users",       show: isAdmin },
-    { id: "admin-requests",    show: isAdmin },
-    { id: "admin-tracking",    show: isAdmin },
-    { id: "admin-listings",    show: isAdmin },
-  ];
-
   return (
     <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-screen-2xl px-6 py-8">
-
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -278,26 +280,66 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Two-column layout: left sidebar + main content */}
-        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:gap-8">
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
           <DashSidebar
-            tabs={tabs}
-            active={tab}
-            onChange={setTab}
-            isAdmin={isAdmin}
             canManageListings={canManageListings}
+            isAdmin={isAdmin}
+            activeSection={activeSection}
+            adminTab={adminTab}
+            onAdminTab={(t) => setAdminTab(t)}
           />
 
-          {/* Main content */}
           <div className="min-w-0 flex-1">
-            {tab === "overview"         && <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />}
-            {tab === "listings"         && <Listings userId={user.id} isDeveloper={elevated} />}
-            {tab === "sales"            && <Sales userId={user.id} isDeveloper={elevated} />}
-            {tab === "forecast"         && <Forecast />}
-            {tab === "admin-users"      && isAdmin && <UsersRoles />}
-            {tab === "admin-requests"   && isAdmin && <CommissionerRequests />}
-            {tab === "admin-tracking"   && isAdmin && <CommissionerTracking />}
-            {tab === "admin-listings"   && isAdmin && <ListingQueue />}
+            {/* ── Admin switched views ── */}
+            {adminTab ? (
+              <div className="space-y-6">
+                <button
+                  onClick={() => setAdminTab(null)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  ← Back to dashboard
+                </button>
+                {adminTab === "admin-users"     && <UsersRoles />}
+                {adminTab === "admin-requests"  && <CommissionerRequests />}
+                {adminTab === "admin-tracking"  && <CommissionerTracking />}
+                {adminTab === "admin-listings"  && <ListingQueue />}
+              </div>
+            ) : (
+              /* ── Scrollable main sections ── */
+              <div className="space-y-16">
+                <section id="section-overview">
+                  <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
+                </section>
+
+                {canManageListings && (
+                  <>
+                    <section id="section-listings">
+                      <div className="mb-6 flex items-center gap-3">
+                        <Building2 className="h-5 w-5 text-primary" />
+                        <h2 className="font-display text-2xl font-semibold">My listings</h2>
+                      </div>
+                      <Listings userId={user.id} isDeveloper={elevated} />
+                    </section>
+
+                    <section id="section-sales">
+                      <div className="mb-6 flex items-center gap-3">
+                        <Wallet className="h-5 w-5 text-primary" />
+                        <h2 className="font-display text-2xl font-semibold">Sales</h2>
+                      </div>
+                      <Sales userId={user.id} isDeveloper={elevated} />
+                    </section>
+
+                    <section id="section-forecast">
+                      <div className="mb-6 flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        <h2 className="font-display text-2xl font-semibold">AI forecast</h2>
+                      </div>
+                      <Forecast />
+                    </section>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -328,89 +370,18 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
     },
   });
 
-  const { data: myListings = [], isLoading: listingsLoading } = useQuery({
-    queryKey: ["overview-listings", userId, isDeveloper],
-    queryFn: async () => {
-      let q = supabase.from("properties").select("*").order("created_at", { ascending: false });
-      if (!isDeveloper) q = q.eq("commissioner_id", userId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: isCommissioner,
-  });
-
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <LayoutDashboard className="h-5 w-5 text-primary" />
+        <h2 className="font-display text-2xl font-semibold">Overview</h2>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
-
-      {isCommissioner && (
-        <>
-          {listingsLoading ? (
-            <p className="text-muted-foreground">Loading…</p>
-          ) : myListings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-              <p className="text-muted-foreground">No listings yet.</p>
-              <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
-            </div>
-          ) : (
-            <>
-              <BigTable
-                head={
-                  <tr>
-                    <th className="px-6 py-5">Property</th>
-                    <th className="px-6 py-5">Type</th>
-                    <th className="px-6 py-5">Status</th>
-                    <th className="px-6 py-5">Price</th>
-                    <th className="px-6 py-5">Location</th>
-                  </tr>
-                }
-              >
-                {myListings.map((p) => (
-                  <tr key={p.id} className="h-28 border-t border-border">
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-4">
-                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                          {p.images?.[0]
-                            ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
-                            : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
-                        </div>
-                        <div className="min-w-0">
-                          <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-semibold hover:text-primary">{p.title}</Link>
-                          <p className="truncate text-sm text-muted-foreground">{p.description || "No description yet."}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                        {STATUS_LABEL[p.status] ?? p.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 font-semibold whitespace-nowrap">
-                      {formatPrice(p.price)}
-                      {p.for_rent && <span className="text-sm text-muted-foreground font-normal"> /mo</span>}
-                    </td>
-                    <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
-                  </tr>
-                ))}
-              </BigTable>
-
-              {/* "Browse all" moved to bottom of the list */}
-              <div className="flex justify-end">
-                <Button variant="outline" asChild>
-                  <Link to="/browse">Browse all listings →</Link>
-                </Button>
-              </div>
-            </>
-          )}
-        </>
-      )}
     </div>
   );
 }
@@ -427,33 +398,26 @@ function Stat({ label, value }: { label: string; value: string }) {
 // ── Status dropdown ───────────────────────────────────────────────────────────
 
 type StatusOption = { label: string; value: string; className: string };
-
 const LISTING_STATUS_OPTIONS: StatusOption[] = [
   { label: "Draft",  value: "draft",  className: "text-gray-700 hover:bg-gray-50" },
   { label: "Rented", value: "rented", className: "text-purple-700 hover:bg-purple-50" },
   { label: "Sold",   value: "sold",   className: "text-blue-700 hover:bg-blue-50" },
 ];
-
 const NO_DROPDOWN_STATUSES = new Set(["sold", "pending", "rejected"]);
 
-function StatusDropdown({
-  property, onSelect, loading,
-}: {
+function StatusDropdown({ property, onSelect, loading }: {
   property: { id: string; status: string; for_rent: boolean; title: string };
   onSelect: (value: string) => void;
   loading: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
   if (NO_DROPDOWN_STATUSES.has(property.status)) return null;
-
   const options = LISTING_STATUS_OPTIONS.filter((o) => {
     if (o.value === property.status) return false;
     if (o.value === "rented" && !property.for_rent) return false;
     return true;
   });
-
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -461,9 +425,7 @@ function StatusDropdown({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
   if (options.length === 0) return null;
-
   return (
     <div className="relative" ref={ref}>
       <Button size="sm" variant="outline" disabled={loading} onClick={() => setOpen((o) => !o)} className="gap-1" title="Update status">
@@ -482,7 +444,7 @@ function StatusDropdown({
   );
 }
 
-// ── Listings tab ──────────────────────────────────────────────────────────────
+// ── Listings ──────────────────────────────────────────────────────────────────
 
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
@@ -513,7 +475,6 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       newStatus === "sold"   ? `Mark "${p.title}" as sold? This will log it under Sales.` :
       newStatus === "rented" ? `Mark "${p.title}" as rented? It will remain visible in Browse.` :
       `Move "${p.title}" back to Draft?`;
-
     if (!confirm(confirmMsg)) return;
     setLoadingId(p.id);
     try {
@@ -528,7 +489,6 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       qc.invalidateQueries({ queryKey: ["my-listings"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      qc.invalidateQueries({ queryKey: ["overview-listings"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update status");
     } finally {
@@ -545,46 +505,44 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
   );
 
   return (
-    <div className="space-y-6">
-      <BigTable
-        head={
-          <tr>
-            <th className="px-6 py-5">Title</th>
-            <th className="px-6 py-5">Type</th>
-            <th className="px-6 py-5">Status</th>
-            <th className="px-6 py-5">Price</th>
-            <th />
-          </tr>
-        }
-      >
-        {properties.map((p) => (
-          <tr key={p.id} className="h-28 border-t border-border">
-            <td className="px-6 py-5">
-              <Link to="/properties/$id" params={{ id: p.id }} className="font-semibold hover:text-primary">{p.title}</Link>
-              <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
-            </td>
-            <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-            <td className="px-6 py-5">
-              <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
-                {STATUS_LABEL[p.status] ?? p.status}
-              </span>
-            </td>
-            <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
-            <td className="px-6 py-5 text-right whitespace-nowrap overflow-visible">
-              <div className="flex items-center justify-end gap-2">
-                <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
-                </Button>
-                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>
-                  Delete
-                </Button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </BigTable>
-    </div>
+    <BigTable
+      head={
+        <tr>
+          <th className="px-6 py-5">Title</th>
+          <th className="px-6 py-5">Type</th>
+          <th className="px-6 py-5">Status</th>
+          <th className="px-6 py-5">Price</th>
+          <th />
+        </tr>
+      }
+    >
+      {properties.map((p) => (
+        <tr key={p.id} className="h-28 border-t border-border">
+          <td className="px-6 py-5">
+            <Link to="/properties/$id" params={{ id: p.id }} className="font-semibold hover:text-primary">{p.title}</Link>
+            <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
+          </td>
+          <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+          <td className="px-6 py-5">
+            <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+              {STATUS_LABEL[p.status] ?? p.status}
+            </span>
+          </td>
+          <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
+          <td className="px-6 py-5 text-right whitespace-nowrap overflow-visible">
+            <div className="flex items-center justify-end gap-2">
+              <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
+              </Button>
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Delete this listing?")) del.mutate(p.id); }}>
+                Delete
+              </Button>
+            </div>
+          </td>
+        </tr>
+      ))}
+    </BigTable>
   );
 }
 
@@ -627,8 +585,7 @@ function ListingQueue() {
       toast.success(v.action === "approve" ? "Listing approved and published!" : "Listing rejected.");
       qc.invalidateQueries({ queryKey: ["admin-listing-queue"] });
       qc.invalidateQueries({ queryKey: ["my-listings"] });
-      setOpenId(null);
-      setRejectNote("");
+      setOpenId(null); setRejectNote("");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -643,9 +600,7 @@ function ListingQueue() {
         action={
           <div className="flex items-center gap-3">
             {pendingCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">
-                {pendingCount} pending
-              </span>
+              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">{pendingCount} pending</span>
             )}
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
               {(["pending", "all"] as const).map((f) => (
@@ -657,17 +612,15 @@ function ListingQueue() {
           </div>
         }
       />
-
       {isLoading ? <p className="text-muted-foreground">Loading…</p>
       : error ? (
         <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-          Failed to load listings: {error instanceof Error ? error.message : "Unknown error"}
+          Failed to load: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       ) : listings.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center">
           <CheckCircle2 className="mx-auto h-10 w-10 text-green-400" />
           <p className="mt-3 font-medium">All clear — no {filter === "pending" ? "pending" : ""} listings.</p>
-          <p className="text-sm text-muted-foreground">New submissions from commissioners will appear here.</p>
         </div>
       ) : (
         <BigTable
@@ -719,17 +672,13 @@ function ListingQueue() {
                         </Button>
                       </>
                     )}
-                    {p.status !== "pending" && (
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link>
-                      </Button>
-                    )}
+                    {p.status !== "pending" && <Button size="sm" variant="outline" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>}
                   </td>
                 </tr>
                 {isOpen && p.status === "pending" && (
                   <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
                     <td colSpan={7} className="px-6 py-5">
-                      <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
+                      <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional):</p>
                       <div className="flex gap-2">
                         <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
                         <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>Confirm rejection</Button>
@@ -808,20 +757,16 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
     if (groupBy === "month") { const [y, m] = val.split("-"); return format(new Date(Number(y), Number(m) - 1, 1), "MMM yy"); }
     return format(new Date(val), "MMM d");
   };
-
   const chartColors = useMemo(() => ({
-    border: cssVar("--border"),
-    mutedFg: cssVar("--muted-foreground"),
-    primary: cssVar("--primary"),
-    card: cssVar("--card"),
-    cardFg: cssVar("--card-foreground"),
+    border: cssVar("--border"), mutedFg: cssVar("--muted-foreground"),
+    primary: cssVar("--primary"), card: cssVar("--card"), cardFg: cssVar("--card-foreground"),
   }), []);
 
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h2>
+          <h3 className="font-display text-lg font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h3>
           {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>}
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-5" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
@@ -843,7 +788,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
       {chartData.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-semibold">Sales over time</h2>
+            <h3 className="font-display text-lg font-semibold">Sales over time</h3>
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
               {(["day", "month"] as GroupBy[]).map((g) => (
                 <button key={g} onClick={() => setGroupBy(g)} className={`rounded-full px-3 py-1 capitalize transition ${groupBy === g ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -867,16 +812,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
       )}
 
       <DashTable
-        head={
-          <tr>
-            <th className="px-5 py-4">Date</th>
-            <th className="px-5 py-4">Property</th>
-            <th className="px-5 py-4">Buyer</th>
-            <th className="px-5 py-4">Amount</th>
-            <th className="px-5 py-4">Commission</th>
-            <th />
-          </tr>
-        }
+        head={<tr><th className="px-5 py-4">Date</th><th className="px-5 py-4">Property</th><th className="px-5 py-4">Buyer</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Commission</th><th /></tr>}
       >
         {sales.length === 0
           ? <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">No sales logged yet.</td></tr>
@@ -915,11 +851,12 @@ function Forecast() {
 
   return (
     <div className="space-y-6">
-      <SectionCard
-        title="AI sales forecast"
-        subtitle="Analyze your logged sales and project the next three months."
-        action={<Button onClick={run} disabled={loading}>{loading ? "Analyzing…" : "Run forecast"}</Button>}
-      />
+      <div className="rounded-2xl border border-border bg-card p-6 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
+        </div>
+        <Button onClick={run} disabled={loading} className="shrink-0">{loading ? "Analyzing…" : "Run forecast"}</Button>
+      </div>
       {result && (
         <>
           {result.forecast.length > 0 && (
@@ -959,20 +896,13 @@ function UsersRoles() {
       return (profiles ?? []).map((p) => ({ ...p, roles: map.get(p.id) ?? [] }));
     },
   });
-
   const grant = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "agent" | "admin" }) => {
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-      if (error) throw error;
-    },
+    mutationFn: async ({ userId, role }: { userId: string; role: "commissioner" | "agent" | "admin" }) => { const { error } = await supabase.from("user_roles").insert({ user_id: userId, role }); if (error) throw error; },
     onSuccess: () => { toast.success("Role granted"); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const revoke = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
-      if (error) throw error;
-    },
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => { const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role); if (error) throw error; },
     onSuccess: (_d, v) => { toast.success(`${v.role} role revoked`); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -980,15 +910,7 @@ function UsersRoles() {
   return (
     <div className="space-y-6">
       <SectionCard title="Users & Roles" subtitle="Manage who can post listings and who has admin access." />
-      <BigTable
-        head={
-          <tr>
-            <th className="px-6 py-5">User</th>
-            <th className="px-6 py-5">Roles</th>
-            <th className="px-6 py-5 text-right">Actions</th>
-          </tr>
-        }
-      >
+      <BigTable head={<tr><th className="px-6 py-5">User</th><th className="px-6 py-5">Roles</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
         {users.map((u) => (
           <tr key={u.id} className="h-28 border-t border-border">
             <td className="px-6 py-5">
@@ -997,21 +919,19 @@ function UsersRoles() {
             </td>
             <td className="px-6 py-5">
               <div className="flex flex-wrap gap-1.5">
-                {u.roles.length === 0
-                  ? <span className="text-muted-foreground">—</span>
-                  : u.roles.map((r) => {
-                    const isRevocable = r === "commissioner" || r === "agent";
-                    return (
-                      <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1.5 text-sm">
-                        {r}
-                        {isRevocable && (
-                          <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
+                {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
+                  const isRevocable = r === "commissioner" || r === "agent";
+                  return (
+                    <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1.5 text-sm">
+                      {r}
+                      {isRevocable && (
+                        <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             </td>
             <td className="px-6 py-5 text-right whitespace-nowrap">
@@ -1035,11 +955,7 @@ function CommissionerRequests() {
   const { data: requests = [] } = useQuery({
     queryKey: ["commissioner-requests"],
     queryFn: async () => {
-      const { data: reqs } = await supabase
-        .from("commissioner_requests")
-        .select("id, user_id, status, created_at, note, full_name, phone, email, reason, requested_role")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
+      const { data: reqs } = await supabase.from("commissioner_requests").select("id, user_id, status, created_at, note, full_name, phone, email, reason, requested_role").eq("status", "pending").order("created_at", { ascending: false });
       const ids = Array.from(new Set((reqs ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const { data: profiles } = await supabase.from("profiles").select("id, full_name, email, phone").in("id", ids);
@@ -1050,38 +966,18 @@ function CommissionerRequests() {
 
   const decide = useMutation({
     mutationFn: async ({ id, userId, role }: { id: string; userId: string; role: "commissioner" | "agent" | null }) => {
-      if (role) {
-        const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role });
-        if (rerr && !rerr.message.includes("duplicate")) throw rerr;
-      }
-      const { error } = await supabase
-        .from("commissioner_requests")
-        .update({ status: role ? "approved" : "denied", decided_at: new Date().toISOString() })
-        .eq("id", id);
+      if (role) { const { error: rerr } = await supabase.from("user_roles").insert({ user_id: userId, role }); if (rerr && !rerr.message.includes("duplicate")) throw rerr; }
+      const { error } = await supabase.from("commissioner_requests").update({ status: role ? "approved" : "denied", decided_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_d, v) => {
-      toast.success(v.role ? `Approved as ${v.role}` : "Request denied");
-      qc.invalidateQueries({ queryKey: ["commissioner-requests"] });
-      qc.invalidateQueries({ queryKey: ["all-users"] });
-      setOpenId(null);
-    },
+    onSuccess: (_d, v) => { toast.success(v.role ? `Approved as ${v.role}` : "Request denied"); qc.invalidateQueries({ queryKey: ["commissioner-requests"] }); qc.invalidateQueries({ queryKey: ["all-users"] }); setOpenId(null); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Requests" subtitle="Review pending applications and approve or deny them." />
-      <BigTable
-        head={
-          <tr>
-            <th className="px-6 py-5">Applicant</th>
-            <th className="px-6 py-5">Requested role</th>
-            <th className="px-6 py-5">Date</th>
-            <th className="px-6 py-5 text-right">Actions</th>
-          </tr>
-        }
-      >
+      <BigTable head={<tr><th className="px-6 py-5">Applicant</th><th className="px-6 py-5">Requested role</th><th className="px-6 py-5">Date</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
         {requests.length === 0
           ? <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No pending requests.</td></tr>
           : requests.map((r) => {
@@ -1091,19 +987,10 @@ function CommissionerRequests() {
             return (
               <>
                 <tr key={r.id} className="h-28 border-t border-border">
-                  <td className="px-6 py-5">
-                    <div className="font-semibold">{displayName}</div>
-                    <div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
-                  </td>
-                  <td className="px-6 py-5">
-                    {r.requested_role
-                      ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span>
-                      : <span className="text-muted-foreground">—</span>}
-                  </td>
+                  <td className="px-6 py-5"><div className="font-semibold">{displayName}</div><div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
+                  <td className="px-6 py-5">{r.requested_role ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-6 py-5">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
-                  <td className="px-6 py-5 text-right">
-                    <Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button>
-                  </td>
+                  <td className="px-6 py-5 text-right"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
                 </tr>
                 {isOpen && (
                   <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
@@ -1145,16 +1032,10 @@ function CommissionerTracking() {
     },
   });
   const commissioners = users.filter((u) => u.roles.includes("commissioner") || u.roles.includes("agent"));
-
   const { data: sales = [] } = useQuery({
     queryKey: ["admin-all-sales"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sales").select("commissioner_id, amount, commission, sale_date").order("sale_date", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: async () => { const { data, error } = await supabase.from("sales").select("commissioner_id, amount, commission, sale_date").order("sale_date", { ascending: false }); if (error) throw error; return data ?? []; },
   });
-
   const byAgent = useMemo(() => {
     const m = new Map<string, { volume: number; commission: number; count: number; last: string | null }>();
     sales.forEach((s) => {
@@ -1169,26 +1050,14 @@ function CommissionerTracking() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Tracking" subtitle="Monitor sales performance across all commissioners and agents." />
-      <BigTable
-        head={
-          <tr>
-            <th className="px-6 py-5">Agent</th>
-            <th className="px-6 py-5 text-right">Deals</th>
-            <th className="px-6 py-5 text-right">Volume</th>
-            <th className="px-6 py-5 text-right">Commission</th>
-            <th className="px-6 py-5">Last sale</th>
-          </tr>
-        }
-      >
+      <BigTable head={<tr><th className="px-6 py-5">Agent</th><th className="px-6 py-5 text-right">Deals</th><th className="px-6 py-5 text-right">Volume</th><th className="px-6 py-5 text-right">Commission</th><th className="px-6 py-5">Last sale</th></tr>}>
         {commissioners.length === 0
           ? <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
           : commissioners.map((c) => {
             const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
             return (
               <tr key={c.id} className="h-28 border-t border-border">
-                <td className="px-6 py-5">
-                  <Link to="/agents/$id" params={{ id: c.id }} className="font-semibold hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
-                </td>
+                <td className="px-6 py-5"><Link to="/agents/$id" params={{ id: c.id }} className="font-semibold hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link></td>
                 <td className="px-6 py-5 text-right">{s.count}</td>
                 <td className="px-6 py-5 text-right font-semibold">{formatPrice(s.volume)}</td>
                 <td className="px-6 py-5 text-right text-primary font-semibold">{formatPrice(s.commission)}</td>
