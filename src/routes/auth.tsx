@@ -21,19 +21,44 @@ const BRAND_ICON_URL = "/brand-icon.png";
 const HERO_AUTH_JPG  = "/hero-auth.jpg";
 const HERO_AUTH_PNG  = "/hero-auth.png";
 
+function RoleChoice({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground/70 hover:bg-accent"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
+
+  // Base fields
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [requestCommissioner, setRequestCommissioner] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [heroSrc, setHeroSrc] = useState(HERO_AUTH_JPG);
+
+  // C/A request fields
+  const [requestRole, setRequestRole]       = useState(false);
+  const [caRole, setCaRole]                 = useState<"commissioner" | "agent">("commissioner");
+  const [caPhone, setCaPhone]               = useState("");
+  const [caEmail, setCaEmail]               = useState(""); // may differ from auth email
+  const [caReason, setCaReason]             = useState("");
+
+  const [loading, setLoading]       = useState(false);
+  const [heroSrc, setHeroSrc]       = useState(HERO_AUTH_JPG);
   const [heroHidden, setHeroHidden] = useState(false);
-  // After signup, show the "check your email" confirmation screen
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [requestedCaRole, setRequestedCaRole] = useState<"commissioner" | "agent" | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -41,11 +66,32 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  // Keep caEmail in sync with the auth email by default
+  useEffect(() => {
+    if (!caEmail) setCaEmail(email);
+  }, [email]);
+
+  function switchMode(next: "signin" | "signup") {
+    setMode(next);
+    setPassword("");
+    setRequestRole(false);
+    setCaPhone("");
+    setCaEmail("");
+    setCaReason("");
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "signup") {
+        // Validate C/A extra fields if requested
+        if (requestRole) {
+          if (!caPhone.trim())   throw new Error("Please enter your phone number for the role application.");
+          if (!caEmail.trim())   throw new Error("Please enter your contact email for the role application.");
+          if (!caReason.trim())  throw new Error("Please provide a reason for your role application.");
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -56,24 +102,27 @@ function AuthPage() {
         });
         if (error) throw error;
 
-        // Submit commissioner request if requested
-        if (data.user && requestCommissioner) {
+        if (data.user && requestRole) {
           await supabase.from("commissioner_requests").insert({
-            user_id: data.user.id,
-            status: "pending",
+            user_id:        data.user.id,
+            status:         "pending",
+            requested_role: caRole,
+            full_name:      fullName.trim(),
+            phone:          caPhone.trim(),
+            email:          caEmail.trim(),
+            reason:         caReason.trim(),
           });
         }
 
-        // Show the email confirmation screen instead of navigating
         setRegisteredEmail(email);
+        setRequestedCaRole(requestRole ? caRole : null);
         setAwaitingConfirmation(true);
-        return; // do NOT navigate anywhere
+        return;
       } else {
         // Sign in
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Determine where to send the user based on their roles
         const userId = data.user?.id;
         if (userId) {
           const { data: roles } = await supabase
@@ -83,13 +132,10 @@ function AuthPage() {
 
           const roleSet = new Set((roles ?? []).map((r) => r.role));
           const hasElevatedRole =
-            roleSet.has("commissioner") ||
-            roleSet.has("agent") ||
-            roleSet.has("admin") ||
-            roleSet.has("developer");
+            roleSet.has("commissioner") || roleSet.has("agent") ||
+            roleSet.has("admin")        || roleSet.has("developer");
 
           toast.success("Signed in.");
-          // Only send to dashboard if the user has a role that actually uses it
           navigate({ to: hasElevatedRole ? "/dashboard" : "/browse" });
         } else {
           toast.success("Signed in.");
@@ -111,7 +157,7 @@ function AuthPage() {
     if (error) toast.error(error.message ?? "Google sign-in failed");
   }
 
-  // ── Email confirmation waiting screen ─────────────────────────────────────
+  // ── Email confirmation screen ──────────────────────────────────────────────
   if (awaitingConfirmation) {
     return (
       <div className="min-h-screen bg-background site-page flex items-center justify-center px-6">
@@ -126,36 +172,27 @@ function AuthPage() {
             Open it to verify your account — it may take a minute or two to arrive.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Make sure to also check your <span className="font-medium">spam or junk</span> folder.
+            Don't forget to check your <span className="font-medium">spam or junk</span> folder too.
           </p>
 
-          {requestCommissioner && (
-            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-              Your commissioner access request has been submitted. An admin will review and approve it after you confirm your email.
+          {requestedCaRole && (
+            <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 text-left">
+              <p className="font-semibold mb-1">
+                {requestedCaRole === "commissioner" ? "Commissioner" : "Agent"} application submitted ✓
+              </p>
+              <p>
+                An admin will review your application after you confirm your email. You'll be able to post listings once approved.
+              </p>
             </div>
           )}
 
           <div className="mt-8 space-y-3">
-            <Button
-              className="w-full"
-              onClick={() => {
-                setAwaitingConfirmation(false);
-                setMode("signin");
-                setPassword("");
-              }}
-            >
+            <Button className="w-full" onClick={() => { setAwaitingConfirmation(false); setMode("signin"); setPassword(""); }}>
               Back to sign in
             </Button>
             <p className="text-sm text-muted-foreground">
               Wrong email?{" "}
-              <button
-                className="font-medium text-primary hover:underline"
-                onClick={() => {
-                  setAwaitingConfirmation(false);
-                  setMode("signup");
-                  setPassword("");
-                }}
-              >
+              <button className="font-medium text-primary hover:underline" onClick={() => { setAwaitingConfirmation(false); setMode("signup"); setPassword(""); }}>
                 Try again
               </button>
             </p>
@@ -165,28 +202,24 @@ function AuthPage() {
     );
   }
 
-  // ── Normal auth form ───────────────────────────────────────────────────────
+  // ── Auth form ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background site-page">
       <div className="flex min-h-screen">
-        {/* Left: full-height photo, desktop only */}
+        {/* Left photo */}
         <div className="relative hidden flex-1 md:block">
           {!heroHidden && (
             <img
-              src={heroSrc}
-              alt=""
+              src={heroSrc} alt=""
               className="absolute inset-0 h-full w-full object-cover"
-              onError={() => {
-                if (heroSrc === HERO_AUTH_JPG) setHeroSrc(HERO_AUTH_PNG);
-                else setHeroHidden(true);
-              }}
+              onError={() => { if (heroSrc === HERO_AUTH_JPG) setHeroSrc(HERO_AUTH_PNG); else setHeroHidden(true); }}
             />
           )}
           {heroHidden && <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-background" />}
         </div>
 
-        {/* Right: logo + form */}
-        <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 md:w-[440px] md:shrink-0 lg:w-[480px] lg:px-16">
+        {/* Right: form */}
+        <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 md:w-[480px] md:shrink-0 lg:w-[520px] lg:px-16 overflow-y-auto">
           <Link to="/" className="flex items-center gap-3">
             <img src={BRAND_ICON_URL} alt="" className="h-9 w-9 object-contain" />
             <span className="text-lg tracking-tight" style={{ fontFamily: "var(--font-montserrat)", fontWeight: 800 }}>
@@ -205,10 +238,11 @@ function AuthPage() {
           </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
+            {/* ── Base fields ── */}
             {mode === "signup" && (
               <div>
                 <Label htmlFor="name">Full name</Label>
-                <Input id="name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                <Input id="name" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Juan Dela Cruz" />
               </div>
             )}
             <div>
@@ -219,17 +253,76 @@ function AuthPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
+
+            {/* ── C/A request toggle ── */}
             {mode === "signup" && (
-              <label className="flex items-start gap-2 text-sm text-muted-foreground">
+              <label className="flex items-start gap-2.5 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
-                  checked={requestCommissioner}
-                  onChange={(e) => setRequestCommissioner(e.target.checked)}
-                  className="mt-1"
+                  checked={requestRole}
+                  onChange={(e) => setRequestRole(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                 />
-                Request commissioner access — an admin will review and approve before you can post listings.
+                <span>
+                  Apply for Commissioner or Agent access — an admin will review and approve before you can post listings.
+                </span>
               </label>
             )}
+
+            {/* ── C/A extra fields (only when checked) ── */}
+            {mode === "signup" && requestRole && (
+              <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <div>
+                  <p className="mb-2 text-sm font-medium text-foreground">Which role are you applying for?</p>
+                  <div className="flex gap-2">
+                    <RoleChoice active={caRole === "commissioner"} onClick={() => setCaRole("commissioner")}>Commissioner</RoleChoice>
+                    <RoleChoice active={caRole === "agent"}        onClick={() => setCaRole("agent")}>Agent</RoleChoice>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>Phone number</Label>
+                    <Input
+                      type="tel"
+                      required={requestRole}
+                      value={caPhone}
+                      onChange={(e) => setCaPhone(e.target.value)}
+                      placeholder="+63 9XX XXX XXXX"
+                    />
+                  </div>
+                  <div>
+                    <Label>Contact email</Label>
+                    <Input
+                      type="email"
+                      required={requestRole}
+                      value={caEmail}
+                      onChange={(e) => setCaEmail(e.target.value)}
+                      placeholder="Same or different from login email"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>
+                    Why do you want to become {caRole === "commissioner" ? "a Commissioner" : "an Agent"}?
+                  </Label>
+                  <textarea
+                    required={requestRole}
+                    rows={4}
+                    className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    value={caReason}
+                    onChange={(e) => setCaReason(e.target.value)}
+                    placeholder={
+                      caRole === "commissioner"
+                        ? "Share your real estate experience, PRC license number if applicable, and what you're hoping to do on the platform…"
+                        : "Tell us about your experience as an agent, the properties you handle, and why you'd like to list on One Higala…"
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
@@ -237,23 +330,15 @@ function AuthPage() {
 
           <p className="mt-4 text-sm text-muted-foreground">
             {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              className="font-medium text-primary hover:underline"
-              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setPassword(""); }}
-            >
+            <button type="button" className="font-medium text-primary hover:underline" onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}>
               {mode === "signin" ? "Create an account" : "Sign in instead"}
             </button>
           </p>
 
           <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
-            or
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border" />or<div className="h-px flex-1 bg-border" />
           </div>
-          <Button variant="outline" className="w-full" onClick={google}>
-            Continue with Google
-          </Button>
+          <Button variant="outline" className="w-full" onClick={google}>Continue with Google</Button>
         </div>
       </div>
     </div>
