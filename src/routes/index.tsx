@@ -38,11 +38,6 @@ function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/10" />
 
         <div className="relative flex h-full flex-col items-start justify-center px-6 pb-12 md:px-16 md:pb-16 lg:px-24">
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-white backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            One Higala Properties Inc.
-          </span>
-
           <h1 className="max-w-2xl font-display text-4xl font-bold leading-tight text-white drop-shadow-lg md:text-6xl">
             Bringing you home,{" "}
             <span className="text-blue-800">the </span>
@@ -54,19 +49,13 @@ function Home() {
             Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
           </p>
 
-          <form action="/browse" method="get" className="mt-8 flex w-full max-w-2xl items-center gap-0 overflow-hidden rounded-full bg-white shadow-2xl shadow-black/30">
+          <form action="/browse" method="get" className="mt-8 flex w-full max-w-2xl items-center gap-0 overflow-hidden rounded-xl bg-white shadow-2xl shadow-black/30">
             <Input name="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0 md:text-base" />
-            <button type="submit" className="flex h-12 items-center gap-2 rounded-r-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+            <button type="submit" className="flex h-12 items-center gap-2 rounded-r-xl bg-black px-6 text-sm font-semibold text-white transition hover:bg-black/85">
               <Search className="h-4 w-4" />
               <span className="hidden sm:inline">Search</span>
             </button>
           </form>
-
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link to="/agents" className="rounded-full border border-white/40 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20">
-              Meet our agents
-            </Link>
-          </div>
         </div>
       </section>
 
