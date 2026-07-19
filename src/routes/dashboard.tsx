@@ -104,8 +104,25 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
-// ── Shared components — every tab uses these so sizing is always identical ────
+// ── Table primitives ──────────────────────────────────────────────────────────
+// BigTable  → Overview, Listings, Admin tabs (tall rows, large text/thumbnails)
+// DashTable → Sales only (kept exactly as before)
 
+/** Large table used by every tab EXCEPT Sales */
+function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <table className="w-full text-base">
+        <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          {head}
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Standard-size table used only by Sales */
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -276,7 +293,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
-      {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
@@ -284,7 +300,6 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
 
-      {/* Listings section — identical structure to every other tab */}
       {isCommissioner && (
         <>
           <SectionCard
@@ -300,46 +315,46 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
               <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
             </div>
           ) : (
-            <DashTable
+            <BigTable
               head={
                 <tr>
-                  <th className="px-5 py-4">Property</th>
-                  <th className="px-5 py-4">Type</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Price</th>
-                  <th className="px-5 py-4">Location</th>
+                  <th className="px-6 py-5">Property</th>
+                  <th className="px-6 py-5">Type</th>
+                  <th className="px-6 py-5">Status</th>
+                  <th className="px-6 py-5">Price</th>
+                  <th className="px-6 py-5">Location</th>
                 </tr>
               }
             >
               {myListings.map((p) => (
-                <tr key={p.id} className="h-20 border-t border-border">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                <tr key={p.id} className="h-28 border-t border-border">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                         {p.images?.[0]
                           ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
-                          : <div className="absolute inset-0 grid place-items-center font-display text-sm text-muted-foreground">H</div>}
+                          : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
                       </div>
                       <div className="min-w-0">
-                        <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-medium hover:text-primary">{p.title}</Link>
-                        <p className="truncate text-xs text-muted-foreground">{p.description || "No description yet."}</p>
+                        <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-semibold hover:text-primary">{p.title}</Link>
+                        <p className="truncate text-sm text-muted-foreground">{p.description || "No description yet."}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 font-medium whitespace-nowrap">
+                  <td className="px-6 py-5 font-semibold whitespace-nowrap">
                     {formatPrice(p.price)}
-                    {p.for_rent && <span className="text-xs text-muted-foreground"> /mo</span>}
+                    {p.for_rent && <span className="text-sm text-muted-foreground font-normal"> /mo</span>}
                   </td>
-                  <td className="px-5 py-4 text-muted-foreground">{p.location ?? "TBD"}</td>
+                  <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
                 </tr>
               ))}
-            </DashTable>
+            </BigTable>
           )}
         </>
       )}
@@ -479,31 +494,31 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
   return (
     <div className="space-y-6">
       <SectionCard title="My listings" subtitle="Manage your property listings, update their status, or edit details." />
-      <DashTable
+      <BigTable
         head={
           <tr>
-            <th className="px-5 py-4">Title</th>
-            <th className="px-5 py-4">Type</th>
-            <th className="px-5 py-4">Status</th>
-            <th className="px-5 py-4">Price</th>
+            <th className="px-6 py-5">Title</th>
+            <th className="px-6 py-5">Type</th>
+            <th className="px-6 py-5">Status</th>
+            <th className="px-6 py-5">Price</th>
             <th />
           </tr>
         }
       >
         {properties.map((p) => (
-          <tr key={p.id} className="h-20 border-t border-border">
-            <td className="px-5 py-4">
-              <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
-              <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+          <tr key={p.id} className="h-28 border-t border-border">
+            <td className="px-6 py-5">
+              <Link to="/properties/$id" params={{ id: p.id }} className="font-semibold hover:text-primary">{p.title}</Link>
+              <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
             </td>
-            <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
-            <td className="px-5 py-4">
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+            <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+            <td className="px-6 py-5">
+              <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                 {STATUS_LABEL[p.status] ?? p.status}
               </span>
             </td>
-            <td className="px-5 py-4 font-medium">{formatPrice(p.price)}</td>
-            <td className="px-5 py-4 text-right whitespace-nowrap">
+            <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
+            <td className="px-6 py-5 text-right whitespace-nowrap">
               <div className="flex items-center justify-end gap-2">
                 <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
                 <Button size="sm" variant="outline" asChild>
@@ -516,7 +531,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
             </td>
           </tr>
         ))}
-      </DashTable>
+      </BigTable>
     </div>
   );
 }
@@ -603,16 +618,16 @@ function ListingQueue() {
           <p className="text-sm text-muted-foreground">New submissions from commissioners will appear here.</p>
         </div>
       ) : (
-        <DashTable
+        <BigTable
           head={
             <tr>
-              <th className="px-5 py-4">Listing</th>
-              <th className="px-5 py-4">Agent</th>
-              <th className="px-5 py-4">Type</th>
-              <th className="px-5 py-4">Price</th>
-              <th className="px-5 py-4">Status</th>
-              <th className="px-5 py-4">Submitted</th>
-              <th className="px-5 py-4 text-right">Actions</th>
+              <th className="px-6 py-5">Listing</th>
+              <th className="px-6 py-5">Agent</th>
+              <th className="px-6 py-5">Type</th>
+              <th className="px-6 py-5">Price</th>
+              <th className="px-6 py-5">Status</th>
+              <th className="px-6 py-5">Submitted</th>
+              <th className="px-6 py-5 text-right">Actions</th>
             </tr>
           }
         >
@@ -620,28 +635,28 @@ function ListingQueue() {
             const isOpen = openId === p.id;
             return (
               <>
-                <tr key={p.id} className="h-20 border-t border-border">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-                        {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">—</div>}
+                <tr key={p.id} className="h-28 border-t border-border">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                        {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">—</div>}
                       </div>
                       <div>
-                        <Link to="/properties/$id" params={{ id: p.id }} className="font-medium hover:text-primary">{p.title}</Link>
-                        <div className="text-xs text-muted-foreground">{p.location ?? "—"}</div>
+                        <Link to="/properties/$id" params={{ id: p.id }} className="font-semibold hover:text-primary">{p.title}</Link>
+                        <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-muted-foreground">{p.agentName}</td>
-                  <td className="px-5 py-4">{typeLabel(p.property_type)}</td>
-                  <td className="px-5 py-4 font-medium">{formatPrice(p.price)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  <td className="px-6 py-5 text-muted-foreground">{p.agentName}</td>
+                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+                  <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="px-5 py-4 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
-                  <td className="px-5 py-4 text-right whitespace-nowrap">
+                  <td className="px-6 py-5 text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-6 py-5 text-right whitespace-nowrap">
                     {p.status === "pending" && (
                       <>
                         <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
@@ -661,7 +676,7 @@ function ListingQueue() {
                 </tr>
                 {isOpen && p.status === "pending" && (
                   <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
-                    <td colSpan={7} className="px-5 py-4">
+                    <td colSpan={7} className="px-6 py-5">
                       <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional — will be visible to the agent):</p>
                       <div className="flex gap-2">
                         <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
@@ -673,13 +688,13 @@ function ListingQueue() {
               </>
             );
           })}
-        </DashTable>
+        </BigTable>
       )}
     </div>
   );
 }
 
-// ── Sales ─────────────────────────────────────────────────────────────────────
+// ── Sales (unchanged — DashTable kept as-is) ──────────────────────────────────
 
 type GroupBy = "day" | "month";
 
@@ -913,33 +928,33 @@ function UsersRoles() {
   return (
     <div className="space-y-6">
       <SectionCard title="Users & Roles" subtitle="Manage who can post listings and who has admin access." />
-      <DashTable
+      <BigTable
         head={
           <tr>
-            <th className="px-5 py-4">User</th>
-            <th className="px-5 py-4">Roles</th>
-            <th className="px-5 py-4 text-right">Actions</th>
+            <th className="px-6 py-5">User</th>
+            <th className="px-6 py-5">Roles</th>
+            <th className="px-6 py-5 text-right">Actions</th>
           </tr>
         }
       >
         {users.map((u) => (
-          <tr key={u.id} className="h-20 border-t border-border">
-            <td className="px-5 py-4">
-              <div className="font-medium">{u.full_name ?? u.id.slice(0, 8)}</div>
-              <div className="text-xs text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
+          <tr key={u.id} className="h-28 border-t border-border">
+            <td className="px-6 py-5">
+              <div className="font-semibold">{u.full_name ?? u.id.slice(0, 8)}</div>
+              <div className="mt-0.5 text-sm text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
             </td>
-            <td className="px-5 py-4">
-              <div className="flex flex-wrap gap-1">
+            <td className="px-6 py-5">
+              <div className="flex flex-wrap gap-1.5">
                 {u.roles.length === 0
                   ? <span className="text-muted-foreground">—</span>
                   : u.roles.map((r) => {
                     const isRevocable = r === "commissioner" || r === "agent";
                     return (
-                      <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs">
+                      <span key={r} className="inline-flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1.5 text-sm">
                         {r}
                         {isRevocable && (
                           <button type="button" onClick={() => { if (confirm(`Revoke "${r}" from ${u.full_name ?? "this user"}?`)) revoke.mutate({ userId: u.id, role: r }); }} className="rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                            <X className="h-3 w-3" />
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </span>
@@ -947,14 +962,14 @@ function UsersRoles() {
                   })}
               </div>
             </td>
-            <td className="px-5 py-4 text-right whitespace-nowrap">
+            <td className="px-6 py-5 text-right whitespace-nowrap">
               {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
               {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
               {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
             </td>
           </tr>
         ))}
-      </DashTable>
+      </BigTable>
     </div>
   );
 }
@@ -1005,42 +1020,42 @@ function CommissionerRequests() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Requests" subtitle="Review pending applications and approve or deny them." />
-      <DashTable
+      <BigTable
         head={
           <tr>
-            <th className="px-5 py-4">Applicant</th>
-            <th className="px-5 py-4">Requested role</th>
-            <th className="px-5 py-4">Date</th>
-            <th className="px-5 py-4 text-right">Actions</th>
+            <th className="px-6 py-5">Applicant</th>
+            <th className="px-6 py-5">Requested role</th>
+            <th className="px-6 py-5">Date</th>
+            <th className="px-6 py-5 text-right">Actions</th>
           </tr>
         }
       >
         {requests.length === 0
-          ? <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No pending requests.</td></tr>
+          ? <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No pending requests.</td></tr>
           : requests.map((r) => {
             const isOpen = openId === r.id;
             const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
             const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
             return (
               <>
-                <tr key={r.id} className="h-20 border-t border-border">
-                  <td className="px-5 py-4">
-                    <div className="font-medium">{displayName}</div>
-                    <div className="text-xs text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
+                <tr key={r.id} className="h-28 border-t border-border">
+                  <td className="px-6 py-5">
+                    <div className="font-semibold">{displayName}</div>
+                    <div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-6 py-5">
                     {r.requested_role
-                      ? <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{requestedLabel}</span>
+                      ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span>
                       : <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-5 py-4">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-6 py-5">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-6 py-5 text-right">
                     <Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button>
                   </td>
                 </tr>
                 {isOpen && (
                   <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
-                    <td colSpan={4} className="px-5 py-6">
+                    <td colSpan={4} className="px-6 py-6">
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p><p className="mt-1 text-sm">{displayName}</p></div>
                         <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p><p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p></div>
@@ -1059,7 +1074,7 @@ function CommissionerRequests() {
             );
           })
         }
-      </DashTable>
+      </BigTable>
     </div>
   );
 }
@@ -1102,35 +1117,35 @@ function CommissionerTracking() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Tracking" subtitle="Monitor sales performance across all commissioners and agents." />
-      <DashTable
+      <BigTable
         head={
           <tr>
-            <th className="px-5 py-4">Agent</th>
-            <th className="px-5 py-4 text-right">Deals</th>
-            <th className="px-5 py-4 text-right">Volume</th>
-            <th className="px-5 py-4 text-right">Commission</th>
-            <th className="px-5 py-4">Last sale</th>
+            <th className="px-6 py-5">Agent</th>
+            <th className="px-6 py-5 text-right">Deals</th>
+            <th className="px-6 py-5 text-right">Volume</th>
+            <th className="px-6 py-5 text-right">Commission</th>
+            <th className="px-6 py-5">Last sale</th>
           </tr>
         }
       >
         {commissioners.length === 0
-          ? <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
+          ? <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
           : commissioners.map((c) => {
             const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
             return (
-              <tr key={c.id} className="h-20 border-t border-border">
-                <td className="px-5 py-4">
-                  <Link to="/agents/$id" params={{ id: c.id }} className="font-medium hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
+              <tr key={c.id} className="h-28 border-t border-border">
+                <td className="px-6 py-5">
+                  <Link to="/agents/$id" params={{ id: c.id }} className="font-semibold hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link>
                 </td>
-                <td className="px-5 py-4 text-right">{s.count}</td>
-                <td className="px-5 py-4 text-right font-medium">{formatPrice(s.volume)}</td>
-                <td className="px-5 py-4 text-right text-primary">{formatPrice(s.commission)}</td>
-                <td className="px-5 py-4">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+                <td className="px-6 py-5 text-right">{s.count}</td>
+                <td className="px-6 py-5 text-right font-semibold">{formatPrice(s.volume)}</td>
+                <td className="px-6 py-5 text-right text-primary font-semibold">{formatPrice(s.commission)}</td>
+                <td className="px-6 py-5">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
               </tr>
             );
           })
         }
-      </DashTable>
+      </BigTable>
     </div>
   );
 }
