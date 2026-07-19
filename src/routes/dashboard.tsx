@@ -20,7 +20,6 @@ import {
   Plus, X, ChevronUp, ChevronDown, Menu, type LucideIcon,
 } from "lucide-react";
 
-// Admin tabs are still switched views; non-admin sections are scrollable anchors
 type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
 type ScrollSection = "overview" | "listings" | "sales" | "forecast";
 type ActiveView = ScrollSection | AdminTab;
@@ -99,8 +98,6 @@ const STATUS_LABEL: Record<string, string> = {
   published: "Published",
 };
 
-// ── Shared table shells ────────────────────────────────────────────────────────
-
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card">
@@ -141,22 +138,28 @@ function SectionCard({ title, subtitle, action, children }: {
 // ── Left sidebar ───────────────────────────────────────────────────────────────
 
 function DashSidebar({
-  canManageListings, isAdmin, activeSection, onAdminTab, adminTab,
+  canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin,
 }: {
   canManageListings: boolean;
   isAdmin: boolean;
   activeSection: ScrollSection;
   onAdminTab: (t: AdminTab) => void;
   adminTab: AdminTab | null;
+  onExitAdmin: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
-    // If currently showing an admin view, scroll to main page first then anchor
-    const el = document.getElementById(`section-${id}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // If in admin view, exit first then scroll after render
+    if (adminTab) {
+      onExitAdmin();
+      // Wait one tick for sections to mount, then scroll
+      setTimeout(() => {
+        document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } else {
+      document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -169,11 +172,11 @@ function DashSidebar({
 
   function NavItem({ id, isActive }: { id: ActiveView; isActive: boolean }) {
     const Icon = TAB_ICONS[id];
-    const isAdmin_ = ADMIN_TABS.includes(id as AdminTab);
+    const isAdminItem = ADMIN_TABS.includes(id as AdminTab);
     return (
       <button
         onClick={() => {
-          if (isAdmin_) { onAdminTab(id as AdminTab); setMobileOpen(false); }
+          if (isAdminItem) { onAdminTab(id as AdminTab); setMobileOpen(false); }
           else scrollTo(id as ScrollSection);
         }}
         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
@@ -209,7 +212,6 @@ function DashSidebar({
 
   return (
     <>
-      {/* Mobile toggle */}
       <button
         className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
@@ -219,7 +221,6 @@ function DashSidebar({
       {mobileOpen && (
         <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{content}</div>
       )}
-      {/* Desktop */}
       <aside className="hidden w-56 shrink-0 lg:block">
         <div className="sticky top-24 rounded-2xl border border-border bg-card">{content}</div>
       </aside>
@@ -236,7 +237,6 @@ function Dashboard() {
   const elevated = isAdmin || isDeveloper;
   const canManageListings = isCommissioner || isAgent;
 
-  // Admin tabs are switched; scroll sections are anchors
   const [adminTab, setAdminTab] = useState<AdminTab | null>(
     ADMIN_TABS.includes(urlTab as AdminTab) ? (urlTab as AdminTab) : null
   );
@@ -244,9 +244,8 @@ function Dashboard() {
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
-  // Intersection observer to highlight the active sidebar section while scrolling
   useEffect(() => {
-    if (adminTab) return; // don't track scroll when in admin view
+    if (adminTab) return;
     const observers: IntersectionObserver[] = [];
     SCROLL_SECTIONS.forEach((id) => {
       const el = document.getElementById(`section-${id}`);
@@ -269,7 +268,6 @@ function Dashboard() {
     <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-screen-2xl px-6 py-8">
-        {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
@@ -287,10 +285,10 @@ function Dashboard() {
             activeSection={activeSection}
             adminTab={adminTab}
             onAdminTab={(t) => setAdminTab(t)}
+            onExitAdmin={() => setAdminTab(null)}
           />
 
           <div className="min-w-0 flex-1">
-            {/* ── Admin switched views ── */}
             {adminTab ? (
               <div className="space-y-6">
                 <button
@@ -305,7 +303,6 @@ function Dashboard() {
                 {adminTab === "admin-listings"  && <ListingQueue />}
               </div>
             ) : (
-              /* ── Scrollable main sections ── */
               <div className="space-y-16">
                 <section id="section-overview">
                   <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
@@ -370,18 +367,93 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
     },
   });
 
+  const { data: myListings = [], isLoading: listingsLoading } = useQuery({
+    queryKey: ["overview-listings", userId, isDeveloper],
+    queryFn: async () => {
+      let q = supabase.from("properties").select("*").order("created_at", { ascending: false });
+      if (!isDeveloper) q = q.eq("commissioner_id", userId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: isCommissioner,
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <LayoutDashboard className="h-5 w-5 text-primary" />
         <h2 className="font-display text-2xl font-semibold">Overview</h2>
       </div>
+
+      {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
         <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
       </div>
+
+      {/* Property showcase table */}
+      {isCommissioner && (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-lg font-semibold">{isDeveloper ? "All listings" : "Your listings"}</h3>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/browse">Browse all listings →</Link>
+            </Button>
+          </div>
+          {listingsLoading ? (
+            <p className="text-muted-foreground">Loading…</p>
+          ) : myListings.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+              <p className="text-muted-foreground">No listings yet.</p>
+              <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
+            </div>
+          ) : (
+            <BigTable
+              head={
+                <tr>
+                  <th className="px-6 py-5">Property</th>
+                  <th className="px-6 py-5">Type</th>
+                  <th className="px-6 py-5">Status</th>
+                  <th className="px-6 py-5">Price</th>
+                  <th className="px-6 py-5">Location</th>
+                </tr>
+              }
+            >
+              {myListings.map((p) => (
+                <tr key={p.id} className="h-28 border-t border-border">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                        {p.images?.[0]
+                          ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
+                          : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
+                      </div>
+                      <div className="min-w-0">
+                        <Link to="/properties/$id" params={{ id: p.id }} className="block truncate font-semibold hover:text-primary">{p.title}</Link>
+                        <p className="truncate text-sm text-muted-foreground">{p.description || "No description yet."}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium capitalize ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-5 font-semibold whitespace-nowrap">
+                    {formatPrice(p.price)}
+                    {p.for_rent && <span className="text-sm font-normal text-muted-foreground"> /mo</span>}
+                  </td>
+                  <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
+                </tr>
+              ))}
+            </BigTable>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -489,6 +561,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
       qc.invalidateQueries({ queryKey: ["my-listings"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      qc.invalidateQueries({ queryKey: ["overview-listings"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update status");
     } finally {
@@ -852,9 +925,7 @@ function Forecast() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card p-6 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
-        </div>
+        <p className="text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
         <Button onClick={run} disabled={loading} className="shrink-0">{loading ? "Analyzing…" : "Run forecast"}</Button>
       </div>
       {result && (
