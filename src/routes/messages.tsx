@@ -62,7 +62,9 @@ function MessagesPage() {
   return (
     <div className="site-page min-h-screen">
       <Nav />
-      <div className="mx-auto flex h-[calc(100vh-73px)] max-w-[1400px]">
+      {/* Full-bleed — no max-width wrapper, so the three panels span the
+          entire site frame edge to edge, same width as the Nav bar above. */}
+      <div className="flex h-[calc(100vh-73px)] w-full">
         {/* ── Conversation list ── */}
         <div className={`w-full shrink-0 flex-col border-r border-border sm:w-80 sm:flex ${selected ? "hidden" : "flex"}`}>
           <div className="border-b border-border p-5">
@@ -129,7 +131,7 @@ function MessagesPage() {
           </div>
         </div>
 
-        {/* ── Thread panel ── */}
+        {/* ── Thread panel — flex-1 fills all remaining width ── */}
         <div className={`min-w-0 flex-1 flex-col sm:flex ${selected ? "flex" : "hidden"}`}>
           {selected ? (
             <ConversationThread
@@ -171,7 +173,7 @@ function ContactDetailsPanel({
   onClose: () => void;
 }) {
   return (
-    <div className="hidden w-72 shrink-0 flex-col border-l border-border md:flex">
+    <div className="hidden w-80 shrink-0 flex-col border-l border-border md:flex">
       <div className="flex items-center justify-end p-3">
         <button onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground">
           <X className="h-4 w-4" />
