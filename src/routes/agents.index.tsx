@@ -21,18 +21,18 @@ export const Route = createFileRoute("/agents/")({
 
 const HERO_IMAGE_URL = "/hero-agents.png";
 
-// Fixed pixel-equivalent card size via pure CSS (no JS measurement, no
-// ResizeObserver, no timing races). `w-full` on mobile (1 per row),
-// `md:w-[calc(50%-1rem)]` on desktop — exactly two per row, each taking
-// half the row minus half of the 2rem (gap-8) row gap. Because this is
-// resolved by the CSS engine at layout time using the row's own width,
-// every card is identical regardless of how many results are in the row
-// or how much text a particular profile has. `shrink-0` stops flex-wrap
-// from ever squishing a card smaller than this computed width, and
-// `h-64` fixes the height the same way. Cards render left-to-right,
-// left-aligned, never centered, matching Zillow's directory grid.
+// Plain CSS Grid, two equal columns on desktop (grid-cols-2), one on
+// mobile. Grid tracks are ALWAYS equal width by spec — the browser
+// computes this directly with no calc(), no arbitrary values, no JS
+// measurement, and therefore no room for the kind of bug that broke
+// this earlier (an invalid calc() with no spaces around the minus sign
+// silently got dropped, and the card collapsed to just its own content
+// width). Every card is a direct grid item and uses w-full/h-64 to fill
+// its track completely, so it's identical to its neighbor whether the
+// row has 1 result or 20, and whether a profile is fully filled out or
+// has no info at all yet.
 const CARD_CLASS =
-  "group flex h-64 w-full shrink-0 gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl md:w-[calc(50%-1rem)]";
+  "group flex h-64 w-full gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
@@ -128,9 +128,9 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // flex-wrap, not grid — no dependency on total item count for sizing.
-          // Left-aligned by default (flex's justify-content is flex-start).
-          <div className="flex flex-wrap gap-8">
+          // Plain grid, 1 column mobile / 2 equal columns desktop.
+          // Grid tracks are spec-guaranteed equal width — no calc needed.
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {filtered.map((a) => (
               <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
                 {/* Fixed-size avatar */}
