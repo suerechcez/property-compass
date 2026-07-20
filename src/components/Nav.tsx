@@ -3,14 +3,15 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
-  LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell,
+  LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { fetchUnreadCount } from "@/lib/messages";
+import { fetchUnreadCount, fetchMessageNotifications } from "@/lib/messages";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BrandTitle } from "@/components/BrandTitle";
+import { formatDistanceToNow } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -34,6 +35,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const routerState = useRouterState();
   const [iconOk, setIconOk] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const canManageListings = isCommissioner || isAgent;
 
@@ -58,12 +60,21 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     },
   });
 
-  // Unread message count for the notification bell — polls every 15s,
-  // same cadence as the conversations list on the Messages page.
+  // Badge count — polls every 15s
   const { data: unreadCount = 0 } = useQuery({
     enabled: !!user,
     queryKey: ["nav-unread-messages", user?.id],
     queryFn: () => fetchUnreadCount(user!.id),
+    refetchInterval: 15000,
+  });
+
+  // Actual notification items shown in the dropdown. Only fetched once the
+  // bell is opened (no point loading full previews on every page load) but
+  // also kept warm on the same 15s interval so it doesn't feel stale.
+  const { data: notifications = [], isLoading: notifLoading } = useQuery({
+    enabled: !!user && notifOpen,
+    queryKey: ["nav-notifications", user?.id],
+    queryFn: () => fetchMessageNotifications(user!.id),
     refetchInterval: 15000,
   });
 
@@ -132,18 +143,72 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         {/* Right — notification bell + profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end gap-2">
           {user && (
-            <Link
-              to="/messages"
-              aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
-              className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 transition hover:bg-accent hover:text-foreground"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Link>
+            <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="font-display font-semibold">Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {notifLoading ? (
+                    <p className="p-5 text-center text-sm text-muted-foreground">Loading…</p>
+                  ) : notifications.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 p-8 text-center">
+                      <Bell className="h-6 w-6 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">You're all caught up!</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <Link
+                        key={n.id}
+                        to="/messages"
+                        search={{ c: n.href.split("c=")[1] }}
+                        onClick={() => setNotifOpen(false)}
+                        className="flex items-start gap-3 border-b border-border px-4 py-3 transition last:border-b-0 hover:bg-accent"
+                      >
+                        <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-semibold text-primary-foreground">
+                          {n.avatarUrl
+                            ? <img src={n.avatarUrl} alt="" className="h-full w-full object-cover" />
+                            : <MessageSquare className="h-4 w-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{n.title}</p>
+                          <p className="truncate text-sm text-muted-foreground">{n.body}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+
+                <Link
+                  to="/messages"
+                  onClick={() => setNotifOpen(false)}
+                  className="block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-primary hover:bg-accent"
+                >
+                  View all messages
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {user ? (
