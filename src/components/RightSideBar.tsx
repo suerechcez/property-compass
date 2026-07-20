@@ -1,6 +1,7 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "react-router";
+import { useNavigate as useTanNavigate, useRouterState as useTanRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Bell, Heart, MessageSquare } from "lucide-react";
+import { Search, Rss, Heart, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { fetchUnreadCount } from "@/lib/messages";
 
@@ -21,8 +22,8 @@ const HIDDEN_ON = ["/dashboard", "/auth"];
 
 export function RightSideBar() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const routerState = useRouterState();
+  const navigate = useTanNavigate();
+  const routerState = useTanRouterState();
   const path = routerState.location.pathname;
 
   // Unread message count — refreshed periodically so the badge stays live
@@ -36,10 +37,12 @@ export function RightSideBar() {
 
   if (HIDDEN_ON.some((prefix) => path.startsWith(prefix))) return null;
 
+  // "Updates" uses Rss (a listings feed), distinct from the notification
+  // Bell icon used for messages elsewhere in the app.
   const items: SidebarItem[] = [
     { icon: <Search className="h-5 w-5" />, label: "Search", to: "/browse", authRequired: false },
     { icon: <MessageSquare className="h-5 w-5" />, label: "Messages", to: "/messages", authRequired: true, guestTo: "/auth", badge: unreadCount },
-    { icon: <Bell className="h-5 w-5" />, label: "Updates", to: "/updates", authRequired: true, guestTo: "/updates" },
+    { icon: <Rss className="h-5 w-5" />, label: "Updates", to: "/updates", authRequired: true, guestTo: "/updates" },
     { icon: <Heart className="h-5 w-5" />, label: "Favorites", to: "/favorites", authRequired: true, guestTo: "/favorites" },
   ];
 
