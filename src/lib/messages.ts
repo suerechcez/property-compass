@@ -75,7 +75,10 @@ export async function startConversation(params: {
   return conversationId;
 }
 
-/** Fetches all conversations for the current user, with the other participant's profile and last message preview. */
+/**
+ * Fetches all conversations for the current user, with the other participant's
+ * profile (including contact info for the details panel) and last message preview.
+ */
 export async function fetchConversations(userId: string) {
   const { data: convs, error } = await supabase
     .from("conversations")
@@ -91,10 +94,11 @@ export async function fetchConversations(userId: string) {
   const propertyIds = Array.from(new Set(convs.map((c) => c.property_id).filter(Boolean))) as string[];
 
   const [{ data: profiles }, { data: properties }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, avatar_url").in("id", otherIds),
+    // phone + email pulled in for the contact details panel
+    supabase.from("profiles").select("id, full_name, avatar_url, phone, email").in("id", otherIds),
     propertyIds.length
-      ? supabase.from("properties").select("id, title, images").in("id", propertyIds)
-      : Promise.resolve({ data: [] as { id: string; title: string; images: string[] }[] }),
+      ? supabase.from("properties").select("id, title, images, price, for_rent").in("id", propertyIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; images: string[]; price: number; for_rent: boolean }[] }),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
