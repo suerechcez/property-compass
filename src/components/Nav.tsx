@@ -3,10 +3,11 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
-  LayoutDashboard, Building2, Wallet, Plus, Menu, X,
+  LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { fetchUnreadCount } from "@/lib/messages";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BrandTitle } from "@/components/BrandTitle";
@@ -55,6 +56,15 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       const { data } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user!.id).maybeSingle();
       return data;
     },
+  });
+
+  // Unread message count for the notification bell — polls every 15s,
+  // same cadence as the conversations list on the Messages page.
+  const { data: unreadCount = 0 } = useQuery({
+    enabled: !!user,
+    queryKey: ["nav-unread-messages", user?.id],
+    queryFn: () => fetchUnreadCount(user!.id),
+    refetchInterval: 15000,
   });
 
   async function signOut() {
@@ -119,8 +129,23 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </div>
         </Link>
 
-        {/* Right — profile / sign-in */}
-        <div className="col-start-3 flex items-center justify-end">
+        {/* Right — notification bell + profile / sign-in */}
+        <div className="col-start-3 flex items-center justify-end gap-2">
+          {user && (
+            <Link
+              to="/messages"
+              aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
+              className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 transition hover:bg-accent hover:text-foreground"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
