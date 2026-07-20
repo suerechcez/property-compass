@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Nav } from "@/components/Nav";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatPrice, typeLabel } from "@/lib/property-types";
+import { startConversation } from "@/lib/messages";
 import { toast } from "sonner";
 import {
   BadgeCheck,
@@ -18,6 +19,7 @@ import {
   Users,
   Star,
   Flag,
+  MessageSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/agents/$id")({
@@ -166,16 +168,7 @@ function AgentProfile() {
   return (
     <div className="site-page">
       <Nav />
-
-      {/* ── Single shared container for the ENTIRE page body ──
-          Both the hero (profile card / gallery / stats) and the
-          lower content (listings, reviews, contact form) live inside
-          this one mx-auto max-w-7xl px-8 wrapper, so their left/right
-          edges are guaranteed to match — they're literally the same
-          box, not two separately-styled ones that have to agree.
-      */}
       <div className="mx-auto max-w-7xl px-8">
-        {/* ── Hero / profile header ── */}
         <section className="border-b border-border py-8">
           <p className="text-sm text-muted-foreground">
             <Link to="/agents" className="hover:text-primary">Cagayan de Oro City</Link>
@@ -253,12 +246,7 @@ function AgentProfile() {
           </div>
         </section>
 
-        {/* ── Main content: listings left, contact right ──
-            Same shared container as the hero above (no separate
-            mx-auto/max-w here) — only its own vertical padding.
-        */}
         <div className="grid gap-12 py-10 pr-20 lg:grid-cols-[1fr_360px]">
-          {/* Left: listing carousels + reviews — takes all remaining width */}
           <div className="min-w-0 space-y-12">
             <ListingCarousel title="Featured sales" items={featured} badge="Featured" badgeIcon={Star} />
             {isAgent && <TeamSection profile={profile} roleLabel={roleLabel} />}
@@ -268,17 +256,20 @@ function AgentProfile() {
             <ReviewsSection agentId={id} roleLabel={roleLabel} isOwnProfile={isOwnProfile} currentUserId={user?.id ?? null} />
           </div>
 
-          {/* Right: sticky contact form pinned to the right edge */}
           <aside id="contact-agent" className="h-fit lg:sticky lg:top-24">
-            <ContactForm agentName={profile.full_name ?? roleLabel} agentEmail={profile.email} roleLabel={roleLabel} />
+            <ContactForm
+              agentId={id}
+              agentName={profile.full_name ?? roleLabel}
+              agentEmail={profile.email}
+              roleLabel={roleLabel}
+              isOwnProfile={isOwnProfile}
+            />
           </aside>
         </div>
       </div>
     </div>
   );
 }
-
-// ── Reviews section ──────────────────────────────────────────────────────────
 
 const REVIEWS_PER_PAGE = 6;
 
@@ -592,14 +583,46 @@ function ListingCarousel({ title, items, isRent, badge, badgeIcon: BadgeIcon }: 
   );
 }
 
-function ContactForm({ agentName, agentEmail, roleLabel }: { agentName: string; agentEmail: string | null; roleLabel: string }) {
+function ContactForm({
+  agentId, agentName, agentEmail, roleLabel, isOwnProfile,
+}: {
+  agentId: string;
+  agentName: string;
+  agentEmail: string | null;
+  roleLabel: string;
+  isOwnProfile: boolean;
+}) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [name, setName]       = useState("");
   const [phone, setPhone]     = useState("");
   const [email, setEmail]     = useState("");
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (user) {
+      if (isOwnProfile) { toast.error("You can't message yourself."); return; }
+      if (!message.trim()) { toast.error("Write a message before sending."); return; }
+      setSending(true);
+      try {
+        const conversationId = await startConversation({
+          buyerId: user.id,
+          commissionerId: agentId,
+          body: message.trim(),
+        });
+        toast.success(`Message sent to ${agentName}`);
+        navigate({ to: "/messages", search: { c: conversationId } });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to send message");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     if (!agentEmail) { toast.error("This agent hasn't listed a contact email yet."); return; }
     const body = `Name: ${name}\nPhone: ${phone}\n\n${message}`;
     window.location.href = `mailto:${agentEmail}?subject=${encodeURIComponent("Inquiry via One Higala Properties")}&body=${encodeURIComponent(body)}`;
@@ -608,17 +631,42 @@ function ContactForm({ agentName, agentEmail, roleLabel }: { agentName: string; 
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-      <h2 className="font-display text-xl font-bold">Contact {agentName}</h2>
+      <h2 className="flex items-center gap-2 font-display text-xl font-bold">
+        {user && <MessageSquare className="h-5 w-5 text-primary" />}
+        Contact {agentName}
+      </h2>
       <form className="mt-4 space-y-4" onSubmit={submit}>
-        <div><Label>Name</Label><input required value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
-        <div><Label>Phone</Label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
-        <div><Label>Email</Label><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
+        {!user && (
+          <>
+            <div><Label>Name</Label><input required value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
+            <div><Label>Phone</Label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
+            <div><Label>Email</Label><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm" /></div>
+          </>
+        )}
         <div>
-          <Label>Message (optional)</Label>
-          <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={`Hi ${agentName.split(" ")[0]}, I'd like to know more about...`} className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm" />
+          <Label>{user ? "Message" : "Message (optional)"}</Label>
+          <textarea
+            required={!!user}
+            rows={4}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`Hi ${agentName.split(" ")[0]}, I'd like to know more about...`}
+            className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+          />
         </div>
-        <Button type="submit" className="w-full">Contact {roleLabel}</Button>
-        <p className="text-[11px] text-muted-foreground">Submitting opens your email app with this message pre-filled to {agentName}.</p>
+        <Button type="submit" className="w-full" disabled={sending}>
+          {sending ? "Sending…" : user ? "Send message" : `Contact ${roleLabel}`}
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          {user
+            ? `This opens a conversation with ${agentName} in your Messages inbox — replies arrive there in real time.`
+            : `Submitting opens your email app with this message pre-filled to ${agentName}. `}
+          {!user && (
+            <>
+              <Link to="/auth" className="text-primary hover:underline">Sign in</Link> to message {agentName.split(" ")[0]} directly in-app instead.
+            </>
+          )}
+        </p>
       </form>
     </div>
   );
