@@ -166,7 +166,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   )}
                 </div>
 
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto">
                   {notifLoading ? (
                     <p className="p-5 text-center text-sm text-muted-foreground">Loading…</p>
                   ) : notifications.length === 0 ? (
@@ -199,14 +199,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                     ))
                   )}
                 </div>
-
-                <Link
-                  to="/messages"
-                  onClick={() => setNotifOpen(false)}
-                  className="block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-primary hover:bg-accent"
-                >
-                  View all messages
-                </Link>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
