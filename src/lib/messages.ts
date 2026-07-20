@@ -16,6 +16,9 @@ export type Message = {
   body: string;
   created_at: string;
   read_at: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  attachment_type: "image" | "file" | null;
 };
 
 /**
@@ -66,11 +69,27 @@ export async function getOrCreateConversation(params: {
   return created.id;
 }
 
-/** Sends a message in a conversation and bumps last_message_at. */
-export async function sendMessage(conversationId: string, senderId: string, body: string): Promise<void> {
+/**
+ * Sends a message in a conversation and bumps last_message_at.
+ * An optional attachment (already uploaded to storage) can be attached
+ * alongside — or instead of — text body content.
+ */
+export async function sendMessage(
+  conversationId: string,
+  senderId: string,
+  body: string,
+  attachment?: { url: string; name: string; type: "image" | "file" } | null,
+): Promise<void> {
   const { error: msgErr } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: senderId, body });
+    .insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      body,
+      attachment_url: attachment?.url ?? null,
+      attachment_name: attachment?.name ?? null,
+      attachment_type: attachment?.type ?? null,
+    });
   if (msgErr) throw msgErr;
 
   const { error: convErr } = await supabase
