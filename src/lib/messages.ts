@@ -19,6 +19,23 @@ export type Message = {
 };
 
 /**
+ * Generic shape for anything shown in the notification bell dropdown.
+ * Only "message" is populated today — future notification sources
+ * (e.g. listing approvals, C/A request decisions) can be appended to
+ * the same list by producing items in this shape and merging arrays
+ * in whatever calls fetchMessageNotifications.
+ */
+export type NotificationItem = {
+  id: string;
+  type: "message";
+  title: string;
+  body: string;
+  createdAt: string;
+  href: string;
+  avatarUrl: string | null;
+};
+
+/**
  * Finds an existing conversation between this buyer and commissioner (optionally
  * scoped to a property), or creates one. Returns the conversation id.
  */
@@ -172,6 +189,48 @@ export async function fetchUnreadCount(userId: string): Promise<number> {
     .neq("sender_id", userId)
     .is("read_at", null);
   return count ?? 0;
+}
+
+/**
+ * Fetches the most recent unread messages across all of the current user's
+ * conversations, shaped as NotificationItem for the notification bell
+ * dropdown — sender name/avatar, message preview, and a deep link straight
+ * to that conversation.
+ */
+export async function fetchMessageNotifications(userId: string, limit = 8): Promise<NotificationItem[]> {
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("id")
+    .or(`buyer_id.eq.${userId},commissioner_id.eq.${userId}`);
+  const convIds = (convs ?? []).map((c) => c.id);
+  if (convIds.length === 0) return [];
+
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("id, conversation_id, sender_id, body, created_at")
+    .in("conversation_id", convIds)
+    .neq("sender_id", userId)
+    .is("read_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (!msgs || msgs.length === 0) return [];
+
+  const senderIds = Array.from(new Set(msgs.map((m) => m.sender_id)));
+  const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", senderIds);
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return msgs.map((m) => {
+    const sender = profileMap.get(m.sender_id);
+    return {
+      id: m.id,
+      type: "message" as const,
+      title: sender?.full_name ?? "New message",
+      body: m.body,
+      createdAt: m.created_at,
+      href: `/messages?c=${m.conversation_id}`,
+      avatarUrl: sender?.avatar_url ?? null,
+    };
+  });
 }
 
 /** Subscribes to new messages in a conversation via Supabase Realtime. Returns an unsubscribe function. */
