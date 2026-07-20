@@ -12,9 +12,14 @@ import {
   subscribeToConversation,
   type Message,
 } from "@/lib/messages";
+import { uploadMessageAttachment } from "@/lib/storage";
 import { formatPrice } from "@/lib/property-types";
 import { formatDistanceToNow } from "date-fns";
-import { Send, MessageSquare, Search, Phone, Mail, X, Info, ChevronLeft, Bold, Italic, Underline } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Send, MessageSquare, Search, Phone, Mail, X, Info, ChevronLeft,
+  Bold, Italic, Underline, Paperclip, Image as ImageIcon, FileText, Loader2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/messages")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -23,6 +28,30 @@ export const Route = createFileRoute("/messages")({
   head: () => ({ meta: [{ title: "Messages · One Higala Properties Inc." }] }),
   component: MessagesPage,
 });
+
+/**
+ * Very small in-house formatting syntax (not full Markdown) so the
+ * Bold/Italic/Underline toolbar buttons have something concrete to
+ * produce and messages.tsx has something concrete to render:
+ *   **bold**   __underline__   *italic*
+ * Order matters: check the 2-character tokens before the 1-character
+ * one, otherwise **bold** would get half-matched as italic first.
+ */
+function renderFormattedText(text: string): React.ReactNode {
+  const tokenPattern = /(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*)/g;
+  return text.split(tokenPattern).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("__") && part.endsWith("__") && part.length > 4) {
+      return <u key={i}>{part.slice(2, -2)}</u>;
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
 
 function MessagesPage() {
   const { user, loading } = useAuth();
@@ -117,7 +146,9 @@ function MessagesPage() {
                     </div>
                     {c.property && <p className="truncate text-xs text-muted-foreground">{c.property.title}</p>}
                     <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <p className="truncate text-sm text-muted-foreground">{c.lastMessage?.body ?? "No messages yet"}</p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {c.lastMessage?.body || (c.lastMessage ? "📎 Attachment" : "No messages yet")}
+                      </p>
                       {c.unreadCount > 0 && (
                         <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
                           {c.unreadCount}
@@ -251,7 +282,10 @@ function ConversationThread({
 }) {
   const qc = useQueryClient();
   const [body, setBody] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", conversationId],
@@ -280,13 +314,56 @@ function ConversationThread({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
+  /** Wraps the current textarea selection in a formatting token (or inserts
+   *  "text" as a placeholder if nothing is selected), then restores focus
+   *  and re-selects the wrapped text so repeated clicks / typing feel natural. */
+  function applyFormat(token: string) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { selectionStart, selectionEnd, value } = el;
+    const selected = value.slice(selectionStart, selectionEnd) || "text";
+    const before = value.slice(0, selectionStart);
+    const after = value.slice(selectionEnd);
+    setBody(`${before}${token}${selected}${token}${after}`);
+    requestAnimationFrame(() => {
+      el.focus();
+      const start = before.length + token.length;
+      el.setSelectionRange(start, start + selected.length);
+    });
+  }
+
+  function handleFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error("File is too large — please pick something under 15MB.");
+        e.target.value = "";
+        return;
+      }
+      setPendingFile(file);
+    }
+    e.target.value = ""; // allow picking the same file again later
+  }
+
   const send = useMutation({
     mutationFn: async () => {
-      if (!body.trim()) return;
-      await sendMessage(conversationId, currentUserId, body.trim());
+      if (!body.trim() && !pendingFile) return;
+      let attachment: { url: string; name: string; type: "image" | "file" } | null = null;
+      if (pendingFile) {
+        attachment = await uploadMessageAttachment(pendingFile, currentUserId);
+      }
+      await sendMessage(conversationId, currentUserId, body.trim(), attachment);
     },
-    onSuccess: () => { setBody(""); onSent(); qc.invalidateQueries({ queryKey: ["messages", conversationId] }); },
+    onSuccess: () => {
+      setBody("");
+      setPendingFile(null);
+      onSent();
+      qc.invalidateQueries({ queryKey: ["messages", conversationId] });
+    },
+    onError: () => toast.error("Couldn't send that message — please try again."),
   });
+
+  const canSend = (body.trim().length > 0 || !!pendingFile) && !send.isPending;
 
   return (
     <>
@@ -313,7 +390,24 @@ function ConversationThread({
           return (
             <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isMine ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
-                <p className="whitespace-pre-line">{m.body}</p>
+                {m.attachment_url && m.attachment_type === "image" && (
+                  <a href={m.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg">
+                    <img src={m.attachment_url} alt={m.attachment_name ?? "Attachment"} className="max-h-64 w-full object-cover" />
+                  </a>
+                )}
+                {m.attachment_url && m.attachment_type === "file" && (
+                  <a
+                    href={m.attachment_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={m.attachment_name ?? undefined}
+                    className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs hover:underline ${isMine ? "border-primary-foreground/25 bg-primary-foreground/10" : "border-border bg-background/60"}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{m.attachment_name ?? "Attachment"}</span>
+                  </a>
+                )}
+                {m.body && <p className="whitespace-pre-line">{renderFormattedText(m.body)}</p>}
                 <p className={`mt-1 text-[10px] ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                   {formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}
                 </p>
@@ -328,25 +422,80 @@ function ConversationThread({
         onSubmit={(e) => { e.preventDefault(); send.mutate(); }}
       >
         <div className="rounded-2xl border border-input bg-background">
+          {pendingFile && (
+            <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs">
+              {pendingFile.type.startsWith("image/") ? <ImageIcon className="h-3.5 w-3.5 shrink-0" /> : <Paperclip className="h-3.5 w-3.5 shrink-0" />}
+              <span className="min-w-0 flex-1 truncate">{pendingFile.name}</span>
+              <button
+                type="button"
+                onClick={() => setPendingFile(null)}
+                aria-label="Remove attachment"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           <textarea
+            ref={textareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.mutate(); }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (canSend) send.mutate(); }
             }}
             placeholder="Write a message…"
             rows={2}
             className="w-full resize-none border-0 bg-transparent px-4 pt-3 text-sm outline-none placeholder:text-muted-foreground"
           />
           <div className="flex items-center justify-between px-3 pb-2">
-            {/* Decorative formatting icons to match the reference toolbar — not wired to functionality */}
             <div className="flex items-center gap-1 text-muted-foreground">
-              <span className="grid h-7 w-7 place-items-center rounded-md"><Bold className="h-3.5 w-3.5" /></span>
-              <span className="grid h-7 w-7 place-items-center rounded-md"><Italic className="h-3.5 w-3.5" /></span>
-              <span className="grid h-7 w-7 place-items-center rounded-md"><Underline className="h-3.5 w-3.5" /></span>
+              <button
+                type="button"
+                onClick={() => applyFormat("**")}
+                aria-label="Bold"
+                title="Bold"
+                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+              >
+                <Bold className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => applyFormat("*")}
+                aria-label="Italic"
+                title="Italic"
+                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+              >
+                <Italic className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => applyFormat("__")}
+                aria-label="Underline"
+                title="Underline"
+                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+              >
+                <Underline className="h-3.5 w-3.5" />
+              </button>
+              <span className="mx-1 h-4 w-px bg-border" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach a file or photo"
+                title="Attach a file or photo"
+                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
+                onChange={handleFilePicked}
+                className="hidden"
+              />
             </div>
-            <Button type="submit" size="icon" disabled={!body.trim() || send.isPending} className="h-8 w-8 shrink-0 rounded-full">
-              <Send className="h-4 w-4" />
+            <Button type="submit" size="icon" disabled={!canSend} className="h-8 w-8 shrink-0 rounded-full">
+              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         </div>
