@@ -1,14 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
+import { startConversation } from "@/lib/messages";
 
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
@@ -99,6 +101,7 @@ function PropertyDetail() {
   }
 
   const canEdit = user && (user.id === data.commissioner_id || isDeveloper || isAdmin);
+  const isOwnListing = user?.id === data.commissioner_id;
   const contactPhone = data.contact_phone || data.agent?.phone;
   const contactEmail = data.contact_email || data.agent?.email;
   const isFav = favoriteIds.has(id);
@@ -250,10 +253,94 @@ function PropertyDetail() {
                 )}
               </div>
             </aside>
+
+            {/* Message the agent about this specific property */}
+            {!isOwnListing && (
+              <MessageAgentBox
+                propertyId={data.id}
+                commissionerId={data.commissioner_id}
+                agentName={data.agent?.full_name ?? "the agent"}
+                agentEmail={contactEmail}
+                listingTitle={data.title}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function MessageAgentBox({
+  propertyId, commissionerId, agentName, agentEmail, listingTitle,
+}: {
+  propertyId: string;
+  commissionerId: string;
+  agentName: string;
+  agentEmail?: string | null;
+  listingTitle: string;
+}) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [message, setMessage] = useState(`Hi, I'm interested in "${listingTitle}". Is it still available?`);
+  const [sending, setSending] = useState(false);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (user) {
+      if (!message.trim()) { toast.error("Write a message before sending."); return; }
+      setSending(true);
+      try {
+        const conversationId = await startConversation({
+          buyerId: user.id,
+          commissionerId,
+          propertyId,
+          body: message.trim(),
+        });
+        toast.success(`Message sent to ${agentName}`);
+        navigate({ to: "/messages", search: { c: conversationId } });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to send message");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // Guest fallback
+    if (!agentEmail) { toast.error("This agent hasn't listed a contact email yet."); return; }
+    window.location.href = `mailto:${agentEmail}?subject=${encodeURIComponent(`Inquiry: ${listingTitle}`)}&body=${encodeURIComponent(message)}`;
+    toast.success("Opening your email app…");
+  }
+
+  return (
+    <aside className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+      <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
+        {user && <MessageSquare className="h-4 w-4 text-primary" />}
+        Message {agentName.split(" ")[0]}
+      </h3>
+      <form className="mt-4 space-y-3" onSubmit={send}>
+        <textarea
+          rows={3}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full rounded-md border border-input bg-background p-3 text-sm"
+        />
+        <Button type="submit" className="w-full" disabled={sending}>
+          {sending ? "Sending…" : user ? "Send message" : "Contact agent"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          {user
+            ? "Opens a conversation in your Messages inbox, tied to this listing."
+            : (
+              <>
+                Opens your email app to reach out. <Link to="/auth" className="text-primary hover:underline">Sign in</Link> to message in-app instead.
+              </>
+            )}
+        </p>
+      </form>
+    </aside>
   );
 }
 
