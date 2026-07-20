@@ -1,5 +1,4 @@
-import { useNavigate, useRouterState } from "react-router";
-import { useNavigate as useTanNavigate, useRouterState as useTanRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Rss, Heart, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -22,8 +21,8 @@ const HIDDEN_ON = ["/dashboard", "/auth"];
 
 export function RightSideBar() {
   const { user } = useAuth();
-  const navigate = useTanNavigate();
-  const routerState = useTanRouterState();
+  const navigate = useNavigate();
+  const routerState = useRouterState();
   const path = routerState.location.pathname;
 
   // Unread message count — refreshed periodically so the badge stays live
