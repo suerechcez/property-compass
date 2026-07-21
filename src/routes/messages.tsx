@@ -10,7 +10,12 @@ import {
   fetchPropertyPreviews,
   markConversationRead,
   sendMessage,
+  editMessage,
+  unsendMessage,
+  deleteConversationForUser,
   subscribeToConversation,
+  subscribeToConversationUpdates,
+  EDIT_WINDOW_MINUTES,
   type Message,
   type PropertyPreview,
 } from "@/lib/messages";
@@ -21,6 +26,7 @@ import { toast } from "sonner";
 import {
   Send, MessageSquare, Search, Phone, Mail, X, Info, ChevronLeft,
   Bold, Italic, Underline, Paperclip, Image as ImageIcon, FileText, Loader2, Home,
+  CornerUpLeft, Pencil, Trash2, Check, CheckCheck, Ban,
 } from "lucide-react";
 
 export const Route = createFileRoute("/messages")({
@@ -72,6 +78,16 @@ function MessagesPage() {
     queryFn: () => fetchConversations(user!.id),
     enabled: !!user,
     refetchInterval: 15000,
+  });
+
+  const deleteChat = useMutation({
+    mutationFn: (conversationId: string) => deleteConversationForUser(conversationId, user!.id),
+    onSuccess: (_d, conversationId) => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      if (selectedId === conversationId) setSelectedId(null);
+      toast.success("Chat deleted");
+    },
+    onError: () => toast.error("Couldn't delete that chat."),
   });
 
   if (loading || !user) {
@@ -129,36 +145,52 @@ function MessagesPage() {
               </div>
             ) : (
               filteredConversations.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => selectConversation(c.id)}
-                  className={`flex w-full items-start gap-3 border-b border-border p-4 text-left transition hover:bg-accent ${selected?.id === c.id ? "bg-accent" : ""}`}
-                >
-                  <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">
-                    {c.otherUser?.avatar_url
-                      ? <img src={c.otherUser.avatar_url} alt="" className="h-full w-full object-cover" />
-                      : (c.otherUser?.full_name ?? "?").slice(0, 1).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{c.otherUser?.full_name ?? "Unknown user"}</p>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}
-                      </span>
+                <div key={c.id} className={`group relative border-b border-border ${selected?.id === c.id ? "bg-accent" : ""}`}>
+                  <button
+                    onClick={() => selectConversation(c.id)}
+                    className="flex w-full items-start gap-3 p-4 pr-10 text-left transition hover:bg-accent"
+                  >
+                    <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">
+                      {c.otherUser?.avatar_url
+                        ? <img src={c.otherUser.avatar_url} alt="" className="h-full w-full object-cover" />
+                        : (c.otherUser?.full_name ?? "?").slice(0, 1).toUpperCase()}
                     </div>
-                    {c.property && <p className="truncate text-xs text-muted-foreground">{c.property.title}</p>}
-                    <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <p className="truncate text-sm text-muted-foreground">
-                        {c.lastMessage?.body || (c.lastMessage ? "📎 Attachment" : "No messages yet")}
-                      </p>
-                      {c.unreadCount > 0 && (
-                        <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
-                          {c.unreadCount}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-medium">{c.otherUser?.full_name ?? "Unknown user"}</p>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false })}
                         </span>
-                      )}
+                      </div>
+                      {c.property && <p className="truncate text-xs text-muted-foreground">{c.property.title}</p>}
+                      <div className="mt-0.5 flex items-center justify-between gap-2">
+                        <p className="truncate text-sm text-muted-foreground">
+                          {c.lastMessage?.deleted_at
+                            ? "Message unsent"
+                            : c.lastMessage?.body || (c.lastMessage ? "📎 Attachment" : "No messages yet")}
+                        </p>
+                        {c.unreadCount > 0 && (
+                          <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
+                            {c.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Delete this chat with ${c.otherUser?.full_name ?? "this user"}? It leaves your inbox until new messages arrive.`)) {
+                        deleteChat.mutate(c.id);
+                      }
+                    }}
+                    aria-label="Delete chat"
+                    title="Delete chat"
+                    className="absolute right-3 top-4 grid h-7 w-7 place-items-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </div>
@@ -271,33 +303,78 @@ function ContactDetailsPanel({
 }
 
 /**
- * Small inline card shown above a message that references a specific
- * listing — photo, title, price, location — so whoever's reading (sender
- * scrolling back, or the recipient) immediately sees which house is meant,
- * without having to guess from the text alone.
+ * Card shown above a message that references a specific listing — photo,
+ * title, price, location — so whoever's reading (sender scrolling back, or
+ * the recipient) immediately sees which house is meant, without guessing
+ * from text alone. Sized generously so the photo actually reads at a glance.
  */
 function MessagePropertyCard({ property, isMine }: { property: PropertyPreview; isMine: boolean }) {
   return (
     <Link
       to="/properties/$id"
       params={{ id: property.id }}
-      className={`mb-2 flex items-center gap-2.5 overflow-hidden rounded-xl border p-2 transition hover:opacity-90 ${
+      className={`mb-2 flex items-center gap-3 overflow-hidden rounded-xl border p-3 transition hover:opacity-90 ${
         isMine ? "border-primary-foreground/25 bg-primary-foreground/10" : "border-border bg-background/70"
       }`}
     >
-      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+      <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
         {property.images?.[0]
           ? <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover" />
-          : <div className="grid h-full w-full place-items-center"><Home className="h-4 w-4 text-muted-foreground" /></div>}
+          : <div className="grid h-full w-full place-items-center"><Home className="h-5 w-5 text-muted-foreground" /></div>}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold">{property.title}</p>
-        <p className={`truncate text-[11px] ${isMine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-          {formatPrice(property.price)}{property.for_rent && "/mo"}
-          {property.location ? ` · ${property.location}` : ""}
+        <p className="truncate text-sm font-semibold leading-snug">{property.title}</p>
+        <p className={`truncate text-sm font-semibold ${isMine ? "text-primary-foreground" : "text-primary"}`}>
+          {formatPrice(property.price)}{property.for_rent && <span className="font-normal opacity-80">/mo</span>}
         </p>
+        {property.location && (
+          <p className={`truncate text-xs ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{property.location}</p>
+        )}
       </div>
     </Link>
+  );
+}
+
+/** Small quoted snippet of the message being replied to, shown inside the reply's own bubble. */
+function QuotedMessage({ message, isMine }: { message: Message; isMine: boolean }) {
+  const preview = message.deleted_at
+    ? "This message was unsent"
+    : message.body || (message.attachment_type === "image" ? "📷 Photo" : message.attachment_url ? "📎 Attachment" : message.property_id ? "🏠 Listing" : "Message");
+  return (
+    <div className={`mb-1.5 rounded-lg border-l-4 px-2.5 py-1.5 text-xs ${isMine ? "border-primary-foreground/40 bg-primary-foreground/10" : "border-primary/40 bg-primary/5"}`}>
+      <p className="truncate opacity-80">{preview}</p>
+    </div>
+  );
+}
+
+/** Reply / Edit / Unsend action buttons that fade in on hover next to a message bubble. */
+function MessageHoverActions({
+  deleted, canEdit, canUnsend, onReply, onEdit, onUnsend,
+}: {
+  deleted: boolean;
+  canEdit: boolean;
+  canUnsend: boolean;
+  onReply: () => void;
+  onEdit: () => void;
+  onUnsend: () => void;
+}) {
+  if (deleted) return null;
+  return (
+    <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+      <button type="button" onClick={onReply} title="Reply" aria-label="Reply" className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground">
+        <CornerUpLeft className="h-3.5 w-3.5" />
+      </button>
+      {canEdit && (
+        <button type="button" onClick={onEdit} title="Edit" aria-label="Edit" className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {canUnsend && (
+        <button type="button" onClick={onUnsend} title="Unsend" aria-label="Unsend" className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -316,9 +393,20 @@ function ConversationThread({
   const qc = useQueryClient();
   const [body, setBody] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editText, setEditText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Forces a re-render every 30s so "Edit" fades away once a message ages
+  // past the edit window, without needing to refetch anything.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => forceTick((x) => x + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", conversationId],
@@ -352,6 +440,17 @@ function ConversationThread({
     });
     return unsubscribe;
   }, [conversationId, currentUserId, qc]);
+
+  // Live-reflects edits, unsends, and read receipts (the "seen" tick) as
+  // they happen, without waiting for a manual refetch.
+  useEffect(() => {
+    const unsubscribe = subscribeToConversationUpdates(conversationId, (updated: Message) => {
+      qc.setQueryData(["messages", conversationId], (old: Message[] = []) =>
+        old.map((m) => (m.id === updated.id ? updated : m))
+      );
+    });
+    return unsubscribe;
+  }, [conversationId, qc]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -395,18 +494,42 @@ function ConversationThread({
       if (pendingFile) {
         attachment = await uploadMessageAttachment(pendingFile, currentUserId);
       }
-      await sendMessage(conversationId, currentUserId, body.trim(), attachment);
+      await sendMessage(conversationId, currentUserId, body.trim(), attachment, null, replyingTo?.id ?? null);
     },
     onSuccess: () => {
       setBody("");
       setPendingFile(null);
+      setReplyingTo(null);
       onSent();
       qc.invalidateQueries({ queryKey: ["messages", conversationId] });
     },
     onError: () => toast.error("Couldn't send that message — please try again."),
   });
 
+  const editMut = useMutation({
+    mutationFn: ({ id, newBody }: { id: string; newBody: string }) => editMessage(id, newBody),
+    onSuccess: (_d, v) => {
+      qc.setQueryData(["messages", conversationId], (old: Message[] = []) =>
+        old.map((m) => (m.id === v.id ? { ...m, body: v.newBody, edited_at: new Date().toISOString() } : m))
+      );
+      setEditingMessage(null);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't edit that message."),
+  });
+
+  const unsend = useMutation({
+    mutationFn: (id: string) => unsendMessage(id),
+    onSuccess: (_d, id) => {
+      qc.setQueryData(["messages", conversationId], (old: Message[] = []) =>
+        old.map((m) => (m.id === id ? { ...m, deleted_at: new Date().toISOString(), body: "", attachment_url: null, attachment_name: null, attachment_type: null } : m))
+      );
+      onSent();
+    },
+    onError: () => toast.error("Couldn't unsend that message."),
+  });
+
   const canSend = (body.trim().length > 0 || !!pendingFile) && !send.isPending;
+  const editWindowMs = EDIT_WINDOW_MINUTES * 60 * 1000;
 
   return (
     <>
@@ -430,33 +553,90 @@ function ConversationThread({
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-5">
         {messages.map((m) => {
           const isMine = m.sender_id === currentUserId;
+          const isDeleted = !!m.deleted_at;
           const propertyPreview = m.property_id ? propertyPreviews.get(m.property_id) : undefined;
+          const repliedMessage = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : undefined;
+          const isEditable = isMine && !isDeleted && Date.now() - new Date(m.created_at).getTime() < editWindowMs;
+          const isEditingThis = editingMessage?.id === m.id;
+
+          const actions = (
+            <MessageHoverActions
+              deleted={isDeleted}
+              canEdit={isMine && isEditable}
+              canUnsend={isMine}
+              onReply={() => setReplyingTo(m)}
+              onEdit={() => { setEditingMessage(m); setEditText(m.body); }}
+              onUnsend={() => { if (confirm("Unsend this message? This can't be undone.")) unsend.mutate(m.id); }}
+            />
+          );
+
           return (
-            <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isMine ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
-                {propertyPreview && <MessagePropertyCard property={propertyPreview} isMine={isMine} />}
-                {m.attachment_url && m.attachment_type === "image" && (
-                  <a href={m.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg">
-                    <img src={m.attachment_url} alt={m.attachment_name ?? "Attachment"} className="max-h-64 w-full object-cover" />
-                  </a>
+            <div key={m.id} className={`group flex items-center gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
+              {isMine && actions}
+              <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isMine ? "bg-primary text-primary-foreground" : "bg-surface"} ${isDeleted ? "italic opacity-70" : ""}`}>
+                {isEditingThis ? (
+                  <div className="space-y-2">
+                    <textarea
+                      autoFocus
+                      rows={2}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className={`w-full resize-none rounded-md border p-2 text-sm ${isMine ? "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/60" : "border-border bg-background"}`}
+                    />
+                    <div className="flex justify-end gap-3 text-xs font-semibold">
+                      <button type="button" onClick={() => setEditingMessage(null)} className="opacity-80 hover:underline">Cancel</button>
+                      <button
+                        type="button"
+                        onClick={() => editMut.mutate({ id: m.id, newBody: editText.trim() })}
+                        disabled={!editText.trim() || editMut.isPending}
+                        className="hover:underline disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {!isDeleted && repliedMessage && <QuotedMessage message={repliedMessage} isMine={isMine} />}
+                    {!isDeleted && propertyPreview && <MessagePropertyCard property={propertyPreview} isMine={isMine} />}
+                    {!isDeleted && m.attachment_url && m.attachment_type === "image" && (
+                      <a href={m.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg">
+                        <img src={m.attachment_url} alt={m.attachment_name ?? "Attachment"} className="max-h-64 w-full object-cover" />
+                      </a>
+                    )}
+                    {!isDeleted && m.attachment_url && m.attachment_type === "file" && (
+                      <a
+                        href={m.attachment_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={m.attachment_name ?? undefined}
+                        className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs hover:underline ${isMine ? "border-primary-foreground/25 bg-primary-foreground/10" : "border-border bg-background/60"}`}
+                      >
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{m.attachment_name ?? "Attachment"}</span>
+                      </a>
+                    )}
+                    {isDeleted ? (
+                      <p className="flex items-center gap-1.5">
+                        <Ban className="h-3.5 w-3.5 shrink-0" />
+                        {isMine ? "You unsent a message" : "This message was unsent"}
+                      </p>
+                    ) : (
+                      m.body && <p className="whitespace-pre-line">{renderFormattedText(m.body)}</p>
+                    )}
+                    <div className={`mt-1 flex items-center gap-1.5 text-[10px] ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                      <span>{formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}</span>
+                      {!isDeleted && m.edited_at && <span>· edited</span>}
+                      {isMine && !isDeleted && (
+                        m.read_at
+                          ? <CheckCheck className="h-3 w-3" aria-label="Seen" />
+                          : <Check className="h-3 w-3" aria-label="Sent" />
+                      )}
+                    </div>
+                  </>
                 )}
-                {m.attachment_url && m.attachment_type === "file" && (
-                  <a
-                    href={m.attachment_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={m.attachment_name ?? undefined}
-                    className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs hover:underline ${isMine ? "border-primary-foreground/25 bg-primary-foreground/10" : "border-border bg-background/60"}`}
-                  >
-                    <FileText className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{m.attachment_name ?? "Attachment"}</span>
-                  </a>
-                )}
-                {m.body && <p className="whitespace-pre-line">{renderFormattedText(m.body)}</p>}
-                <p className={`mt-1 text-[10px] ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  {formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}
-                </p>
               </div>
+              {!isMine && actions}
             </div>
           );
         })}
@@ -467,6 +647,24 @@ function ConversationThread({
         onSubmit={(e) => { e.preventDefault(); send.mutate(); }}
       >
         <div className="rounded-2xl border border-input bg-background">
+          {replyingTo && (
+            <div className="mx-3 mt-3 flex items-start gap-2 rounded-lg bg-accent px-3 py-2 text-xs">
+              <CornerUpLeft className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">
+                  Replying to {replyingTo.sender_id === currentUserId ? "yourself" : otherUser?.full_name ?? "them"}
+                </p>
+                <p className="truncate text-muted-foreground">
+                  {replyingTo.deleted_at
+                    ? "This message was unsent"
+                    : replyingTo.body || (replyingTo.attachment_type ? "Attachment" : replyingTo.property_id ? "Listing" : "")}
+                </p>
+              </div>
+              <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="shrink-0 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {pendingFile && (
             <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs">
               {pendingFile.type.startsWith("image/") ? <ImageIcon className="h-3.5 w-3.5 shrink-0" /> : <Paperclip className="h-3.5 w-3.5 shrink-0" />}
