@@ -347,7 +347,7 @@ function ContactDetailsPanel({
  * the recipient) immediately sees which house is meant, without guessing
  * from text alone. Sized generously so the photo actually reads at a glance.
  */
-function MessagePropertyCard({ property, isMine }: { property: PropertyPreview; isMine: boolean }) {
+function MessagePropertyCard({ property, isMine, onImageLoad }: { property: PropertyPreview; isMine: boolean; onImageLoad: () => void }) {
   return (
     <Link
       to="/properties/$id"
@@ -358,7 +358,7 @@ function MessagePropertyCard({ property, isMine }: { property: PropertyPreview; 
     >
       <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
         {property.images?.[0]
-          ? <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover" />
+          ? <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover" onLoad={onImageLoad} />
           : <div className="grid h-full w-full place-items-center"><Home className="h-5 w-5 text-muted-foreground" /></div>}
       </div>
       <div className="min-w-0 flex-1">
@@ -439,6 +439,10 @@ function ConversationThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether this conversation has done its first scroll yet. The
+  // component remounts (key={selected.id}) whenever the user switches
+  // chats, so this naturally resets to false for every new conversation.
+  const hasScrolledOnceRef = useRef(false);
 
   // Forces a re-render every 30s so "Edit" fades away once a message ages
   // past the edit window, without needing to refetch anything.
@@ -492,9 +496,35 @@ function ConversationThread({
     return unsubscribe;
   }, [conversationId, qc]);
 
+  // Jumps to the newest message whenever the message list changes. On the
+  // very first load of a conversation this lands instantly ("auto") at the
+  // bottom; new messages arriving afterward scroll in smoothly. Running the
+  // scroll again on the next animation frame (not just immediately) matters
+  // because attachment/property-card images haven't necessarily finished
+  // laying out yet on the first pass — without the second call, a thread
+  // with images can appear to stop partway up instead of at the very
+  // bottom.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el || messages.length === 0) return;
+
+    const isInitialLoad = !hasScrolledOnceRef.current;
+    const jumpToBottom = () => el.scrollTo({ top: el.scrollHeight, behavior: isInitialLoad ? "auto" : "smooth" });
+
+    jumpToBottom();
+    requestAnimationFrame(jumpToBottom);
+    hasScrolledOnceRef.current = true;
   }, [messages.length]);
+
+  /** Re-anchors to the bottom once a message image finishes loading — but
+   *  only if the user was already at (or very near) the bottom, so it never
+   *  yanks them down while they're reading older messages further up. */
+  function handleThreadImageLoad() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 300) el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+  }
 
   // Keeps the toolbar buttons highlighted while the caret sits inside
   // bold/italic/underline text, and un-highlighted otherwise — mirrors
@@ -672,10 +702,17 @@ function ConversationThread({
                 ) : (
                   <>
                     {!isDeleted && repliedMessage && <QuotedMessage message={repliedMessage} isMine={isMine} />}
-                    {!isDeleted && propertyPreview && <MessagePropertyCard property={propertyPreview} isMine={isMine} />}
+                    {!isDeleted && propertyPreview && (
+                      <MessagePropertyCard property={propertyPreview} isMine={isMine} onImageLoad={handleThreadImageLoad} />
+                    )}
                     {!isDeleted && m.attachment_url && m.attachment_type === "image" && (
                       <a href={m.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg">
-                        <img src={m.attachment_url} alt={m.attachment_name ?? "Attachment"} className="max-h-64 w-full object-cover" />
+                        <img
+                          src={m.attachment_url}
+                          alt={m.attachment_name ?? "Attachment"}
+                          className="max-h-64 w-full object-cover"
+                          onLoad={handleThreadImageLoad}
+                        />
                       </a>
                     )}
                     {!isDeleted && m.attachment_url && m.attachment_type === "file" && (
