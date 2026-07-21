@@ -68,8 +68,8 @@ function renderFormattedText(text: string): React.ReactNode {
  * Same mini-syntax as renderFormattedText, but for plain-text-only contexts
  * (conversation list preview, quoted-reply snippets, the "replying to"
  * footer) where JSX styling isn't rendered anyway — so instead of leaving
- * the raw **/__ markers visible, this just unwraps them and keeps the
- * underlying words.
+ * the raw marker characters (asterisks and underscores) visible, this
+ * just unwraps them and keeps the underlying words.
  */
 function stripFormattingMarkers(text: string): string {
   return text
@@ -812,9 +812,10 @@ function ConversationThread({
           )}
 
           {/* Rich-text compose box — contentEditable so Bold/Italic/Underline
-              apply as real styled text live, instead of showing **markers**.
-              The visible placeholder is a separate absolutely-positioned span
-              since contentEditable has no native `placeholder` attribute. */}
+              apply as real styled text live, instead of showing bold/italic
+              markers directly. The visible placeholder is a separate
+              absolutely-positioned span since contentEditable has no native
+              `placeholder` attribute. */}
           <div className="relative">
             {isEmpty && (
               <span className="pointer-events-none absolute left-4 top-3 text-sm text-muted-foreground">
