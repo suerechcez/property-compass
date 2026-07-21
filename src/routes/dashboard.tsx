@@ -278,16 +278,22 @@ function DashSidebar({
         className={`fixed left-0 z-30 hidden flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
         style={{ top: NAV_HEIGHT_PX, height: `calc(100vh - ${NAV_HEIGHT_PX}px)` }}
       >
-        <div className="flex flex-col items-center gap-1 py-3">
-          <button
-            onClick={onToggleExpanded}
-            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            className="mb-1 grid h-9 w-9 shrink-0 place-items-center self-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
-          >
-            {expanded ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
-          </button>
-          <div className="h-px w-8 bg-border" />
+        {/* Collapse toggle — pinned to the rail's own right edge and pushed
+            down from the top, so it reads as a control that belongs to the
+            sidebar itself rather than crowding the Nav bar directly above
+            it. Anchored to the aside's fixed positioning context, so it
+            tracks the border correctly whether the rail is collapsed
+            (16 wide) or expanded (56 wide). */}
+        <button
+          onClick={onToggleExpanded}
+          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          className="absolute -right-3 top-6 z-10 grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
+        >
+          {expanded ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
+        </button>
+
+        <div className="flex flex-col items-center gap-1 pt-14 pb-3">
           {desktopContent}
         </div>
       </aside>
