@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   fetchConversations,
   fetchMessages,
+  fetchPropertyPreviews,
   markConversationRead,
   sendMessage,
   subscribeToConversation,
   type Message,
+  type PropertyPreview,
 } from "@/lib/messages";
 import { uploadMessageAttachment } from "@/lib/storage";
 import { formatPrice } from "@/lib/property-types";
@@ -18,7 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   Send, MessageSquare, Search, Phone, Mail, X, Info, ChevronLeft,
-  Bold, Italic, Underline, Paperclip, Image as ImageIcon, FileText, Loader2,
+  Bold, Italic, Underline, Paperclip, Image as ImageIcon, FileText, Loader2, Home,
 } from "lucide-react";
 
 export const Route = createFileRoute("/messages")({
@@ -268,6 +270,37 @@ function ContactDetailsPanel({
   );
 }
 
+/**
+ * Small inline card shown above a message that references a specific
+ * listing — photo, title, price, location — so whoever's reading (sender
+ * scrolling back, or the recipient) immediately sees which house is meant,
+ * without having to guess from the text alone.
+ */
+function MessagePropertyCard({ property, isMine }: { property: PropertyPreview; isMine: boolean }) {
+  return (
+    <Link
+      to="/properties/$id"
+      params={{ id: property.id }}
+      className={`mb-2 flex items-center gap-2.5 overflow-hidden rounded-xl border p-2 transition hover:opacity-90 ${
+        isMine ? "border-primary-foreground/25 bg-primary-foreground/10" : "border-border bg-background/70"
+      }`}
+    >
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+        {property.images?.[0]
+          ? <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover" />
+          : <div className="grid h-full w-full place-items-center"><Home className="h-4 w-4 text-muted-foreground" /></div>}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold">{property.title}</p>
+        <p className={`truncate text-[11px] ${isMine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+          {formatPrice(property.price)}{property.for_rent && "/mo"}
+          {property.location ? ` · ${property.location}` : ""}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 function ConversationThread({
   conversationId, currentUserId, otherUser, property, detailsOpen, onToggleDetails, onBack, onSent,
 }: {
@@ -290,6 +323,16 @@ function ConversationThread({
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () => fetchMessages(conversationId),
+  });
+
+  // Preview data for every distinct listing referenced by messages in this
+  // thread (usually 0 or 1, but a long-running thread with the same agent
+  // could span several properties over time).
+  const propertyIdsInThread = Array.from(new Set(messages.map((m) => m.property_id).filter(Boolean))) as string[];
+  const { data: propertyPreviews = new Map<string, PropertyPreview>() } = useQuery({
+    queryKey: ["message-property-previews", conversationId, propertyIdsInThread.join(",")],
+    queryFn: () => fetchPropertyPreviews(propertyIdsInThread),
+    enabled: propertyIdsInThread.length > 0,
   });
 
   useEffect(() => {
@@ -387,9 +430,11 @@ function ConversationThread({
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-5">
         {messages.map((m) => {
           const isMine = m.sender_id === currentUserId;
+          const propertyPreview = m.property_id ? propertyPreviews.get(m.property_id) : undefined;
           return (
             <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${isMine ? "bg-primary text-primary-foreground" : "bg-surface"}`}>
+                {propertyPreview && <MessagePropertyCard property={propertyPreview} isMine={isMine} />}
                 {m.attachment_url && m.attachment_type === "image" && (
                   <a href={m.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg">
                     <img src={m.attachment_url} alt={m.attachment_name ?? "Attachment"} className="max-h-64 w-full object-cover" />
