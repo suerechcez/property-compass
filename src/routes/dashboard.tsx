@@ -28,6 +28,11 @@ const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
+// Nav bar height, matching the constant used elsewhere in the app (e.g. the
+// Messages page's full-height layout) — the fixed sidebar sits directly
+// below it and fills the rest of the viewport.
+const NAV_HEIGHT_PX = 73;
+
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: (ALL_TABS.includes(search.tab as ActiveView) ? search.tab : "overview") as ActiveView,
@@ -136,14 +141,19 @@ function SectionCard({ title, subtitle, action, children }: {
 }
 
 // ── Left sidebar ───────────────────────────────────────────────────────────────
-// Redesigned as a slim icon rail (inspired by CRM-style icon sidebars): a
-// narrow column of circular icon buttons with tooltips, collapsible into a
-// wider labeled view via the chevron toggle at the top. Same navigation
-// behavior as before (scrolls to a dashboard section, or switches into an
-// admin tab) — only the visual presentation changed.
+// A true fixed rail: attached flush to the very left edge of the viewport
+// (not indented inside the centered max-width content container) and
+// pinned in place below the Nav bar for the full remaining viewport height,
+// so it stays on screen the entire time the user scrolls the dashboard —
+// it never scrolls away, unlike the previous `position: sticky` version
+// (which could only "stick" for as long as its own short content column
+// had height, then fell behind on a long page).
+//
+// `expanded` is lifted up to the Dashboard shell so the main content area
+// can reserve matching left padding and never sit underneath the rail.
 
 function DashSidebar({
-  canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin,
+  canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin, expanded, onToggleExpanded,
 }: {
   canManageListings: boolean;
   isAdmin: boolean;
@@ -151,9 +161,10 @@ function DashSidebar({
   onAdminTab: (t: AdminTab) => void;
   adminTab: AdminTab | null;
   onExitAdmin: () => void;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false); // desktop rail: icon-only (false) vs labeled (true)
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
@@ -185,7 +196,7 @@ function DashSidebar({
 
   const currentLabel = adminTab ? TAB_LABELS[adminTab] : TAB_LABELS[activeSection];
 
-  /** A single nav icon button. `expanded` controls icon-only (rail) vs icon+label (mobile / expanded rail). */
+  /** A single nav icon button. `itemExpanded` controls icon-only (rail) vs icon+label (mobile / expanded rail). */
   function NavItemBtn({ id, isActive, expanded: itemExpanded }: { id: ActiveView; isActive: boolean; expanded: boolean }) {
     const Icon = TAB_ICONS[id];
     return (
@@ -247,7 +258,9 @@ function DashSidebar({
 
   return (
     <>
-      {/* Mobile trigger — unchanged behavior, just a labeled dropdown */}
+      {/* Mobile trigger — unchanged behavior, just a labeled dropdown, laid
+          out inline within the page (not fixed) since only the desktop
+          rail below needs to attach to the viewport edge. */}
       <button
         className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
@@ -258,11 +271,16 @@ function DashSidebar({
         <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
       )}
 
-      {/* Desktop — icon rail, collapsible into a labeled view */}
-      <aside className={`hidden shrink-0 lg:block ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}>
-        <div className="sticky top-24 flex flex-col items-center gap-1 rounded-2xl border border-border bg-card py-3">
+      {/* Desktop — fixed to the true left edge of the browser window, full
+          height below the Nav bar, so it stays in view for the entire
+          scroll of the (often very tall) dashboard page. */}
+      <aside
+        className={`fixed left-0 z-30 hidden flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
+        style={{ top: NAV_HEIGHT_PX, height: `calc(100vh - ${NAV_HEIGHT_PX}px)` }}
+      >
+        <div className="flex flex-col items-center gap-1 py-3">
           <button
-            onClick={() => setExpanded((e) => !e)}
+            onClick={onToggleExpanded}
             aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
             title={expanded ? "Collapse sidebar" : "Expand sidebar"}
             className="mb-1 grid h-9 w-9 shrink-0 place-items-center self-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
@@ -290,6 +308,9 @@ function Dashboard() {
     ADMIN_TABS.includes(urlTab as AdminTab) ? (urlTab as AdminTab) : null
   );
   const [activeSection, setActiveSection] = useState<ScrollSection>("overview");
+  // Lifted up from DashSidebar so the main content column can reserve
+  // matching left padding for whichever width the fixed rail currently is.
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
@@ -316,28 +337,50 @@ function Dashboard() {
   return (
     <div className="min-h-screen site-page">
       <Nav />
-      <div className="mx-auto max-w-screen-2xl px-6 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
-            <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
+
+      {/* Fixed left-edge rail — rendered as a sibling of the centered
+          content below, not nested inside it, so it's flush against the
+          true viewport edge instead of the max-width container's edge. */}
+      <DashSidebar
+        canManageListings={canManageListings}
+        isAdmin={isAdmin}
+        activeSection={activeSection}
+        adminTab={adminTab}
+        onAdminTab={(t) => setAdminTab(t)}
+        onExitAdmin={() => setAdminTab(null)}
+        expanded={sidebarExpanded}
+        onToggleExpanded={() => setSidebarExpanded((e) => !e)}
+      />
+
+      {/* Reserves space for the fixed rail on large screens so the centered
+          content never sits underneath it. */}
+      <div className={`transition-[padding] duration-200 ${sidebarExpanded ? "lg:pl-56" : "lg:pl-16"}`}>
+        <div className="mx-auto max-w-screen-2xl px-6 py-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
+              <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
+            </div>
+            {canManageListings && (
+              <Button asChild><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
+            )}
           </div>
-          {canManageListings && (
-            <Button asChild><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
-          )}
-        </div>
 
-        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-          <DashSidebar
-            canManageListings={canManageListings}
-            isAdmin={isAdmin}
-            activeSection={activeSection}
-            adminTab={adminTab}
-            onAdminTab={(t) => setAdminTab(t)}
-            onExitAdmin={() => setAdminTab(null)}
-          />
+          {/* Mobile-only nav trigger — the fixed rail above is desktop-only (lg:flex) */}
+          <div className="mt-8 lg:hidden">
+            <DashSidebar
+              canManageListings={canManageListings}
+              isAdmin={isAdmin}
+              activeSection={activeSection}
+              adminTab={adminTab}
+              onAdminTab={(t) => setAdminTab(t)}
+              onExitAdmin={() => setAdminTab(null)}
+              expanded={sidebarExpanded}
+              onToggleExpanded={() => setSidebarExpanded((e) => !e)}
+            />
+          </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="mt-8 min-w-0">
             {adminTab ? (
               <div className="space-y-6">
                 <button
