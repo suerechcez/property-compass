@@ -19,6 +19,19 @@ export type Message = {
   attachment_url: string | null;
   attachment_name: string | null;
   attachment_type: "image" | "file" | null;
+  // Which listing this particular message is "about" — separate from the
+  // conversation's own property_id, since one thread with an agent can span
+  // several listings over time. Rendered as a small preview card in the thread.
+  property_id: string | null;
+};
+
+export type PropertyPreview = {
+  id: string;
+  title: string;
+  images: string[];
+  price: number;
+  for_rent: boolean;
+  location: string | null;
 };
 
 /**
@@ -81,13 +94,18 @@ export async function getOrCreateConversation(params: {
 /**
  * Sends a message in a conversation and bumps last_message_at.
  * An optional attachment (already uploaded to storage) can be attached
- * alongside — or instead of — text body content.
+ * alongside — or instead of — text body content. An optional propertyId
+ * tags this specific message as being "about" a listing, so the thread can
+ * render a small photo+price preview card right above that message — this
+ * is what makes a quick-message from a listing page show the recipient
+ * (and the sender, when scrolling back) exactly which house was meant.
  */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   body: string,
   attachment?: { url: string; name: string; type: "image" | "file" } | null,
+  propertyId?: string | null,
 ): Promise<void> {
   const { error: msgErr } = await supabase
     .from("messages")
@@ -98,6 +116,7 @@ export async function sendMessage(
       attachment_url: attachment?.url ?? null,
       attachment_name: attachment?.name ?? null,
       attachment_type: attachment?.type ?? null,
+      property_id: propertyId ?? null,
     });
   if (msgErr) throw msgErr;
 
@@ -108,7 +127,11 @@ export async function sendMessage(
   if (convErr) throw convErr;
 }
 
-/** Starts (or reuses) a conversation and sends the first message in one call. */
+/**
+ * Starts (or reuses) a conversation and sends the first message in one call.
+ * If propertyId is given, that first message is tagged with the listing so
+ * it renders with a photo preview card in the thread.
+ */
 export async function startConversation(params: {
   buyerId: string;
   commissionerId: string;
@@ -116,7 +139,7 @@ export async function startConversation(params: {
   body: string;
 }): Promise<string> {
   const conversationId = await getOrCreateConversation(params);
-  await sendMessage(conversationId, params.buyerId, params.body);
+  await sendMessage(conversationId, params.buyerId, params.body, null, params.propertyId ?? null);
   return conversationId;
 }
 
@@ -142,8 +165,8 @@ export async function fetchConversations(userId: string) {
     // phone + email pulled in for the contact details panel
     supabase.from("profiles").select("id, full_name, avatar_url, phone, email").in("id", otherIds),
     propertyIds.length
-      ? supabase.from("properties").select("id, title, images, price, for_rent").in("id", propertyIds)
-      : Promise.resolve({ data: [] as { id: string; title: string; images: string[]; price: number; for_rent: boolean }[] }),
+      ? supabase.from("properties").select("id, title, images, price, for_rent, location").in("id", propertyIds)
+      : Promise.resolve({ data: [] as PropertyPreview[] }),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -189,6 +212,22 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Fetches lightweight preview data (photo, title, price, location) for a
+ * batch of property ids — used to render the per-message listing card in
+ * the thread without re-querying per message.
+ */
+export async function fetchPropertyPreviews(propertyIds: string[]): Promise<Map<string, PropertyPreview>> {
+  const ids = Array.from(new Set(propertyIds.filter(Boolean)));
+  if (ids.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("id, title, images, price, for_rent, location")
+    .in("id", ids);
+  if (error) throw error;
+  return new Map((data ?? []).map((p) => [p.id, p as PropertyPreview]));
 }
 
 /** Marks all messages in a conversation as read for the current user (i.e. messages sent by the other person). */
