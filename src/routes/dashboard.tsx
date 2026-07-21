@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
   Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
-  Plus, X, ChevronUp, ChevronDown, Menu, type LucideIcon,
+  Plus, X, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Menu, type LucideIcon,
 } from "lucide-react";
 
 type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
@@ -136,6 +136,11 @@ function SectionCard({ title, subtitle, action, children }: {
 }
 
 // ── Left sidebar ───────────────────────────────────────────────────────────────
+// Redesigned as a slim icon rail (inspired by CRM-style icon sidebars): a
+// narrow column of circular icon buttons with tooltips, collapsible into a
+// wider labeled view via the chevron toggle at the top. Same navigation
+// behavior as before (scrolls to a dashboard section, or switches into an
+// admin tab) — only the visual presentation changed.
 
 function DashSidebar({
   canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin,
@@ -148,6 +153,7 @@ function DashSidebar({
   onExitAdmin: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false); // desktop rail: icon-only (false) vs labeled (true)
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
@@ -161,6 +167,15 @@ function DashSidebar({
     }
   }
 
+  function handleItemClick(id: ActiveView) {
+    if (ADMIN_TABS.includes(id as AdminTab)) {
+      onAdminTab(id as AdminTab);
+      setMobileOpen(false);
+    } else {
+      scrollTo(id as ScrollSection);
+    }
+  }
+
   const mainItems: { id: ScrollSection; show: boolean }[] = [
     { id: "overview", show: true },
     { id: "listings", show: canManageListings },
@@ -168,40 +183,62 @@ function DashSidebar({
     { id: "forecast", show: canManageListings },
   ];
 
-  function NavItem({ id, isActive }: { id: ActiveView; isActive: boolean }) {
+  const currentLabel = adminTab ? TAB_LABELS[adminTab] : TAB_LABELS[activeSection];
+
+  /** A single nav icon button. `expanded` controls icon-only (rail) vs icon+label (mobile / expanded rail). */
+  function NavItemBtn({ id, isActive, expanded: itemExpanded }: { id: ActiveView; isActive: boolean; expanded: boolean }) {
     const Icon = TAB_ICONS[id];
-    const isAdminItem = ADMIN_TABS.includes(id as AdminTab);
     return (
       <button
-        onClick={() => {
-          if (isAdminItem) { onAdminTab(id as AdminTab); setMobileOpen(false); }
-          else scrollTo(id as ScrollSection);
-        }}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+        onClick={() => handleItemClick(id)}
+        title={TAB_LABELS[id]}
+        aria-label={TAB_LABELS[id]}
+        className={`flex shrink-0 items-center gap-3 rounded-xl transition-all ${
+          itemExpanded ? "w-full justify-start px-3 py-2.5 text-sm font-medium" : "h-10 w-10 justify-center"
+        } ${
           isActive
             ? "bg-primary text-primary-foreground shadow-sm"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         }`}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        <span>{TAB_LABELS[id]}</span>
+        {itemExpanded && <span>{TAB_LABELS[id]}</span>}
       </button>
     );
   }
 
-  const currentLabel = adminTab ? TAB_LABELS[adminTab] : TAB_LABELS[activeSection];
-
-  const content = (
+  // Mobile popover always shows the labeled version — collapsing to icons
+  // only makes sense on the desktop rail where there's a hover tooltip.
+  const mobileContent = (
     <div className="flex flex-col gap-1 p-3">
       {mainItems.filter((t) => t.show).map((t) => (
-        <NavItem key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} />
+        <NavItemBtn key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} expanded />
       ))}
       {isAdmin && (
         <>
           <div className="my-3 border-t border-border" />
           <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
           {ADMIN_TABS.map((t) => (
-            <NavItem key={t} id={t} isActive={adminTab === t} />
+            <NavItemBtn key={t} id={t} isActive={adminTab === t} expanded />
+          ))}
+        </>
+      )}
+    </div>
+  );
+
+  const desktopContent = (
+    <div className={`flex flex-col gap-1.5 ${expanded ? "w-full items-stretch p-3" : "items-center p-2"}`}>
+      {mainItems.filter((t) => t.show).map((t) => (
+        <NavItemBtn key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} expanded={expanded} />
+      ))}
+      {isAdmin && (
+        <>
+          <div className={`my-2 border-t border-border ${expanded ? "" : "w-8"}`} />
+          {expanded && (
+            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
+          )}
+          {ADMIN_TABS.map((t) => (
+            <NavItemBtn key={t} id={t} isActive={adminTab === t} expanded={expanded} />
           ))}
         </>
       )}
@@ -210,6 +247,7 @@ function DashSidebar({
 
   return (
     <>
+      {/* Mobile trigger — unchanged behavior, just a labeled dropdown */}
       <button
         className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
@@ -217,10 +255,23 @@ function DashSidebar({
         <Menu className="h-4 w-4" />{currentLabel}
       </button>
       {mobileOpen && (
-        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{content}</div>
+        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
       )}
-      <aside className="hidden w-56 shrink-0 lg:block">
-        <div className="sticky top-24 rounded-2xl border border-border bg-card">{content}</div>
+
+      {/* Desktop — icon rail, collapsible into a labeled view */}
+      <aside className={`hidden shrink-0 lg:block ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}>
+        <div className="sticky top-24 flex flex-col items-center gap-1 rounded-2xl border border-border bg-card py-3">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+            className="mb-1 grid h-9 w-9 shrink-0 place-items-center self-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            {expanded ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
+          </button>
+          <div className="h-px w-8 bg-border" />
+          {desktopContent}
+        </div>
       </aside>
     </>
   );
