@@ -65,6 +65,20 @@ function renderFormattedText(text: string): React.ReactNode {
 }
 
 /**
+ * Same mini-syntax as renderFormattedText, but for plain-text-only contexts
+ * (conversation list preview, quoted-reply snippets, the "replying to"
+ * footer) where JSX styling isn't rendered anyway — so instead of leaving
+ * the raw **/__ markers visible, this just unwraps them and keeps the
+ * underlying words.
+ */
+function stripFormattingMarkers(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1");
+}
+
+/**
  * Write side: walks the contentEditable's DOM tree and converts real
  * <b>/<strong>, <i>/<em>, <u> elements (produced by document.execCommand)
  * into the **bold** / *italic* / __underline__ mini-syntax that gets stored
@@ -206,7 +220,9 @@ function MessagesPage() {
                         <p className="truncate text-sm text-muted-foreground">
                           {c.lastMessage?.deleted_at
                             ? "Message unsent"
-                            : c.lastMessage?.body || (c.lastMessage ? "📎 Attachment" : "No messages yet")}
+                            : c.lastMessage?.body
+                              ? stripFormattingMarkers(c.lastMessage.body)
+                              : (c.lastMessage ? "📎 Attachment" : "No messages yet")}
                         </p>
                         {c.unreadCount > 0 && (
                           <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
@@ -378,7 +394,9 @@ function MessagePropertyCard({ property, isMine, onImageLoad }: { property: Prop
 function QuotedMessage({ message, isMine }: { message: Message; isMine: boolean }) {
   const preview = message.deleted_at
     ? "This message was unsent"
-    : message.body || (message.attachment_type === "image" ? "📷 Photo" : message.attachment_url ? "📎 Attachment" : message.property_id ? "🏠 Listing" : "Message");
+    : message.body
+      ? stripFormattingMarkers(message.body)
+      : (message.attachment_type === "image" ? "📷 Photo" : message.attachment_url ? "📎 Attachment" : message.property_id ? "🏠 Listing" : "Message");
   return (
     <div className={`mb-1.5 rounded-lg border-l-4 px-2.5 py-1.5 text-xs ${isMine ? "border-primary-foreground/40 bg-primary-foreground/10" : "border-primary/40 bg-primary/5"}`}>
       <p className="truncate opacity-80">{preview}</p>
@@ -768,7 +786,9 @@ function ConversationThread({
                 <p className="truncate text-muted-foreground">
                   {replyingTo.deleted_at
                     ? "This message was unsent"
-                    : replyingTo.body || (replyingTo.attachment_type ? "Attachment" : replyingTo.property_id ? "Listing" : "")}
+                    : replyingTo.body
+                      ? stripFormattingMarkers(replyingTo.body)
+                      : (replyingTo.attachment_type ? "Attachment" : replyingTo.property_id ? "Listing" : "")}
                 </p>
               </div>
               <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="shrink-0 text-muted-foreground hover:text-foreground">
