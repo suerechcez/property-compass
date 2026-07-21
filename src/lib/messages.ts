@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/** How long after sending a message can still be edited. Enforced both here
+ *  (for hiding the Edit action) and server-side by a Postgres trigger. */
+export const EDIT_WINDOW_MINUTES = 15;
+
 export type Conversation = {
   id: string;
   property_id: string | null;
@@ -7,6 +11,8 @@ export type Conversation = {
   commissioner_id: string;
   last_message_at: string;
   created_at: string;
+  deleted_for_buyer_at: string | null;
+  deleted_for_commissioner_at: string | null;
 };
 
 export type Message = {
@@ -23,6 +29,9 @@ export type Message = {
   // conversation's own property_id, since one thread with an agent can span
   // several listings over time. Rendered as a small preview card in the thread.
   property_id: string | null;
+  reply_to_id: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
 };
 
 export type PropertyPreview = {
@@ -59,6 +68,10 @@ export type NotificationItem = {
  * `propertyId`, when given, is only used as context: it's recorded on the
  * conversation the first time it's created (so the inbox can show "started
  * from listing X"), but never causes a second thread to be created.
+ *
+ * If either participant had previously hidden this conversation, sending a
+ * new message un-hides it for them (WhatsApp-style: a "deleted" chat comes
+ * back to the inbox once new activity happens).
  */
 export async function getOrCreateConversation(params: {
   buyerId: string;
@@ -75,7 +88,6 @@ export async function getOrCreateConversation(params: {
     .maybeSingle();
 
   if (existing) {
-    // Backfill property context if this thread didn't have one yet.
     if (!existing.property_id && propertyId) {
       await supabase.from("conversations").update({ property_id: propertyId }).eq("id", existing.id);
     }
@@ -92,13 +104,9 @@ export async function getOrCreateConversation(params: {
 }
 
 /**
- * Sends a message in a conversation and bumps last_message_at.
- * An optional attachment (already uploaded to storage) can be attached
- * alongside — or instead of — text body content. An optional propertyId
- * tags this specific message as being "about" a listing, so the thread can
- * render a small photo+price preview card right above that message — this
- * is what makes a quick-message from a listing page show the recipient
- * (and the sender, when scrolling back) exactly which house was meant.
+ * Sends a message in a conversation and bumps last_message_at. Also clears
+ * the sender's own "hidden" flag on the conversation, so a chat they'd
+ * deleted reappears in their inbox the moment they message in it again.
  */
 export async function sendMessage(
   conversationId: string,
@@ -106,6 +114,7 @@ export async function sendMessage(
   body: string,
   attachment?: { url: string; name: string; type: "image" | "file" } | null,
   propertyId?: string | null,
+  replyToId?: string | null,
 ): Promise<void> {
   const { error: msgErr } = await supabase
     .from("messages")
@@ -117,13 +126,21 @@ export async function sendMessage(
       attachment_name: attachment?.name ?? null,
       attachment_type: attachment?.type ?? null,
       property_id: propertyId ?? null,
+      reply_to_id: replyToId ?? null,
     });
   if (msgErr) throw msgErr;
 
-  const { error: convErr } = await supabase
+  const { data: conv } = await supabase
     .from("conversations")
-    .update({ last_message_at: new Date().toISOString() })
-    .eq("id", conversationId);
+    .select("buyer_id, commissioner_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  const unhide: Record<string, string | null> = { last_message_at: new Date().toISOString() };
+  if (conv?.buyer_id === senderId) unhide.deleted_for_buyer_at = null;
+  if (conv?.commissioner_id === senderId) unhide.deleted_for_commissioner_at = null;
+
+  const { error: convErr } = await supabase.from("conversations").update(unhide).eq("id", conversationId);
   if (convErr) throw convErr;
 }
 
@@ -143,9 +160,50 @@ export async function startConversation(params: {
   return conversationId;
 }
 
+/** Edits the text of a message the current user sent, within the edit window. Enforced server-side too. */
+export async function editMessage(messageId: string, newBody: string): Promise<void> {
+  const { error } = await supabase.from("messages").update({ body: newBody }).eq("id", messageId);
+  if (error) throw error;
+}
+
+/**
+ * "Unsends" a message: clears its content and marks it deleted, replacing it
+ * with a tombstone in the thread ("This message was unsent"). Only the
+ * sender can do this, and it's allowed at any time (not limited to the edit
+ * window) — enforced server-side by the update trigger.
+ */
+export async function unsendMessage(messageId: string): Promise<void> {
+  const { error } = await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", messageId);
+  if (error) throw error;
+}
+
+/**
+ * Hides a conversation from the current user's inbox only — the other
+ * participant still sees the full history, and it reappears for this user
+ * automatically the next time either side sends a new message.
+ */
+export async function deleteConversationForUser(conversationId: string, userId: string): Promise<void> {
+  const { data: conv, error: fetchErr } = await supabase
+    .from("conversations")
+    .select("buyer_id, commissioner_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (fetchErr) throw fetchErr;
+  if (!conv) return;
+
+  const column = conv.buyer_id === userId ? "deleted_for_buyer_at" : "deleted_for_commissioner_at";
+  const { error } = await supabase
+    .from("conversations")
+    .update({ [column]: new Date().toISOString() })
+    .eq("id", conversationId);
+  if (error) throw error;
+}
+
 /**
  * Fetches all conversations for the current user, with the other participant's
  * profile (including contact info for the details panel) and last message preview.
+ * Conversations this user has hidden (and that haven't received new activity
+ * since) are excluded.
  */
 export async function fetchConversations(userId: string) {
   const { data: convs, error } = await supabase
@@ -156,13 +214,20 @@ export async function fetchConversations(userId: string) {
   if (error) throw error;
   if (!convs || convs.length === 0) return [];
 
+  const visibleConvs = convs.filter((c) => {
+    const isBuyer = c.buyer_id === userId;
+    const hiddenAt = isBuyer ? c.deleted_for_buyer_at : c.deleted_for_commissioner_at;
+    if (!hiddenAt) return true;
+    return new Date(c.last_message_at) > new Date(hiddenAt);
+  });
+  if (visibleConvs.length === 0) return [];
+
   const otherIds = Array.from(
-    new Set(convs.map((c) => (c.buyer_id === userId ? c.commissioner_id : c.buyer_id)))
+    new Set(visibleConvs.map((c) => (c.buyer_id === userId ? c.commissioner_id : c.buyer_id)))
   );
-  const propertyIds = Array.from(new Set(convs.map((c) => c.property_id).filter(Boolean))) as string[];
+  const propertyIds = Array.from(new Set(visibleConvs.map((c) => c.property_id).filter(Boolean))) as string[];
 
   const [{ data: profiles }, { data: properties }] = await Promise.all([
-    // phone + email pulled in for the contact details panel
     supabase.from("profiles").select("id, full_name, avatar_url, phone, email").in("id", otherIds),
     propertyIds.length
       ? supabase.from("properties").select("id, title, images, price, for_rent, location").in("id", propertyIds)
@@ -172,26 +237,25 @@ export async function fetchConversations(userId: string) {
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
   const propertyMap = new Map((properties ?? []).map((p) => [p.id, p]));
 
-  // Last message preview + unread count per conversation
-  const convIds = convs.map((c) => c.id);
+  const convIds = visibleConvs.map((c) => c.id);
   const { data: allMessages } = await supabase
     .from("messages")
-    .select("conversation_id, body, sender_id, created_at, read_at")
+    .select("conversation_id, body, sender_id, created_at, read_at, deleted_at")
     .in("conversation_id", convIds)
     .order("created_at", { ascending: false });
 
-  const lastMessageByConv = new Map<string, { body: string; sender_id: string; created_at: string }>();
+  const lastMessageByConv = new Map<string, { body: string; sender_id: string; created_at: string; deleted_at: string | null }>();
   const unreadByConv = new Map<string, number>();
   (allMessages ?? []).forEach((m) => {
     if (!lastMessageByConv.has(m.conversation_id)) {
-      lastMessageByConv.set(m.conversation_id, { body: m.body, sender_id: m.sender_id, created_at: m.created_at });
+      lastMessageByConv.set(m.conversation_id, { body: m.body, sender_id: m.sender_id, created_at: m.created_at, deleted_at: m.deleted_at });
     }
-    if (!m.read_at && m.sender_id !== userId) {
+    if (!m.read_at && m.sender_id !== userId && !m.deleted_at) {
       unreadByConv.set(m.conversation_id, (unreadByConv.get(m.conversation_id) ?? 0) + 1);
     }
   });
 
-  return convs.map((c) => {
+  return visibleConvs.map((c) => {
     const otherId = c.buyer_id === userId ? c.commissioner_id : c.buyer_id;
     return {
       ...c,
@@ -308,6 +372,23 @@ export function subscribeToConversation(conversationId: string, onInsert: (messa
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
       (payload) => onInsert(payload.new as Message)
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+/**
+ * Subscribes to UPDATEs on messages in a conversation — used to live-update
+ * the thread when a message is edited, unsent, or marked read (e.g. the
+ * double-check "seen" tick appearing as soon as the other person opens it).
+ */
+export function subscribeToConversationUpdates(conversationId: string, onUpdate: (message: Message) => void): () => void {
+  const channel = supabase
+    .channel(`conversation-updates:${conversationId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+      (payload) => onUpdate(payload.new as Message)
     )
     .subscribe();
   return () => { supabase.removeChannel(channel); };
