@@ -38,12 +38,15 @@ export const Route = createFileRoute("/messages")({
 });
 
 /**
- * Very small in-house formatting syntax (not full Markdown) so the
- * Bold/Italic/Underline toolbar buttons have something concrete to
- * produce and messages.tsx has something concrete to render:
+ * Very small in-house formatting syntax (not full Markdown) used ONLY as the
+ * storage format in the messages.body column:
  *   **bold**   __underline__   *italic*
- * Order matters: check the 2-character tokens before the 1-character
- * one, otherwise **bold** would get half-matched as italic first.
+ * The compose box itself never shows these markers — it's a contentEditable
+ * rich-text field (see RichComposer below) where Bold/Italic/Underline apply
+ * live via document.execCommand, and the resulting HTML is converted to this
+ * mini-syntax only at send time via htmlToFormattedText(). This function is
+ * the read side: turning stored mini-syntax back into real <strong>/<em>/<u>
+ * elements when rendering a sent message bubble.
  */
 function renderFormattedText(text: string): React.ReactNode {
   const tokenPattern = /(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*)/g;
@@ -59,6 +62,42 @@ function renderFormattedText(text: string): React.ReactNode {
     }
     return part;
   });
+}
+
+/**
+ * Write side: walks the contentEditable's DOM tree and converts real
+ * <b>/<strong>, <i>/<em>, <u> elements (produced by document.execCommand)
+ * into the **bold** / *italic* / __underline__ mini-syntax that gets stored
+ * in messages.body and later parsed back by renderFormattedText above.
+ * <div>/<p>/<br> become newlines, matching how Chrome/Firefox/Safari
+ * structure contentEditable line breaks.
+ */
+function htmlToFormattedText(root: Node): string {
+  function walk(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const el = node as HTMLElement;
+    const inner = Array.from(el.childNodes).map(walk).join("");
+    switch (el.tagName.toLowerCase()) {
+      case "b":
+      case "strong":
+        return inner.trim() ? `**${inner}**` : inner;
+      case "i":
+      case "em":
+        return inner.trim() ? `*${inner}*` : inner;
+      case "u":
+        return inner.trim() ? `__${inner}__` : inner;
+      case "br":
+        return "\n";
+      case "div":
+      case "p":
+        return `${inner}\n`;
+      default:
+        return inner;
+    }
+  }
+  const raw = Array.from(root.childNodes).map(walk).join("");
+  return raw.replace(/\n+$/g, "").replace(/\n{3,}/g, "\n\n");
 }
 
 function MessagesPage() {
@@ -391,13 +430,14 @@ function ConversationThread({
   onSent: () => void;
 }) {
   const qc = useQueryClient();
-  const [body, setBody] = useState("");
+  const [isEmpty, setIsEmpty] = useState(true);
+  const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false });
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editText, setEditText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Forces a re-render every 30s so "Edit" fades away once a message ages
@@ -456,22 +496,53 @@ function ConversationThread({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  /** Wraps the current textarea selection in a formatting token (or inserts
-   *  "text" as a placeholder if nothing is selected), then restores focus
-   *  and re-selects the wrapped text so repeated clicks / typing feel natural. */
-  function applyFormat(token: string) {
-    const el = textareaRef.current;
-    if (!el) return;
-    const { selectionStart, selectionEnd, value } = el;
-    const selected = value.slice(selectionStart, selectionEnd) || "text";
-    const before = value.slice(0, selectionStart);
-    const after = value.slice(selectionEnd);
-    setBody(`${before}${token}${selected}${token}${after}`);
-    requestAnimationFrame(() => {
-      el.focus();
-      const start = before.length + token.length;
-      el.setSelectionRange(start, start + selected.length);
+  // Keeps the toolbar buttons highlighted while the caret sits inside
+  // bold/italic/underline text, and un-highlighted otherwise — mirrors
+  // how Bold/Italic/Underline behave in Gmail, Google Docs, etc.
+  useEffect(() => {
+    function updateActiveFormats() {
+      if (document.activeElement !== editorRef.current) return;
+      setActiveFormats({
+        bold: document.queryCommandState("bold"),
+        italic: document.queryCommandState("italic"),
+        underline: document.queryCommandState("underline"),
+      });
+    }
+    document.addEventListener("selectionchange", updateActiveFormats);
+    return () => document.removeEventListener("selectionchange", updateActiveFormats);
+  }, []);
+
+  function handleEditorInput() {
+    const text = editorRef.current?.textContent ?? "";
+    setIsEmpty(text.trim().length === 0);
+  }
+
+  /** Toggles real bold/italic/underline on the current selection (or the
+   *  caret's "typing state" if nothing's selected) — this is what makes
+   *  the compose box show actual styled text instead of raw markers. */
+  function toggleFormat(command: "bold" | "italic" | "underline") {
+    editorRef.current?.focus();
+    document.execCommand(command);
+    setActiveFormats({
+      bold: document.queryCommandState("bold"),
+      italic: document.queryCommandState("italic"),
+      underline: document.queryCommandState("underline"),
     });
+  }
+
+  /** Pasting always inserts plain text, so pasted content can't smuggle in
+   *  unexpected formatting or markup from other apps. */
+  function handleEditorPaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+  }
+
+  function handleEditorKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (canSend) send.mutate();
+    }
   }
 
   function handleFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -489,15 +560,18 @@ function ConversationThread({
 
   const send = useMutation({
     mutationFn: async () => {
-      if (!body.trim() && !pendingFile) return;
+      const bodyText = editorRef.current ? htmlToFormattedText(editorRef.current) : "";
+      if (!bodyText.trim() && !pendingFile) return;
       let attachment: { url: string; name: string; type: "image" | "file" } | null = null;
       if (pendingFile) {
         attachment = await uploadMessageAttachment(pendingFile, currentUserId);
       }
-      await sendMessage(conversationId, currentUserId, body.trim(), attachment, null, replyingTo?.id ?? null);
+      await sendMessage(conversationId, currentUserId, bodyText.trim(), attachment, null, replyingTo?.id ?? null);
     },
     onSuccess: () => {
-      setBody("");
+      if (editorRef.current) editorRef.current.innerHTML = "";
+      setIsEmpty(true);
+      setActiveFormats({ bold: false, italic: false, underline: false });
       setPendingFile(null);
       setReplyingTo(null);
       onSent();
@@ -528,7 +602,7 @@ function ConversationThread({
     onError: () => toast.error("Couldn't unsend that message."),
   });
 
-  const canSend = (body.trim().length > 0 || !!pendingFile) && !send.isPending;
+  const canSend = (!isEmpty || !!pendingFile) && !send.isPending;
   const editWindowMs = EDIT_WINDOW_MINUTES * 60 * 1000;
 
   return (
@@ -644,7 +718,7 @@ function ConversationThread({
 
       <form
         className="border-t border-border p-4"
-        onSubmit={(e) => { e.preventDefault(); send.mutate(); }}
+        onSubmit={(e) => { e.preventDefault(); if (canSend) send.mutate(); }}
       >
         <div className="rounded-2xl border border-input bg-background">
           {replyingTo && (
@@ -679,43 +753,60 @@ function ConversationThread({
               </button>
             </div>
           )}
-          <textarea
-            ref={textareaRef}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (canSend) send.mutate(); }
-            }}
-            placeholder="Write a message…"
-            rows={2}
-            className="w-full resize-none border-0 bg-transparent px-4 pt-3 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <div className="flex items-center justify-between px-3 pb-2">
+
+          {/* Rich-text compose box — contentEditable so Bold/Italic/Underline
+              apply as real styled text live, instead of showing **markers**.
+              The visible placeholder is a separate absolutely-positioned span
+              since contentEditable has no native `placeholder` attribute. */}
+          <div className="relative">
+            {isEmpty && (
+              <span className="pointer-events-none absolute left-4 top-3 text-sm text-muted-foreground">
+                Write a message…
+              </span>
+            )}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleEditorInput}
+              onKeyDown={handleEditorKeyDown}
+              onPaste={handleEditorPaste}
+              role="textbox"
+              aria-multiline="true"
+              aria-label="Write a message"
+              className="min-h-[44px] w-full whitespace-pre-wrap break-words px-4 pt-3 text-sm outline-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-between px-3 pb-2 pt-1">
             <div className="flex items-center gap-1 text-muted-foreground">
               <button
                 type="button"
-                onClick={() => applyFormat("**")}
+                onClick={() => toggleFormat("bold")}
                 aria-label="Bold"
+                aria-pressed={activeFormats.bold}
                 title="Bold"
-                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+                className={`grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground ${activeFormats.bold ? "bg-primary/10 text-primary" : ""}`}
               >
                 <Bold className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => applyFormat("*")}
+                onClick={() => toggleFormat("italic")}
                 aria-label="Italic"
+                aria-pressed={activeFormats.italic}
                 title="Italic"
-                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+                className={`grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground ${activeFormats.italic ? "bg-primary/10 text-primary" : ""}`}
               >
                 <Italic className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => applyFormat("__")}
+                onClick={() => toggleFormat("underline")}
                 aria-label="Underline"
+                aria-pressed={activeFormats.underline}
                 title="Underline"
-                className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground"
+                className={`grid h-7 w-7 place-items-center rounded-md transition hover:bg-accent hover:text-foreground ${activeFormats.underline ? "bg-primary/10 text-primary" : ""}`}
               >
                 <Underline className="h-3.5 w-3.5" />
               </button>
