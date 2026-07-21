@@ -39,8 +39,13 @@ export type NotificationItem = {
 };
 
 /**
- * Finds an existing conversation between this buyer and commissioner (optionally
- * scoped to a property), or creates one. Returns the conversation id.
+ * Finds an existing conversation between this buyer and commissioner, or
+ * creates one. Conversations are one-per-agent-relationship, not one-per-
+ * property — messaging the same agent from their profile, from a listing,
+ * or from a different listing always continues the same thread.
+ * `propertyId`, when given, is only used as context: it's recorded on the
+ * conversation the first time it's created (so the inbox can show "started
+ * from listing X"), but never causes a second thread to be created.
  */
 export async function getOrCreateConversation(params: {
   buyerId: string;
@@ -49,16 +54,20 @@ export async function getOrCreateConversation(params: {
 }): Promise<string> {
   const { buyerId, commissionerId, propertyId = null } = params;
 
-  let query = supabase
+  const { data: existing } = await supabase
     .from("conversations")
-    .select("id")
+    .select("id, property_id")
     .eq("buyer_id", buyerId)
-    .eq("commissioner_id", commissionerId);
+    .eq("commissioner_id", commissionerId)
+    .maybeSingle();
 
-  query = propertyId ? query.eq("property_id", propertyId) : query.is("property_id", null);
-
-  const { data: existing } = await query.maybeSingle();
-  if (existing) return existing.id;
+  if (existing) {
+    // Backfill property context if this thread didn't have one yet.
+    if (!existing.property_id && propertyId) {
+      await supabase.from("conversations").update({ property_id: propertyId }).eq("id", existing.id);
+    }
+    return existing.id;
+  }
 
   const { data: created, error } = await supabase
     .from("conversations")
