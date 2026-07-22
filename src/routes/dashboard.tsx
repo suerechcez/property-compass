@@ -32,6 +32,13 @@ const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 // Messages page's full-height layout) — the fixed sidebar sits directly
 // below it and fills the rest of the viewport.
 const NAV_HEIGHT_PX = 73;
+// Sidebar rail widths (must match the Tailwind w-16 / w-56 classes below —
+// kept as raw px here so the standalone collapse-toggle button, which is no
+// longer a DOM child of the rail, can still compute where the rail's right
+// edge currently is.
+const SIDEBAR_COLLAPSED_PX = 64;  // w-16
+const SIDEBAR_EXPANDED_PX = 224;  // w-56
+const TOGGLE_BUTTON_PX = 28;      // h-7 w-7
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -256,6 +263,10 @@ function DashSidebar({
     </div>
   );
 
+  // Where the rail's current right edge sits, in px from the viewport's
+  // left edge — used to place the standalone collapse-toggle button below.
+  const railWidthPx = expanded ? SIDEBAR_EXPANDED_PX : SIDEBAR_COLLAPSED_PX;
+
   return (
     <>
       {/* Mobile trigger — unchanged behavior, just a labeled dropdown, laid
@@ -278,25 +289,32 @@ function DashSidebar({
         className={`fixed left-0 z-30 hidden flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
         style={{ top: NAV_HEIGHT_PX, height: `calc(100vh - ${NAV_HEIGHT_PX}px)` }}
       >
-        {/* Collapse toggle — pinned to the rail's own right edge and pushed
-            down from the top, so it reads as a control that belongs to the
-            sidebar itself rather than crowding the Nav bar directly above
-            it. Anchored to the aside's fixed positioning context, so it
-            tracks the border correctly whether the rail is collapsed
-            (16 wide) or expanded (56 wide). */}
-        <button
-          onClick={onToggleExpanded}
-          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="absolute -right-3 top-6 z-10 grid h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
-        >
-          {expanded ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
-        </button>
-
-        <div className="flex flex-col items-center gap-1 pt-14 pb-3">
+        <div className="flex flex-col items-center gap-1 py-3">
           {desktopContent}
         </div>
       </aside>
+
+      {/* Collapse toggle — rendered as an entirely separate fixed element,
+          NOT a child of the aside above. This matters: the aside has its
+          own background, border, and overflow-y-auto, any of which could
+          clip or paint over a button nested inside it. As a sibling, this
+          button always renders on top, fully visible, regardless of the
+          rail's scroll position or background. Its left offset is
+          recomputed from the same width constants the rail itself uses,
+          so it stays pinned exactly on the rail's right-hand border in
+          both collapsed and expanded states. */}
+      <button
+        onClick={onToggleExpanded}
+        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+        title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+        className="fixed z-50 hidden h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition hover:bg-accent hover:text-foreground lg:grid"
+        style={{
+          left: railWidthPx - TOGGLE_BUTTON_PX / 2,
+          top: NAV_HEIGHT_PX + 24,
+        }}
+      >
+        {expanded ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
+      </button>
     </>
   );
 }
