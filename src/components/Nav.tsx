@@ -87,7 +87,18 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur transition-all duration-300">
-      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
+      {/* On the dashboard the fixed left rail (default width 4rem / w-16)
+          sits below this bar and eats into the visible content area — so
+          on large screens we add matching left padding here. That shrinks
+          this grid's own usable width by the same 4rem, which means the
+          centered logo (the middle "auto" column) ends up centered over
+          the region to the right of the sidebar rather than over the
+          full viewport, which would otherwise look off-center relative to
+          what's actually visible next to the fixed sidebar. The bell/avatar
+          on the right are unaffected — padding-left never moves the right
+          edge of the box, so they stay flush against the true right edge
+          exactly like on every other page. */}
+      <div className={`grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10 ${isDashboard ? "lg:pl-16" : ""}`}>
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
@@ -128,29 +139,19 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           )}
         </div>
 
-        {/* Brand — centered normally. On the dashboard, it's icon-only (no
-            title text) and sits in a fixed 4rem-wide box aligned to the
-            far left, matching the collapsed sidebar rail's width so the
-            icon reads as sitting directly above it. */}
-        <Link
-          to="/"
-          className={
-            isDashboard
-              ? "col-start-1 flex w-16 items-center justify-center justify-self-start"
-              : "col-start-2 flex items-center gap-3 justify-self-center"
-          }
-        >
+        {/* Brand — same full logo + title, same centering, on every page
+            including the dashboard. The dashboard's centering-relative-to-
+            the-sidebar effect comes entirely from the lg:pl-16 above, not
+            from any special-cased version of this block. */}
+        <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
           {iconOk ? (
             <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
           ) : (
             <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
           )}
-          {/* Brand title text — hidden entirely on the dashboard */}
-          {!isDashboard && (
-            <div className="hidden items-center sm:flex">
-              <BrandTitle light={false} className="items-center text-center" />
-            </div>
-          )}
+          <div className="hidden items-center sm:flex">
+            <BrandTitle light={false} className="items-center text-center" />
+          </div>
         </Link>
 
         {/* Right — notification bell + profile / sign-in */}
