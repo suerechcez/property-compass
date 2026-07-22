@@ -86,19 +86,17 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const initial = (profile?.full_name || user?.email || "?").slice(0, 1).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur transition-all duration-300">
-      {/* On the dashboard the fixed left rail (default width 4rem / w-16)
-          sits below this bar and eats into the visible content area — so
-          on large screens we add matching left padding here. That shrinks
-          this grid's own usable width by the same 4rem, which means the
-          centered logo (the middle "auto" column) ends up centered over
-          the region to the right of the sidebar rather than over the
-          full viewport, which would otherwise look off-center relative to
-          what's actually visible next to the fixed sidebar. The bell/avatar
-          on the right are unaffected — padding-left never moves the right
-          edge of the box, so they stay flush against the true right edge
-          exactly like on every other page. */}
-      <div className={`grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10 ${isDashboard ? "lg:pl-16" : ""}`}>
+    <header
+      className={`sticky top-0 z-40 w-full border-b border-border/60 backdrop-blur transition-all duration-300 ${
+        // Soft blue → yellow tint, sampled from the brand's own navy/gold
+        // palette, only on the dashboard — everywhere else keeps the plain
+        // translucent white bar.
+        isDashboard
+          ? "bg-gradient-to-r from-primary/12 via-background/90 to-gold/15"
+          : "bg-background/85"
+      }`}
+    >
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
@@ -139,20 +137,23 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           )}
         </div>
 
-        {/* Brand — same full logo + title, same centering, on every page
-            including the dashboard. The dashboard's centering-relative-to-
-            the-sidebar effect comes entirely from the lg:pl-16 above, not
-            from any special-cased version of this block. */}
-        <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
-          {iconOk ? (
-            <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
-          ) : (
-            <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
-          )}
-          <div className="hidden items-center sm:flex">
-            <BrandTitle light={false} className="items-center text-center" />
-          </div>
-        </Link>
+        {/* Brand — full logo + title on every page EXCEPT the dashboard.
+            On the dashboard the brand lives inside the fixed sidebar
+            itself (see DashSidebar in dashboard.tsx) — that sidebar
+            renders above this header (higher z-index) and physically
+            covers this slot, so nothing needs to render here at all. */}
+        {!isDashboard && (
+          <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
+            {iconOk ? (
+              <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
+            ) : (
+              <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
+            )}
+            <div className="hidden items-center sm:flex">
+              <BrandTitle light={false} className="items-center text-center" />
+            </div>
+          </Link>
+        )}
 
         {/* Right — notification bell + profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end gap-2">
