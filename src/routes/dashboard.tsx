@@ -152,9 +152,9 @@ function SectionCard({ title, subtitle, action, children }: {
 // (not indented inside the centered max-width content container) and
 // pinned in place below the Nav bar for the full remaining viewport height,
 // so it stays on screen the entire time the user scrolls the dashboard —
-// it never scrolls away, unlike the previous `position: sticky` version
-// (which could only "stick" for as long as its own short content column
-// had height, then fell behind on a long page).
+// it never scrolls away, unlike a `position: sticky` version (which can
+// only "stick" for as long as its own short content column has height,
+// then falls behind on a long page).
 //
 // `expanded` is lifted up to the Dashboard shell so the main content area
 // can reserve matching left padding and never sit underneath the rail.
@@ -302,7 +302,9 @@ function DashSidebar({
           rail's scroll position or background. Its left offset is
           recomputed from the same width constants the rail itself uses,
           so it stays pinned exactly on the rail's right-hand border in
-          both collapsed and expanded states. */}
+          both collapsed and expanded states. Its top offset (NAV_HEIGHT_PX
+          + 24) sits comfortably below the Nav bar's bottom edge so it's
+          never covered by the header. */}
       <button
         onClick={onToggleExpanded}
         aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
@@ -404,7 +406,11 @@ function Dashboard() {
             />
           </div>
 
-          <div className="mt-8 min-w-0">
+          {/* mt-10 (rather than mt-8) so the Overview heading starts a
+              little further down, giving the sidebar's first nav item
+              (which sits below the toggle button) room to line up
+              comfortably instead of feeling cramped right under the header. */}
+          <div className="mt-10 min-w-0">
             {adminTab ? (
               <div className="space-y-6">
                 <button
