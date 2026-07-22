@@ -28,17 +28,15 @@ const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
-// Nav bar height, matching the constant used elsewhere in the app (e.g. the
-// Messages page's full-height layout) — the fixed sidebar sits directly
-// below it and fills the rest of the viewport.
-const NAV_HEIGHT_PX = 73;
-// Sidebar rail widths (must match the Tailwind w-16 / w-56 classes below —
-// kept as raw px here so the standalone collapse-toggle button, which is no
-// longer a DOM child of the rail, can still compute where the rail's right
-// edge currently is.
+// Height of the sidebar's own top "logo row" — deliberately matches the
+// Nav bar's height (73px) so the row lines up with where the header sits
+// for the rest of the page, even though the sidebar now renders its own
+// logo independently rather than sharing the header's.
+const LOGO_ROW_PX = 73;
 const SIDEBAR_COLLAPSED_PX = 64;  // w-16
 const SIDEBAR_EXPANDED_PX = 224;  // w-56
 const TOGGLE_BUTTON_PX = 28;      // h-7 w-7
+const BRAND_ICON_URL = "/brand-icon.png";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -148,16 +146,15 @@ function SectionCard({ title, subtitle, action, children }: {
 }
 
 // ── Left sidebar ───────────────────────────────────────────────────────────────
-// A true fixed rail: attached flush to the very left edge of the viewport
-// (not indented inside the centered max-width content container) and
-// pinned in place below the Nav bar for the full remaining viewport height,
-// so it stays on screen the entire time the user scrolls the dashboard —
-// it never scrolls away, unlike a `position: sticky` version (which can
-// only "stick" for as long as its own short content column has height,
-// then falls behind on a long page).
-//
-// `expanded` is lifted up to the Dashboard shell so the main content area
-// can reserve matching left padding and never sit underneath the rail.
+// The brand logo now lives INSIDE this sidebar (its own top row) rather
+// than in the shared Nav header. To make that work without any gap or
+// overlap, the rail spans the FULL viewport height starting at the very
+// top (top: 0), and sits at a higher z-index than the header — so it
+// paints directly over the header's left-hand corner, and that corner
+// never needs to render anything of its own (Nav.tsx already skips
+// rendering its brand block on the dashboard route for this exact reason).
+// Everywhere else stays a true fixed rail: flush to the left edge, pinned
+// in place through the whole page scroll.
 
 function DashSidebar({
   canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin, expanded, onToggleExpanded,
@@ -172,6 +169,7 @@ function DashSidebar({
   onToggleExpanded: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [iconOk, setIconOk] = useState(true);
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
@@ -282,13 +280,34 @@ function DashSidebar({
         <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
       )}
 
-      {/* Desktop — fixed to the true left edge of the browser window, full
-          height below the Nav bar, so it stays in view for the entire
-          scroll of the (often very tall) dashboard page. */}
+      {/* Desktop — fixed to the true left edge of the browser window,
+          spanning the ENTIRE viewport height including the row where the
+          header normally sits. z-50 keeps it painted above the header
+          (z-40), so this rail — not the header — owns that top-left
+          corner and its own logo. */}
       <aside
-        className={`fixed left-0 z-30 hidden flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
-        style={{ top: NAV_HEIGHT_PX, height: `calc(100vh - ${NAV_HEIGHT_PX}px)` }}
+        className={`fixed left-0 top-0 z-50 hidden h-screen flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
       >
+        {/* Logo row — height matches the header's own height so this row
+            lines up with it for the rest of the page. This is the ONLY
+            place the brand mark renders on the dashboard. */}
+        <Link
+          to="/"
+          className="flex shrink-0 items-center justify-center border-b border-border"
+          style={{ height: LOGO_ROW_PX }}
+        >
+          {iconOk ? (
+            <img
+              src={BRAND_ICON_URL}
+              alt="One Higala Properties Inc."
+              className="h-9 w-9 object-contain"
+              onError={() => setIconOk(false)}
+            />
+          ) : (
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-bold text-primary-foreground shadow-sm">H</span>
+          )}
+        </Link>
+
         <div className="flex flex-col items-center gap-1 py-3">
           {desktopContent}
         </div>
@@ -302,17 +321,16 @@ function DashSidebar({
           rail's scroll position or background. Its left offset is
           recomputed from the same width constants the rail itself uses,
           so it stays pinned exactly on the rail's right-hand border in
-          both collapsed and expanded states. Its top offset (NAV_HEIGHT_PX
-          + 24) sits comfortably below the Nav bar's bottom edge so it's
-          never covered by the header. */}
+          both collapsed and expanded states. Its top offset sits just
+          below the logo row. z-[60] keeps it above the (z-50) rail. */}
       <button
         onClick={onToggleExpanded}
         aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        className="fixed z-50 hidden h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition hover:bg-accent hover:text-foreground lg:grid"
+        className="fixed z-[60] hidden h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition hover:bg-accent hover:text-foreground lg:grid"
         style={{
           left: railWidthPx - TOGGLE_BUTTON_PX / 2,
-          top: NAV_HEIGHT_PX + 24,
+          top: LOGO_ROW_PX + 16,
         }}
       >
         {expanded ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
@@ -406,10 +424,10 @@ function Dashboard() {
             />
           </div>
 
-          {/* mt-10 (rather than mt-8) so the Overview heading starts a
-              little further down, giving the sidebar's first nav item
-              (which sits below the toggle button) room to line up
-              comfortably instead of feeling cramped right under the header. */}
+          {/* mt-10 so the Overview heading starts a little further down,
+              giving the sidebar's first nav item (which sits below the
+              logo row + toggle button) room to line up comfortably
+              instead of feeling cramped right under the header. */}
           <div className="mt-10 min-w-0">
             {adminTab ? (
               <div className="space-y-6">
