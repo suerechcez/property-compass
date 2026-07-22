@@ -126,30 +126,31 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
             </nav>
           )}
-
-          {/* Dashboard — brand lives here instead, left-aligned above the
-              sidebar rail (see the brand Link below, which switches to
-              col-start-1 / justify-self-start on this route). This left
-              slot has nothing else in it on the dashboard, so it's free. */}
         </div>
 
-        {/* Brand — centered normally; on the dashboard it moves to the far
-            left so it sits directly above the fixed sidebar rail instead
-            of floating in the middle of an otherwise sidebar-less header. */}
+        {/* Brand — centered normally. On the dashboard, it's icon-only (no
+            title text) and sits in a fixed 4rem-wide box aligned to the
+            far left, matching the collapsed sidebar rail's width so the
+            icon reads as sitting directly above it. */}
         <Link
           to="/"
-          className={`flex items-center gap-3 ${
-            isDashboard ? "col-start-1 justify-self-start" : "col-start-2 justify-self-center"
-          }`}
+          className={
+            isDashboard
+              ? "col-start-1 flex w-16 items-center justify-center justify-self-start"
+              : "col-start-2 flex items-center gap-3 justify-self-center"
+          }
         >
           {iconOk ? (
             <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
           ) : (
             <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
           )}
-          <div className="hidden items-center sm:flex">
-            <BrandTitle light={false} className="items-center text-center" />
-          </div>
+          {/* Brand title text — hidden entirely on the dashboard */}
+          {!isDashboard && (
+            <div className="hidden items-center sm:flex">
+              <BrandTitle light={false} className="items-center text-center" />
+            </div>
+          )}
         </Link>
 
         {/* Right — notification bell + profile / sign-in */}
