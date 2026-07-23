@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { SideBar, SideBarMobileTrigger } from "@/components/SideBar";
+import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -190,6 +191,14 @@ function Browse() {
                 })}
               </div>
             )}
+
+            {/* "You recently viewed" — same localStorage-driven row shown on
+                a property's own detail page, surfaced here too so browsing
+                back to the main listings still shows a quick way back to
+                whatever you'd already looked at. */}
+            <div className="mt-12 border-t border-border pt-10">
+              <RecentlyViewed />
+            </div>
           </section>
 
           <div className="mt-auto">
