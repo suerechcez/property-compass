@@ -390,13 +390,22 @@ function Dashboard() {
       ? (urlTab as ScrollSection)
       : "overview";
     setActiveSection(section);
-    // Sections may not exist in the DOM yet on the very first render (or
-    // right after leaving an admin view, whose content briefly unmounts
-    // the section markup) — a short delay lets them mount before scrolling.
-    const t = setTimeout(() => {
-      document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-    return () => clearTimeout(t);
+    if (section === "overview") return; // already at the top — nothing to scroll to
+
+    // Retries at a few staggered delays rather than a single attempt.
+    // Clicking a <Link> inside the profile dropdown (a Radix DropdownMenu)
+    // fires navigation while the menu is still mid-close-transition,
+    // which can leave the page briefly scroll-locked (overflow: hidden on
+    // <html>/<body>) for that exit animation — a scrollIntoView call that
+    // lands inside that window silently does nothing, with no later retry
+    // to correct it. Repeating the call covers that gap without needing
+    // to know its exact duration up front.
+    const timers = [50, 250, 600].map((delay) =>
+      setTimeout(() => {
+        document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, delay)
+    );
+    return () => timers.forEach(clearTimeout);
   }, [urlTab, loading, user]);
 
   useEffect(() => {
