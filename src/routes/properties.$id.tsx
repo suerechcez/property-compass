@@ -1,16 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
+import { recordPropertyView, getRecentlyViewedIds } from "@/lib/recently-viewed";
 
 export const Route = createFileRoute("/properties/$id")({
   head: () => ({
@@ -82,6 +83,13 @@ function PropertyDetail() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to update"),
   });
+
+  // Records this property in the visitor's local "recently viewed" history
+  // (localStorage-based, no auth required) once the listing has actually
+  // loaded successfully — so we never record a 404/invalid id.
+  useEffect(() => {
+    if (data?.id) recordPropertyView(data.id);
+  }, [data?.id]);
 
   if (isLoading) {
     return (
@@ -266,6 +274,11 @@ function PropertyDetail() {
             )}
           </div>
         </div>
+
+        {/* "You recently viewed" — Zillow-style engagement row, driven by
+            localStorage view history rather than the DB, so it works for
+            signed-out visitors too. */}
+        <RecentlyViewed excludeId={id} />
       </div>
     </div>
   );
@@ -341,6 +354,93 @@ function MessageAgentBox({
         </p>
       </form>
     </aside>
+  );
+}
+
+/**
+ * "You recently viewed" row — reads property ids out of the visitor's
+ * localStorage view history (see src/lib/recently-viewed.ts), fetches
+ * those properties, and renders them as a horizontally-scrollable strip
+ * of small cards at the bottom of the page. Renders nothing at all if
+ * there's no view history yet, or if none of those listings still exist.
+ */
+function RecentlyViewed({ excludeId }: { excludeId: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Read fresh on every render (cheap localStorage read) rather than
+  // useState — this naturally picks up the parent's recordPropertyView
+  // effect from the previous page visit without any extra plumbing.
+  const ids = getRecentlyViewedIds(excludeId, 8);
+
+  const { data: properties = [] } = useQuery({
+    queryKey: ["recently-viewed", ids.join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id, title, images, price, for_rent, location, bedrooms, bathrooms, area_sqm, property_type")
+        .in("id", ids);
+      if (error) throw error;
+      // .in() doesn't preserve input order, so re-sort to match the
+      // most-recently-viewed-first order from `ids`.
+      const byId = new Map((data ?? []).map((p) => [p.id, p]));
+      return ids.map((pid) => byId.get(pid)).filter((p): p is NonNullable<typeof p> => !!p);
+    },
+    enabled: ids.length > 0,
+  });
+
+  if (ids.length === 0 || properties.length === 0) return null;
+
+  return (
+    <div className="mt-16 border-t border-border pt-10">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl font-semibold">You recently viewed</h2>
+        <div className="flex gap-1.5">
+          <button
+            aria-label="Scroll left"
+            onClick={() => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
+            className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            aria-label="Scroll right"
+            onClick={() => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
+            className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <div ref={scrollRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {properties.map((p) => (
+          <Link
+            key={p.id}
+            to="/properties/$id"
+            params={{ id: p.id }}
+            className="w-64 shrink-0 overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="aspect-[4/3] overflow-hidden bg-muted">
+              {p.images?.[0]
+                ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}
+            </div>
+            <div className="p-3">
+              <p className="font-display text-lg font-bold">
+                {formatPrice(p.price)}
+                {p.for_rent && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {[
+                  p.bedrooms != null && `${p.bedrooms} bd`,
+                  p.bathrooms != null && `${p.bathrooms} ba`,
+                  p.area_sqm != null && `${p.area_sqm} m²`,
+                ].filter(Boolean).join(" | ") || typeLabel(p.property_type)}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{p.location ?? "Cagayan de Oro City"}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
