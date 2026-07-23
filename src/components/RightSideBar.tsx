@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Rss, Heart, MessageSquare, GripHorizontal } from "lucide-react";
@@ -20,8 +20,11 @@ type SidebarItem = {
 // Routes where the floating sidebar should never appear
 const HIDDEN_ON = ["/dashboard", "/auth"];
 
-// Remembers where the user dragged the sidebar to, across reloads
-const DRAG_STORAGE_KEY = "one-higala-sidebar-position";
+// Height of the sticky Nav bar (matches the constant used in dashboard.tsx /
+// messages.tsx) — the sidebar is never allowed to drag above this line, so
+// it can never end up hidden or "stuck" underneath the topbar.
+const NAV_HEIGHT_PX = 73;
+const TOP_MARGIN_PX = 12; // small breathing room below the nav bar
 
 type Position = { x: number; y: number };
 
@@ -33,18 +36,13 @@ export function RightSideBar() {
 
   const asideRef = useRef<HTMLElement>(null);
   const dragStateRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // Dragged position lives only in component state — intentionally NOT
+  // persisted to localStorage, so a full page refresh always snaps the
+  // sidebar back to its default right-edge, vertically-centered spot
+  // rather than reappearing wherever it was last left (which is also how
+  // it could end up stuck overlapping the topbar in the first place).
   const [position, setPosition] = useState<Position | null>(null);
   const [dragging, setDragging] = useState(false);
-
-  // Restore a previously-dragged position on load
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(DRAG_STORAGE_KEY);
-      if (saved) setPosition(JSON.parse(saved));
-    } catch {
-      // ignore malformed/blocked storage
-    }
-  }, []);
 
   // Unread message count — refreshed periodically so the badge stays live
   // without needing a websocket just for the sidebar itself.
@@ -57,13 +55,23 @@ export function RightSideBar() {
 
   if (HIDDEN_ON.some((prefix) => path.startsWith(prefix))) return null;
 
+  /**
+   * Clamps a candidate (x, y) to the viewport, with an extra floor on the Y
+   * axis so the sidebar can never be dragged up into (or above) the Nav
+   * bar. Below that floor it's free to move anywhere down to the bottom of
+   * the viewport, same as before.
+   */
   function clampToViewport(x: number, y: number): Position {
     const el = asideRef.current;
     const w = el?.offsetWidth ?? 60;
     const h = el?.offsetHeight ?? 260;
+    const minY = NAV_HEIGHT_PX + TOP_MARGIN_PX;
     const maxX = Math.max(window.innerWidth - w, 0);
-    const maxY = Math.max(window.innerHeight - h, 0);
-    return { x: Math.min(Math.max(x, 0), maxX), y: Math.min(Math.max(y, 0), maxY) };
+    const maxY = Math.max(window.innerHeight - h, minY);
+    return {
+      x: Math.min(Math.max(x, 0), maxX),
+      y: Math.min(Math.max(y, minY), maxY),
+    };
   }
 
   function handleDragStart(e: React.PointerEvent<HTMLDivElement>) {
@@ -87,19 +95,12 @@ export function RightSideBar() {
   function handleDragEnd() {
     dragStateRef.current = null;
     setDragging(false);
-    setPosition((p) => {
-      if (p) {
-        try { localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify(p)); } catch { /* ignore */ }
-      }
-      return p;
-    });
   }
 
   /** Double-clicking the handle snaps the sidebar back to its default
    *  right-edge, vertically-centered position. */
   function resetPosition() {
     setPosition(null);
-    try { localStorage.removeItem(DRAG_STORAGE_KEY); } catch { /* ignore */ }
   }
 
   // "Updates" uses Rss (a listings feed), distinct from the notification
@@ -113,7 +114,7 @@ export function RightSideBar() {
 
   // When the user hasn't dragged it yet, keep the original CSS-based
   // positioning (right edge, vertically centered). Once dragged, switch to
-  // absolute pixel coordinates that follow the pointer.
+  // absolute pixel coordinates that follow the pointer, for this session only.
   const positionStyle: React.CSSProperties = position
     ? { position: "fixed", left: position.x, top: position.y, right: "auto", transform: "none" }
     : {};
