@@ -11,20 +11,23 @@ import { Label } from "@/components/ui/label";
 import { typeLabel, formatPrice } from "@/lib/property-types";
 import { markPropertySold } from "@/lib/sales";
 import { predictSales } from "@/lib/predictions.functions";
+import {
+  fetchAllAnnouncements, createAnnouncement, setAnnouncementActive, deleteAnnouncement,
+} from "@/lib/announcements";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
   Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
-  Plus, X, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Menu, type LucideIcon,
+  Plus, X, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Menu, Megaphone, Trash2, type LucideIcon,
 } from "lucide-react";
 
-type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings";
+type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings" | "admin-announcements";
 type ScrollSection = "overview" | "listings" | "sales" | "forecast";
 type ActiveView = ScrollSection | AdminTab;
 
-const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings"];
+const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings", "admin-announcements"];
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
@@ -49,25 +52,27 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const TAB_ICONS: Record<ActiveView, LucideIcon> = {
-  overview:           LayoutDashboard,
-  listings:           Building2,
-  sales:              Wallet,
-  forecast:           Sparkles,
-  "admin-users":      Users,
-  "admin-requests":   ClipboardList,
-  "admin-tracking":   BarChart3,
-  "admin-listings":   CheckCircle2,
+  overview:              LayoutDashboard,
+  listings:              Building2,
+  sales:                 Wallet,
+  forecast:              Sparkles,
+  "admin-users":         Users,
+  "admin-requests":      ClipboardList,
+  "admin-tracking":      BarChart3,
+  "admin-listings":      CheckCircle2,
+  "admin-announcements": Megaphone,
 };
 
 const TAB_LABELS: Record<ActiveView, string> = {
-  overview:           "Overview",
-  listings:           "My listings",
-  sales:              "Sales",
-  forecast:           "AI forecast",
-  "admin-users":      "Users & Roles",
-  "admin-requests":   "C/A Requests",
-  "admin-tracking":   "C/A Tracking",
-  "admin-listings":   "Listing Queue",
+  overview:              "Overview",
+  listings:              "My listings",
+  sales:                 "Sales",
+  forecast:              "AI forecast",
+  "admin-users":         "Users & Roles",
+  "admin-requests":      "C/A Requests",
+  "admin-tracking":      "C/A Tracking",
+  "admin-listings":      "Listing Queue",
+  "admin-announcements": "Announcements",
 };
 
 const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
@@ -487,10 +492,11 @@ function Dashboard() {
                 >
                   ← Back to dashboard
                 </button>
-                {adminTab === "admin-users"     && <UsersRoles />}
-                {adminTab === "admin-requests"  && <CommissionerRequests />}
-                {adminTab === "admin-tracking"  && <CommissionerTracking />}
-                {adminTab === "admin-listings"  && <ListingQueue />}
+                {adminTab === "admin-users"         && <UsersRoles />}
+                {adminTab === "admin-requests"      && <CommissionerRequests />}
+                {adminTab === "admin-tracking"      && <CommissionerTracking />}
+                {adminTab === "admin-listings"      && <ListingQueue />}
+                {adminTab === "admin-announcements" && <AnnouncementsAdmin userId={user.id} />}
               </div>
             ) : (
               <div className="space-y-16">
@@ -1328,6 +1334,138 @@ function CommissionerTracking() {
           })
         }
       </BigTable>
+    </div>
+  );
+}
+
+// ── Admin: Announcements ───────────────────────────────────────────────────────
+// Where admins author the platform-wide announcements that show up as a
+// Megaphone dropdown in the dashboard topbar for every commissioner/agent
+// (see Nav.tsx). Archiving (rather than deleting) keeps history around;
+// deleting removes it entirely for everyone, including from history here.
+
+function AnnouncementsAdmin({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+
+  const { data: announcements = [], isLoading } = useQuery({
+    queryKey: ["admin-announcements"],
+    queryFn: fetchAllAnnouncements,
+  });
+
+  const create = useMutation({
+    mutationFn: () => createAnnouncement(title.trim(), body.trim(), userId),
+    onSuccess: () => {
+      toast.success("Announcement pushed to all commissioners and agents.");
+      setTitle(""); setBody("");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+      qc.invalidateQueries({ queryKey: ["nav-announcements"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create announcement"),
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => setAnnouncementActive(id, isActive),
+    onSuccess: (_d, v) => {
+      toast.success(v.isActive ? "Announcement re-activated" : "Announcement archived");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+      qc.invalidateQueries({ queryKey: ["nav-announcements"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) => deleteAnnouncement(id),
+    onSuccess: () => {
+      toast.success("Announcement deleted");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+      qc.invalidateQueries({ queryKey: ["nav-announcements"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
+  });
+
+  return (
+    <div className="space-y-6">
+      <SectionCard
+        title="Announcements"
+        subtitle="Push a platform-wide notice to every commissioner and agent — it appears as a megaphone dropdown in their dashboard topbar."
+      />
+
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <h3 className="font-display text-lg font-semibold">New announcement</h3>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={(e) => { e.preventDefault(); if (title.trim() && body.trim()) create.mutate(); }}
+        >
+          <div>
+            <Label>Title</Label>
+            <Input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. New listing guidelines updated" className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Message</Label>
+            <textarea
+              required
+              rows={3}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Details for commissioners and agents…"
+              className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
+            />
+          </div>
+          <Button type="submit" disabled={create.isPending || !title.trim() || !body.trim()}>
+            <Megaphone className="h-4 w-4" />{create.isPending ? "Publishing…" : "Publish announcement"}
+          </Button>
+        </form>
+      </div>
+
+      {isLoading ? (
+        <p className="text-muted-foreground">Loading…</p>
+      ) : announcements.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <Megaphone className="mx-auto h-10 w-10 text-muted-foreground/40" />
+          <p className="mt-3 text-muted-foreground">No announcements yet.</p>
+        </div>
+      ) : (
+        <BigTable
+          head={
+            <tr>
+              <th className="px-6 py-5">Announcement</th>
+              <th className="px-6 py-5 whitespace-nowrap">Status</th>
+              <th className="px-6 py-5 whitespace-nowrap">Published</th>
+              <th className="px-6 py-5 text-right">Actions</th>
+            </tr>
+          }
+        >
+          {announcements.map((a) => (
+            <tr key={a.id} className="h-28 border-t border-border">
+              <td className="px-6 py-5">
+                <p className="font-semibold">{a.title}</p>
+                <p className="mt-0.5 line-clamp-2 max-w-md text-sm text-muted-foreground">{a.body}</p>
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap">
+                <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${a.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                  {a.is_active ? "Active" : "Archived"}
+                </span>
+              </td>
+              <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(a.created_at), "MMM d, yyyy")}</td>
+              <td className="px-6 py-5 text-right whitespace-nowrap">
+                <Button size="sm" variant="outline" onClick={() => toggleActive.mutate({ id: a.id, isActive: !a.is_active })}>
+                  {a.is_active ? "Archive" : "Re-activate"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-2 text-destructive"
+                  onClick={() => { if (confirm("Delete this announcement permanently?")) del.mutate(a.id); }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </BigTable>
+      )}
     </div>
   );
 }
