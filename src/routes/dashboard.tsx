@@ -360,18 +360,27 @@ function Dashboard() {
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
-  // Reacts to `tab` changing in the URL — e.g. clicking "My listings" or
-  // "Sales" in the profile dropdown while ALREADY on /dashboard. Since
-  // TanStack Router doesn't remount this component for a search-param-only
-  // navigation, the useState initializer above only ever runs once (on
-  // first mount) and would otherwise silently ignore every subsequent
-  // dropdown click. This effect re-derives both `adminTab` and
-  // `activeSection` from the current `tab` value every time it changes,
-  // and — for a non-admin section — smooth-scrolls straight to it (the
-  // Overview section needs no scroll since it's already at the top, but
-  // is included here too for a consistent, correct "always take me there"
-  // behavior no matter which tab was previously open).
+  // Reacts to `tab` changing in the URL — this covers BOTH cases: (1)
+  // clicking "My listings"/"Sales" in the profile dropdown while ALREADY
+  // on /dashboard (TanStack Router doesn't remount the component for a
+  // search-param-only navigation, so the useState initializer above only
+  // ever runs once and would otherwise silently ignore this), and (2)
+  // navigating to /dashboard?tab=... fresh from an entirely different page
+  // (Browse, the homepage, etc.) or the very first load.
+  //
+  // `loading` is deliberately included in the dependency array for case
+  // (2): while auth is still resolving, the component renders nothing but
+  // a "Loading…" placeholder (see the early return below) — none of the
+  // <section id="section-...."> elements exist in the DOM yet, so an
+  // attempted scrollIntoView at that point silently finds nothing and
+  // does nothing. Once `loading` flips to false and the real page (with
+  // its sections) mounts, this effect re-runs with the same `urlTab` and
+  // correctly scrolls — without this, arriving at /dashboard?tab=sales
+  // from outside the dashboard while logged out (or on a slow connection)
+  // would always land on Overview instead.
   useEffect(() => {
+    if (loading || !user) return;
+
     if (ADMIN_TABS.includes(urlTab as AdminTab)) {
       setAdminTab(urlTab as AdminTab);
       return;
@@ -388,7 +397,7 @@ function Dashboard() {
       document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
     return () => clearTimeout(t);
-  }, [urlTab]);
+  }, [urlTab, loading, user]);
 
   useEffect(() => {
     if (adminTab) return;
