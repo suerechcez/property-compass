@@ -3,11 +3,12 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
-  LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare,
+  LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { fetchUnreadCount, fetchMessageNotifications } from "@/lib/messages";
+import { fetchActiveAnnouncements, getUnseenCount, markAnnouncementsSeen } from "@/lib/announcements";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BrandTitle } from "@/components/BrandTitle";
@@ -36,6 +37,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const [iconOk, setIconOk] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [announceOpen, setAnnounceOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const canManageListings = isCommissioner || isAgent;
 
@@ -79,6 +81,18 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     queryFn: () => fetchMessageNotifications(user!.id),
     refetchInterval: 15000,
   });
+
+  // Platform-wide announcements — admin-authored, shown only to
+  // commissioners/agents, only in the dashboard topbar, to the left of the
+  // notification bell. See the "Announcements" admin tab for authoring them.
+  const showAnnouncements = isDashboard && canManageListings;
+  const { data: announcements = [] } = useQuery({
+    enabled: !!user && showAnnouncements,
+    queryKey: ["nav-announcements", user?.id],
+    queryFn: fetchActiveAnnouncements,
+    refetchInterval: 60000,
+  });
+  const unseenAnnouncementCount = getUnseenCount(announcements);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -153,8 +167,61 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           </Link>
         )}
 
-        {/* Right — notification bell + profile / sign-in */}
+        {/* Right — announcements (dashboard, commissioner/agent only) + notification bell + profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end gap-2">
+          {/* Platform-wide announcements — sits immediately LEFT of the bell,
+              only shown on the dashboard topbar and only to commissioners/
+              agents (the audience admin announcements are pushed to). */}
+          {showAnnouncements && (
+            <DropdownMenu
+              open={announceOpen}
+              onOpenChange={(open) => {
+                setAnnounceOpen(open);
+                if (open && announcements.length > 0) markAnnouncementsSeen(announcements);
+              }}
+            >
+              <DropdownMenuTrigger asChild>
+                <button
+                  aria-label={unseenAnnouncementCount > 0 ? `${unseenAnnouncementCount} new announcements` : "Announcements"}
+                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Megaphone className="h-5 w-5" />
+                  {unseenAnnouncementCount > 0 && (
+                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold leading-none text-gold-foreground">
+                      {unseenAnnouncementCount > 9 ? "9+" : unseenAnnouncementCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <span className="font-display font-semibold">Announcements</span>
+                  <span className="text-xs text-muted-foreground">From One Higala admin</span>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto">
+                  {announcements.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 p-8 text-center">
+                      <Megaphone className="h-6 w-6 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">No announcements right now.</p>
+                    </div>
+                  ) : (
+                    announcements.map((a) => (
+                      <div key={a.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                        <p className="text-sm font-medium">{a.title}</p>
+                        <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">{a.body}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground/70">
+                          {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           {user && (
             <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
               <DropdownMenuTrigger asChild>
@@ -248,6 +315,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                       <DropdownMenuItem asChild>
                         <Link to="/dashboard" search={{ tab: "admin-tracking" }} className="cursor-pointer">
                           <BarChart3 className="h-4 w-4" />C/A Tracking
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard" search={{ tab: "admin-announcements" }} className="cursor-pointer">
+                          <Megaphone className="h-4 w-4" />Announcements
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
