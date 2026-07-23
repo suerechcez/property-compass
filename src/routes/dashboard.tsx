@@ -28,11 +28,13 @@ const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
-// Height of the sidebar's own top "logo row" — deliberately matches the
-// Nav bar's height (73px) so the row lines up with where the header sits
-// for the rest of the page, even though the sidebar now renders its own
-// logo independently rather than sharing the header's.
-const LOGO_ROW_PX = 73;
+// Height of the sidebar's own top "logo row". This is set to 80px to match
+// the Nav header's ACTUAL rendered height: py-4 (16px top + 16px bottom =
+// 32px) plus its tallest inline element, the 48px avatar/bell row (h-12) —
+// 32 + 48 = 80px. The two rows need to be pixel-identical or the sidebar's
+// logo box visibly reads as a different size than the header strip beside
+// it, which is what was happening at the previous (73px) guess.
+const LOGO_ROW_PX = 80;
 const SIDEBAR_COLLAPSED_PX = 64;  // w-16
 const SIDEBAR_EXPANDED_PX = 224;  // w-56
 const TOGGLE_BUTTON_PX = 28;      // h-7 w-7
