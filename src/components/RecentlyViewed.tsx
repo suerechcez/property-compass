@@ -15,6 +15,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * those listings still exist. `excludeId`, when given, hides that one
  * listing from its own "recently viewed" row (used on the property detail
  * page); Browse doesn't have a "current" listing, so it's omitted there.
+ *
+ * Only listings currently in a publicly-visible status (published or
+ * rented) are shown here — a property that's since gone back to Pending
+ * review, Draft, or Sold shouldn't keep appearing in this row just because
+ * someone looked at it while it was live. This mirrors the same
+ * .in("status", ["published", "rented"]) filter Browse itself uses.
  */
 export function RecentlyViewed({ excludeId }: { excludeId?: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -28,8 +34,11 @@ export function RecentlyViewed({ excludeId }: { excludeId?: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("properties")
-        .select("id, title, images, price, for_rent, location, bedrooms, bathrooms, area_sqm, property_type")
-        .in("id", ids);
+        .select("id, title, images, price, for_rent, location, bedrooms, bathrooms, area_sqm, property_type, status")
+        .in("id", ids)
+        // Exclude Pending review, Draft, Sold, and Rejected — only
+        // publicly-visible listings belong in this row.
+        .in("status", ["published", "rented"]);
       if (error) throw error;
       // .in() doesn't preserve input order, so re-sort to match the
       // most-recently-viewed-first order from `ids`.
