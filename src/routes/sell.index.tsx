@@ -24,13 +24,18 @@ const FIND_AGENT_PNG = "/sell-find-agent.png";
 const LIST_YOURSELF_JPG = "/sell-list-yourself.jpg";
 const LIST_YOURSELF_PNG = "/sell-list-yourself.png";
 
+// Shared blue → gold gradient for the big panels on this page, lighter than
+// solid bg-primary so the panels feel airier while keeping enough contrast
+// for white text and the gold accents/icons to still read clearly.
+const PANEL_GRADIENT_CLASS = "bg-gradient-to-br from-primary/80 via-primary/70 to-gold/60";
+
 function Sell() {
   const { user, loading, isCommissioner, isAgent } = useAuth();
   const alreadyRegistered = isCommissioner || isAgent;
 
   return (
     <div className="site-page">
-      <section className="bg-primary">
+      <section className={PANEL_GRADIENT_CLASS}>
         <div className="mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
           <h1 className="font-display text-3xl font-bold text-white md:text-5xl">
             Sell with a <span className="text-gold">One Higala</span> professional
@@ -54,7 +59,7 @@ function Sell() {
       </section>
 
       <section id="sell-options" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-        <div className="grid min-h-[420px] overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
+        <div className={`grid min-h-[420px] overflow-hidden rounded-2xl md:grid-cols-2 ${PANEL_GRADIENT_CLASS}`}>
           <PanelImage jpg={FIND_AGENT_JPG} png={FIND_AGENT_PNG} alt="Find your own agent" />
           <div className="flex flex-col justify-center p-10 md:p-14">
             <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Find your own <span className="text-gold">agent</span></h2>
@@ -68,7 +73,7 @@ function Sell() {
           </div>
         </div>
 
-        <div className="grid min-h-[420px] overflow-hidden rounded-2xl bg-primary md:grid-cols-2">
+        <div className={`grid min-h-[420px] overflow-hidden rounded-2xl md:grid-cols-2 ${PANEL_GRADIENT_CLASS}`}>
           <div className="order-2 flex flex-col justify-center p-10 md:order-1 md:p-14">
             <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Sell your home <span className="text-gold">yourself</span></h2>
             <ul className="mt-6 space-y-4 text-base text-white/90">
@@ -116,6 +121,6 @@ function CardIcon({ png, jpg, alt, fallback: Fallback }: { png: string; jpg: str
 function PanelImage({ jpg, png, alt }: { jpg: string; png: string; alt: string }) {
   const [src, setSrc] = useState(jpg);
   const [hidden, setHidden] = useState(false);
-  if (hidden) return <div className="aspect-video bg-primary/70 md:aspect-auto md:h-full" />;
+  if (hidden) return <div className="aspect-video bg-primary/50 md:aspect-auto md:h-full" />;
   return <img src={src} alt={alt} className="aspect-video w-full object-cover md:aspect-auto md:h-full" onError={() => { if (src === jpg) setSrc(png); else setHidden(true); }} />;
 }
