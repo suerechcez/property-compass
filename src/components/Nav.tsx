@@ -24,7 +24,6 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 const BRAND_ICON_URL = "/brand-icon.png";
-const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
 // Routes where the marketing nav links (Browse / Sell / Find an Agent) should be hidden
 const DASHBOARD_ROUTES = ["/dashboard"];
@@ -43,6 +42,14 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const isDashboard = DASHBOARD_ROUTES.some((r) =>
     routerState.location.pathname.startsWith(r)
   );
+
+  // The blue → yellow brand gradient applies to every topbar EXCEPT the
+  // dashboard's, which keeps its own plain bar (the dashboard has its own
+  // sidebar-driven visual language and shouldn't pick up the gradient).
+  const useGradient = !isDashboard;
+  // Gradient background reads dark at both ends (navy, then a deep gold),
+  // so nav text/icons switch to white for contrast whenever it's active.
+  const navTextClass = useGradient ? "text-white hover:text-white/80" : "text-foreground hover:text-primary";
 
   useEffect(() => {
     if (!overlay) return;
@@ -87,13 +94,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <header
-      className={`sticky top-0 z-40 w-full border-b border-border/60 backdrop-blur transition-all duration-300 ${
-        // Soft blue → yellow tint, sampled from the brand's own navy/gold
-        // palette, only on the dashboard — everywhere else keeps the plain
-        // translucent white bar.
-        isDashboard
-          ? "bg-gradient-to-r from-primary/12 via-background/90 to-gold/15"
-          : "bg-background/85"
+      className={`sticky top-0 z-40 w-full border-b backdrop-blur transition-all duration-300 ${
+        // Blue → yellow gradient sampled from the brand's own navy/gold
+        // palette, on every topbar EXCEPT the dashboard — which keeps the
+        // plain translucent white bar it already had.
+        useGradient
+          ? "border-transparent bg-gradient-to-r from-primary via-primary/85 to-gold"
+          : "border-border/60 bg-background/85"
       }`}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
@@ -104,7 +111,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
+                <button aria-label="Open menu" className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${useGradient ? "text-white" : "text-foreground"}`}>
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
@@ -130,9 +137,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {/* Desktop nav links — hidden on dashboard */}
           {!isDashboard && (
             <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-              <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-              <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
-              <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+              <Link to="/browse" className={navTextClass}>Browse</Link>
+              <Link to="/sell"   className={navTextClass}>Sell</Link>
+              <Link to="/agents" className={navTextClass}>Find an agent</Link>
             </nav>
           )}
         </div>
@@ -147,10 +154,10 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             {iconOk ? (
               <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
             ) : (
-              <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
+              <span className="grid h-12 w-12 place-items-center rounded-lg bg-white/90 font-display text-xl font-bold text-primary shadow-sm">H</span>
             )}
             <div className="hidden items-center sm:flex">
-              <BrandTitle light={false} className="items-center text-center" />
+              <BrandTitle light={useGradient} className="items-center text-center" />
             </div>
           </Link>
         )}
@@ -162,11 +169,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
-                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-ring ${
+                    useGradient ? "text-white hover:text-white" : "text-foreground/80 hover:bg-accent hover:text-foreground"
+                  }`}
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -222,7 +231,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-12 w-12 border border-border">
+                  <Avatar className={`h-12 w-12 border ${useGradient ? "border-white/40" : "border-border"}`}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
                   </Avatar>
@@ -298,7 +307,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild size="sm">
+            <Button asChild size="sm" variant={useGradient ? "secondary" : "default"}>
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
