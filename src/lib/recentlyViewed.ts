@@ -1,31 +1,8 @@
 /**
- * Tracks recently-viewed property listings in the browser's own storage —
- * no login required, no server round trip. Zillow-style "You recently
- * viewed" behavior: most-recent-first, capped at a small count, de-duped
- * so revisiting a listing just bumps it back to the front.
+ * @deprecated Use `@/lib/recently-viewed` instead — this file was created
+ * before that module's existence was discovered and is a duplicate with an
+ * incompatible API (no `viewedAt` timestamp, different function signatures).
+ * Kept only as a thin re-export so nothing breaks if something already
+ * imports from here; new code should import from `recently-viewed` directly.
  */
-
-const STORAGE_KEY = "one-higala-recently-viewed";
-const MAX_ENTRIES = 12;
-
-export function recordRecentlyViewed(propertyId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const existing = getRecentlyViewedIds();
-    const next = [propertyId, ...existing.filter((id) => id !== propertyId)].slice(0, MAX_ENTRIES);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Storage may be unavailable (private browsing, blocked, etc.) — fail silently.
-  }
-}
-
-export function getRecentlyViewedIds(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
-  } catch {
-    return [];
-  }
-}
+export { recordPropertyView as recordRecentlyViewed, getRecentlyViewedIds } from "./recently-viewed";
