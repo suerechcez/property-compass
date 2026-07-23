@@ -114,6 +114,13 @@ function htmlToFormattedText(root: Node): string {
   return raw.replace(/\n+$/g, "").replace(/\n{3,}/g, "\n\n");
 }
 
+// Both the conversation-list header and the thread header use this same
+// fixed height with vertically-centered content, so their titles/rows
+// always line up on one flush row across the page — regardless of
+// whether one side happens to render one line of text (no property tied
+// to the chat) or two (name + property subtitle).
+const HEADER_HEIGHT_PX = 80;
+
 function MessagesPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -165,18 +172,26 @@ function MessagesPage() {
       {/* Full-bleed — no max-width wrapper, so the three panels span the
           entire site frame edge to edge, same width as the Nav bar above. */}
       <div className="flex h-[calc(100vh-73px)] w-full">
-        {/* ── Conversation list ── */}
+        {/* ── Conversation list ──
+            A true flex column: the two header rows are shrink-0 (fixed
+            height, never compressed), and the conversation list itself is
+            flex-1 so it fills whatever space is left — no hardcoded pixel
+            subtraction needed to size the scroll area. */}
         <div className={`w-full shrink-0 flex-col border-r border-border sm:w-80 sm:flex ${selected ? "hidden" : "flex"}`}>
-          <div className="border-b border-border p-5">
-            <div className="flex items-center justify-between">
-              <h1 className="flex items-center gap-2 font-display text-xl font-semibold">
-                <MessageSquare className="h-5 w-5 text-primary" />Chats
-              </h1>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                {conversations.length}
-              </span>
-            </div>
-            <div className="mt-4 flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
+          <div
+            className="flex shrink-0 items-center justify-between border-b border-border px-5"
+            style={{ height: HEADER_HEIGHT_PX }}
+          >
+            <h1 className="flex items-center gap-2 font-display text-xl font-semibold">
+              <MessageSquare className="h-5 w-5 text-primary" />Chats
+            </h1>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              {conversations.length}
+            </span>
+          </div>
+
+          <div className="shrink-0 border-b border-border p-4">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 value={q}
@@ -187,7 +202,7 @@ function MessagesPage() {
             </div>
           </div>
 
-          <div className="overflow-y-auto" style={{ height: "calc(100% - 137px)" }}>
+          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <p className="p-5 text-sm text-muted-foreground">Loading…</p>
             ) : filteredConversations.length === 0 ? (
@@ -655,7 +670,10 @@ function ConversationThread({
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-border p-5">
+      <div
+        className="flex shrink-0 items-center gap-3 border-b border-border px-5"
+        style={{ height: HEADER_HEIGHT_PX }}
+      >
         <button onClick={onBack} aria-label="Back to conversations" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent sm:hidden">
           <ChevronLeft className="h-5 w-5" />
         </button>
