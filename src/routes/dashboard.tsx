@@ -360,6 +360,36 @@ function Dashboard() {
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
+  // Reacts to `tab` changing in the URL — e.g. clicking "My listings" or
+  // "Sales" in the profile dropdown while ALREADY on /dashboard. Since
+  // TanStack Router doesn't remount this component for a search-param-only
+  // navigation, the useState initializer above only ever runs once (on
+  // first mount) and would otherwise silently ignore every subsequent
+  // dropdown click. This effect re-derives both `adminTab` and
+  // `activeSection` from the current `tab` value every time it changes,
+  // and — for a non-admin section — smooth-scrolls straight to it (the
+  // Overview section needs no scroll since it's already at the top, but
+  // is included here too for a consistent, correct "always take me there"
+  // behavior no matter which tab was previously open).
+  useEffect(() => {
+    if (ADMIN_TABS.includes(urlTab as AdminTab)) {
+      setAdminTab(urlTab as AdminTab);
+      return;
+    }
+    setAdminTab(null);
+    const section: ScrollSection = SCROLL_SECTIONS.includes(urlTab as ScrollSection)
+      ? (urlTab as ScrollSection)
+      : "overview";
+    setActiveSection(section);
+    // Sections may not exist in the DOM yet on the very first render (or
+    // right after leaving an admin view, whose content briefly unmounts
+    // the section markup) — a short delay lets them mount before scrolling.
+    const t = setTimeout(() => {
+      document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [urlTab]);
+
   useEffect(() => {
     if (adminTab) return;
     const observers: IntersectionObserver[] = [];
