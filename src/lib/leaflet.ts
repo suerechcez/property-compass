@@ -5,22 +5,25 @@
  * re-renders / StrictMode double-invokes) never inject the script/CSS
  * twice or race each other.
  *
- * Leaflet is loaded via CDN rather than as an npm dependency so this
- * doesn't require touching package.json / the lockfile.
+ * Leaflet is loaded via CDN rather than as an npm dependency, so this
+ * doesn't require touching package.json / the lockfile — which also means
+ * there are no installed `leaflet` type definitions to import from. The
+ * global is typed as `any` here rather than importing types from a
+ * package that isn't actually a project dependency.
  */
 
 declare global {
   interface Window {
-    L?: typeof import("leaflet");
+    L?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 }
 
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
-let leafletLoadPromise: Promise<typeof window.L> | null = null;
+let leafletLoadPromise: Promise<any> | null = null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-export function loadLeaflet(): Promise<NonNullable<typeof window.L>> {
+export function loadLeaflet(): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Leaflet can only be loaded in the browser"));
   }
@@ -51,7 +54,7 @@ export function loadLeaflet(): Promise<NonNullable<typeof window.L>> {
     });
   }
 
-  return leafletLoadPromise as Promise<NonNullable<typeof window.L>>;
+  return leafletLoadPromise;
 }
 
 /**
