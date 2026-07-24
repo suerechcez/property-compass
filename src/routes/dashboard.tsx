@@ -14,20 +14,21 @@ import { predictSales } from "@/lib/predictions.functions";
 import {
   fetchAllAnnouncements, createAnnouncement, setAnnouncementActive, deleteAnnouncement,
 } from "@/lib/announcements";
+import { fetchAuditLog, actionLabel } from "@/lib/auditLog";
 import { toast } from "sonner";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { format } from "date-fns";
 import {
   LayoutDashboard, Building2, Wallet, Sparkles,
   Users, ClipboardList, BarChart3, CheckCircle2, XCircle,
-  Plus, X, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Menu, Megaphone, Trash2, type LucideIcon,
+  Plus, X, ChevronUp, ChevronDown, ChevronsLeft, ChevronsRight, Menu, Megaphone, Trash2, History, type LucideIcon,
 } from "lucide-react";
 
-type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings" | "admin-announcements";
+type AdminTab = "admin-users" | "admin-requests" | "admin-tracking" | "admin-listings" | "admin-announcements" | "admin-audit";
 type ScrollSection = "overview" | "listings" | "sales" | "forecast";
 type ActiveView = ScrollSection | AdminTab;
 
-const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings", "admin-announcements"];
+const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking", "admin-listings", "admin-announcements", "admin-audit"];
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
@@ -61,6 +62,7 @@ const TAB_ICONS: Record<ActiveView, LucideIcon> = {
   "admin-tracking":      BarChart3,
   "admin-listings":      CheckCircle2,
   "admin-announcements": Megaphone,
+  "admin-audit":         History,
 };
 
 const TAB_LABELS: Record<ActiveView, string> = {
@@ -73,6 +75,7 @@ const TAB_LABELS: Record<ActiveView, string> = {
   "admin-tracking":      "C/A Tracking",
   "admin-listings":      "Listing Queue",
   "admin-announcements": "Announcements",
+  "admin-audit":         "Audit Log",
 };
 
 const GREETINGS = ["Hello", "Welcome back", "Kumusta", "Maayong adlaw", "Good to see you", "Hey there"];
@@ -497,6 +500,7 @@ function Dashboard() {
                 {adminTab === "admin-tracking"      && <CommissionerTracking />}
                 {adminTab === "admin-listings"      && <ListingQueue />}
                 {adminTab === "admin-announcements" && <AnnouncementsAdmin userId={user.id} />}
+                {adminTab === "admin-audit"         && <AuditLogAdmin />}
               </div>
             ) : (
               <div className="space-y-16">
@@ -1464,6 +1468,81 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
               </td>
             </tr>
           ))}
+        </BigTable>
+      )}
+    </div>
+  );
+}
+
+// ── Admin: Audit Log ─────────────────────────────────────────────────────────
+// Read-only feed of who did what and when. Every row here is written by a
+// database trigger (see the create_audit_log migration), not by this page —
+// role grants/revokes and listing creation/deletion are captured
+// automatically no matter which part of the app performed them.
+
+const AUDIT_ACTION_BADGE: Record<string, string> = {
+  role_granted:    "bg-green-100 text-green-800",
+  role_revoked:    "bg-red-100 text-red-800",
+  listing_created: "bg-blue-100 text-blue-800",
+  listing_deleted: "bg-gray-100 text-gray-700",
+};
+
+function AuditLogAdmin() {
+  const { data: entries = [], isLoading, error } = useQuery({
+    queryKey: ["admin-audit-log"],
+    queryFn: () => fetchAuditLog(200),
+  });
+
+  return (
+    <div className="space-y-6">
+      <SectionCard
+        title="Audit Log"
+        subtitle="Who did what and when — role changes, listing posts, and deletions, logged automatically as they happen."
+      />
+
+      {isLoading ? (
+        <p className="text-muted-foreground">Loading…</p>
+      ) : error ? (
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+          Failed to load: {error instanceof Error ? error.message : "Unknown error"}
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+          <History className="mx-auto h-10 w-10 text-muted-foreground/40" />
+          <p className="mt-3 text-muted-foreground">No activity logged yet.</p>
+        </div>
+      ) : (
+        <BigTable
+          head={
+            <tr>
+              <th className="px-6 py-5 whitespace-nowrap">When</th>
+              <th className="px-6 py-5">Actor</th>
+              <th className="px-6 py-5 whitespace-nowrap">Action</th>
+              <th className="px-6 py-5">Details</th>
+            </tr>
+          }
+        >
+          {entries.map((e) => {
+            const details = e.details ?? {};
+            const detailText =
+              e.action === "role_granted" || e.action === "role_revoked"
+                ? `Role: ${String(details.role ?? "—")}`
+                : e.action === "listing_created" || e.action === "listing_deleted"
+                ? String(details.title ?? "Untitled listing")
+                : JSON.stringify(details);
+            return (
+              <tr key={e.id} className="h-20 border-t border-border">
+                <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(e.created_at), "MMM d, yyyy · h:mm a")}</td>
+                <td className="px-6 py-5 font-medium">{e.actorName}</td>
+                <td className="px-6 py-5 whitespace-nowrap">
+                  <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${AUDIT_ACTION_BADGE[e.action] ?? "bg-gray-100 text-gray-600"}`}>
+                    {actionLabel(e.action)}
+                  </span>
+                </td>
+                <td className="px-6 py-5 text-muted-foreground">{detailText}</td>
+              </tr>
+            );
+          })}
         </BigTable>
       )}
     </div>
