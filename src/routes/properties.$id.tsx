@@ -134,7 +134,15 @@ function PropertyDetail() {
   const isFav = favoriteIds.has(id);
 
   const sections = resolveSections(data.images ?? [], data.image_sections as ImageSection[] | null);
-  const flatImages = sections.flatMap((s) => s.images);
+  // Sourced straight from the legacy `images` column rather than flattening
+  // `sections` — this is deliberate. The dedicated "main photo" saved from
+  // the listing form is prepended to `images` (so images[0] is always the
+  // cover), but it isn't necessarily part of any room section, so building
+  // this list from the sections could silently drop it. Using `images`
+  // directly guarantees the hero gallery below always starts with the same
+  // cover photo shown on the Browse card for this listing, and includes
+  // every photo regardless of whether it's grouped into a room or not.
+  const flatImages: string[] = data.images ?? [];
 
   return (
     <div className="min-h-screen site-page">
@@ -200,18 +208,25 @@ function PropertyDetail() {
             and left the gallery looking like the only thing on the page. */}
         <div className="mt-8 grid gap-10 md:grid-cols-3 md:items-start">
           <div className="min-w-0 md:col-span-2">
-            {/* Room-by-room gallery. Each section (Living Room, Kitchen,
-                etc.) gets its own heading and photo row; every photo opens
-                the same lightbox at its position across the whole
-                flattened photo list, so prev/next still moves seamlessly
-                across section boundaries. Living inside this narrower
-                column (rather than the full page width) keeps individual
-                photos a reasonable size instead of oversized. */}
-            {sections.length > 0 ? (
-              <SectionedGallery sections={sections} title={data.title} onOpenPhoto={setLightboxIndex} />
-            ) : (
-              <div className="grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
-                H
+            {/* Hero gallery — the main photo (same one used as the cover
+                on Browse cards) shown big at the top, with prev/next
+                arrows and a thumbnail strip when there's more than one
+                photo, Zillow-style. This is always the first thing shown,
+                regardless of whether the listing also uses room-grouped
+                sections below. */}
+            <HeroGallery images={flatImages} title={data.title} onOpenPhoto={setLightboxIndex} />
+
+            {/* Room-by-room breakdown — only shown when the listing
+                actually uses more than one named section; with just one
+                section (or the legacy single "Photos" fallback) every
+                photo is already visible in the hero gallery above, so
+                repeating them here would just be a duplicate of the same
+                photos. Section indices are offset to match their position
+                in the flattened `images` list (cover photo is always
+                index 0), so the lightbox's prev/next still lines up. */}
+            {sections.length > 1 && (
+              <div className="mt-10">
+                <SectionedGallery sections={sections} title={data.title} allImages={flatImages} onOpenPhoto={setLightboxIndex} />
               </div>
             )}
 
@@ -319,37 +334,113 @@ function PropertyDetail() {
 }
 
 /**
- * Room-by-room photo gallery — a heading per section (Living Room,
- * Kitchen, ...) followed by that section's photos, separated by dividers.
- * Every photo's onClick passes its GLOBAL index across the whole
- * flattened photo list (not just its position within its own section),
- * so the lightbox's prev/next controls move seamlessly across section
- * boundaries exactly as if it were one continuous gallery.
+ * Zillow-style hero gallery shown at the very top of the property page.
+ * Always leads with the cover photo (images[0]). With a single photo it's
+ * just a static image; with more than one, hover/tap reveals prev/next
+ * arrows over the photo plus a scrollable thumbnail strip underneath for
+ * jumping straight to any photo. Clicking the big photo opens the full
+ * lightbox at the currently-shown index.
  */
-function SectionedGallery({
-  sections, title, onOpenPhoto,
+function HeroGallery({
+  images, title, onOpenPhoto,
 }: {
-  sections: ImageSection[];
+  images: string[];
   title: string;
   onOpenPhoto: (globalIndex: number) => void;
 }) {
-  let runningIndex = 0;
+  const [current, setCurrent] = useState(0);
 
+  if (images.length === 0) {
+    return (
+      <div className="grid aspect-[16/9] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
+        H
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="group relative overflow-hidden rounded-2xl bg-muted">
+        <button onClick={() => onOpenPhoto(current)} className="block w-full" aria-label="View full-size photo">
+          <img
+            src={images[current]}
+            alt={current === 0 ? `${title} — main photo` : `${title} — photo ${current + 1}`}
+            className="aspect-[16/9] w-full object-cover"
+          />
+        </button>
+
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrent((c) => (c - 1 + images.length) % images.length)}
+              aria-label="Previous photo"
+              className="absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white opacity-0 transition hover:bg-black/70 group-hover:opacity-100"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setCurrent((c) => (c + 1) % images.length)}
+              aria-label="Next photo"
+              className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white opacity-0 transition hover:bg-black/70 group-hover:opacity-100"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white">
+              {current + 1} / {images.length}
+            </span>
+          </>
+        )}
+      </div>
+
+      {images.length > 1 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {images.map((url, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              aria-label={`Show photo ${i + 1}`}
+              className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                i === current ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"
+              }`}
+            >
+              <img src={url} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Room-by-room photo breakdown shown below the hero gallery — a heading
+ * per section (Living Room, Kitchen, ...) followed by that section's
+ * photos. Every photo's onClick passes its GLOBAL index within `allImages`
+ * (the same flattened, cover-first list the hero gallery and lightbox use)
+ * rather than its position within its own section, so opening a photo from
+ * here lands the lightbox on the correct photo and prev/next still moves
+ * seamlessly across section boundaries.
+ */
+function SectionedGallery({
+  sections, title, allImages, onOpenPhoto,
+}: {
+  sections: ImageSection[];
+  title: string;
+  allImages: string[];
+  onOpenPhoto: (globalIndex: number) => void;
+}) {
   return (
     <div className="space-y-8">
       {sections.map((section, si) => {
-        const startIndex = runningIndex;
-        runningIndex += section.images.length;
         const [cover, ...rest] = section.images;
         return (
           <div key={si} className={si > 0 ? "border-t border-border pt-8" : ""}>
             <h2 className="font-display text-lg font-bold">{section.label}</h2>
-            {/* One larger cover photo for the section, with any additional
-                photos underneath at a noticeably smaller size — mirrors
-                how Zillow keeps a room's "hero" shot prominent while
-                remaining photos stay compact and out of the way. */}
             {cover && (
-              <button onClick={() => onOpenPhoto(startIndex)} className="group mt-3 block w-full overflow-hidden rounded-xl">
+              <button
+                onClick={() => onOpenPhoto(Math.max(allImages.indexOf(cover), 0))}
+                className="group mt-3 block w-full overflow-hidden rounded-xl"
+              >
                 <img
                   src={cover}
                   alt={`${title} — ${section.label} photo 1`}
@@ -362,7 +453,7 @@ function SectionedGallery({
                 {rest.map((url, i) => (
                   <button
                     key={i}
-                    onClick={() => onOpenPhoto(startIndex + i + 1)}
+                    onClick={() => onOpenPhoto(Math.max(allImages.indexOf(url), 0))}
                     className="group overflow-hidden rounded-lg"
                   >
                     <img
