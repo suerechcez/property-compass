@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PROPERTY_TYPES, PROPERTY_STATUS, type PropertyTypeValue } from "@/lib/property-types";
+import {
+  PROPERTY_TYPES, PROPERTY_STATUS, ROOM_LABEL_PRESETS,
+  type PropertyTypeValue, type ImageSection,
+} from "@/lib/property-types";
 import { uploadPropertyImage } from "@/lib/storage";
 import { ensureSaleRecord } from "@/lib/sales";
 import { toast } from "sonner";
+import { X, Plus, GripVertical } from "lucide-react";
 
 export const Route = createFileRoute("/listings/new")({
   head: () => ({ meta: [{ title: "Post a property · One Higala Properties Inc." }] }),
@@ -19,6 +23,18 @@ export const Route = createFileRoute("/listings/new")({
 
 function NewListing() {
   return <ListingForm mode="create" />;
+}
+
+/**
+ * Turns the legacy flat `images: string[]` column into a single
+ * "Photos" section, so listings created before image_sections existed
+ * still display and edit sensibly instead of just losing their photos
+ * from the form.
+ */
+function sectionsFromInitial(images: string[], sections: ImageSection[] | null | undefined): ImageSection[] {
+  if (sections && sections.length > 0) return sections;
+  if (images.length > 0) return [{ label: "Photos", images }];
+  return [];
 }
 
 export function ListingForm({
@@ -37,7 +53,10 @@ export function ListingForm({
     bedrooms: number | null;
     bathrooms: number | null;
     area_sqm: number | string | null;
+    year_built?: number | null;
+    lot_size_sqm?: number | string | null;
     images: string[];
+    image_sections?: ImageSection[] | null;
     features: string[];
     for_rent: boolean;
     commissioner_id: string;
@@ -58,13 +77,17 @@ export function ListingForm({
   const [bedrooms, setBedrooms] = useState(initial?.bedrooms?.toString() ?? "");
   const [bathrooms, setBathrooms] = useState(initial?.bathrooms?.toString() ?? "");
   const [area, setArea] = useState(initial?.area_sqm?.toString() ?? "");
+  const [yearBuilt, setYearBuilt] = useState(initial?.year_built?.toString() ?? "");
+  const [lotSize, setLotSize] = useState(initial?.lot_size_sqm?.toString() ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [features, setFeatures] = useState((initial?.features ?? []).join(", "));
   const [forRent, setForRent] = useState(initial?.for_rent ?? false);
-  const [images, setImages] = useState<string[]>(initial?.images ?? []);
+  const [sections, setSections] = useState<ImageSection[]>(
+    sectionsFromInitial(initial?.images ?? [], initial?.image_sections)
+  );
   const [contactPhone, setContactPhone] = useState(initial?.contact_phone ?? "");
   const [contactEmail, setContactEmail] = useState(initial?.contact_email ?? "");
-  const [uploading, setUploading] = useState(false);
+  const [uploadingSection, setUploadingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [markingRented, setMarkingRented] = useState(false);
 
@@ -94,17 +117,37 @@ export function ListingForm({
     }
   }, [authReady, user, canPost, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function onFiles(files: FileList | null) {
+  function addSection(label: string) {
+    setSections((prev) => [...prev, { label, images: [] }]);
+  }
+
+  function removeSection(index: number) {
+    setSections((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function renameSection(index: number, label: string) {
+    setSections((prev) => prev.map((s, i) => (i === index ? { ...s, label } : s)));
+  }
+
+  function removeImageFromSection(sectionIndex: number, imageIndex: number) {
+    setSections((prev) =>
+      prev.map((s, i) => (i === sectionIndex ? { ...s, images: s.images.filter((_, j) => j !== imageIndex) } : s))
+    );
+  }
+
+  async function onSectionFiles(sectionIndex: number, files: FileList | null) {
     if (!files || !user) return;
-    setUploading(true);
+    setUploadingSection(sectionIndex);
     try {
       const uploaded: string[] = [];
       for (const f of Array.from(files)) uploaded.push(await uploadPropertyImage(f, user.id));
-      setImages((prev) => [...prev, ...uploaded]);
+      setSections((prev) =>
+        prev.map((s, i) => (i === sectionIndex ? { ...s, images: [...s.images, ...uploaded] } : s))
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
-      setUploading(false);
+      setUploadingSection(null);
     }
   }
 
@@ -129,6 +172,16 @@ export function ListingForm({
       mode === "create" ? "pending" :
       initial?.status ?? "pending";
 
+    // Drop any section that ended up with no photos (e.g. added then never
+    // filled in) before saving, and flatten every section's images back
+    // into the legacy `images` column so browse cards, agent listing
+    // carousels, and recently-viewed — anything reading images[0] as a
+    // thumbnail — keep working without needing any changes of their own.
+    const cleanedSections = sections
+      .map((s) => ({ label: s.label.trim() || "Photos", images: s.images }))
+      .filter((s) => s.images.length > 0);
+    const flattenedImages = cleanedSections.flatMap((s) => s.images);
+
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
       title,
@@ -140,7 +193,10 @@ export function ListingForm({
       bedrooms: bedrooms ? Number(bedrooms) : null,
       bathrooms: bathrooms ? Number(bathrooms) : null,
       area_sqm: area ? Number(area) : null,
-      images,
+      year_built: yearBuilt ? Number(yearBuilt) : null,
+      lot_size_sqm: lotSize ? Number(lotSize) : null,
+      images: flattenedImages,
+      image_sections: cleanedSections,
       features: features.split(",").map((s) => s.trim()).filter(Boolean),
       for_rent: forRent,
       contact_phone: contactPhone || null,
@@ -199,6 +255,12 @@ export function ListingForm({
   // Non-admin edit = any edit where the user is NOT reviewing someone else's listing as admin
   const isNonAdminEdit = mode === "edit" && !isAdminReviewing;
 
+  // Presets already used in an existing section shouldn't be offered again
+  // (avoid two "Kitchen" sections from a single click) — "Other" is always
+  // available since it starts with an empty, freely-editable label.
+  const usedLabels = new Set(sections.map((s) => s.label));
+  const availablePresets = ROOM_LABEL_PRESETS.filter((p) => !usedLabels.has(p));
+
   return (
     <div className="min-h-screen site-page">
       <Nav />
@@ -232,24 +294,87 @@ export function ListingForm({
 
         <form onSubmit={save} className="mt-10 space-y-8">
           <Section title="Photos">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {images.map((url, i) => (
-                <div key={url} className="group relative overflow-hidden rounded-lg border border-border">
-                  <img src={url} alt="" className="aspect-square w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
-                    className="absolute right-1 top-1 rounded-full bg-background/90 px-2 py-0.5 text-xs opacity-0 transition group-hover:opacity-100"
-                  >
-                    Remove
-                  </button>
+            <p className="text-sm text-muted-foreground">
+              Group photos by room — buyers can browse Living Room, Kitchen, and Bedroom photos separately, like on Zillow.
+              The very first photo in your first section becomes this listing's cover photo.
+            </p>
+
+            <div className="mt-4 space-y-6">
+              {sections.map((section, si) => (
+                <div key={si} className="rounded-xl border border-border p-4">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                    <Input
+                      value={section.label}
+                      onChange={(e) => renameSection(si, e.target.value)}
+                      placeholder="Section name (e.g. Living Room)"
+                      className="h-9 flex-1 font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSection(si)}
+                      aria-label={`Remove ${section.label || "section"}`}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {section.images.map((url, ii) => (
+                      <div key={url} className="group relative overflow-hidden rounded-lg border border-border">
+                        <img src={url} alt="" className="aspect-square w-full object-cover" />
+                        {si === 0 && ii === 0 && (
+                          <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            Cover
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImageFromSection(si, ii)}
+                          className="absolute right-1 top-1 rounded-full bg-background/90 px-2 py-0.5 text-xs opacity-0 transition group-hover:opacity-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-center text-xs text-muted-foreground hover:border-primary hover:text-primary">
+                      {uploadingSection === si ? "Uploading…" : "+ Add photos"}
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => onSectionFiles(si, e.target.files)}
+                      />
+                    </label>
+                  </div>
                 </div>
               ))}
-              <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary">
-                {uploading ? "Uploading…" : "+ Add photos"}
-                <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onFiles(e.target.files)} />
-              </label>
             </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {availablePresets.map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => addSection(label)}
+                  className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
+                >
+                  <Plus className="h-3 w-3" />{label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => addSection("")}
+                className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-3 w-3" />Other section
+              </button>
+            </div>
+            {sections.length === 0 && (
+              <p className="mt-3 text-xs text-muted-foreground">No photo sections yet — add one above to get started.</p>
+            )}
           </Section>
 
           {/* "Basics" renamed to "Information" */}
@@ -287,6 +412,8 @@ export function ListingForm({
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
               <Field label="Area (m²)"><Input type="number" min="0" value={area} onChange={(e) => setArea(e.target.value)} /></Field>
+              <Field label="Year built (optional)"><Input type="number" min="1800" max="2100" value={yearBuilt} onChange={(e) => setYearBuilt(e.target.value)} /></Field>
+              <Field label="Lot size, m² (optional)"><Input type="number" min="0" value={lotSize} onChange={(e) => setLotSize(e.target.value)} /></Field>
               <Field label="" full>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={forRent} onChange={(e) => setForRent(e.target.checked)} />
@@ -311,8 +438,9 @@ export function ListingForm({
           <Section title="Description">
             <Textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell buyers what makes this property special…" />
             <div className="mt-4">
-              <Label>Highlights (comma separated)</Label>
+              <Label>Features (comma separated)</Label>
               <Input value={features} onChange={(e) => setFeatures(e.target.value)} placeholder="Sea view, Pool, Gated, Furnished" />
+              <p className="mt-1.5 text-xs text-muted-foreground">Shown as a checklist under "Facts and features" on the listing page.</p>
             </div>
           </Section>
 
