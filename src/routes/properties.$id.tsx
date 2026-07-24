@@ -3,11 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
-import { typeLabel, formatPrice } from "@/lib/property-types";
+import { typeLabel, formatPrice, type ImageSection } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
@@ -22,6 +22,18 @@ export const Route = createFileRoute("/properties/$id")({
   }),
   component: PropertyDetail,
 });
+
+/**
+ * Falls back to a single synthetic "Photos" section built from the legacy
+ * flat `images` column when a listing has no image_sections yet (created
+ * before this feature existed), so older listings still render a gallery
+ * instead of nothing.
+ */
+function resolveSections(images: string[], sections: ImageSection[] | null | undefined): ImageSection[] {
+  if (sections && sections.length > 0) return sections;
+  if (images.length > 0) return [{ label: "Photos", images }];
+  return [];
+}
 
 function PropertyDetail() {
   const { id } = Route.useParams();
@@ -114,7 +126,9 @@ function PropertyDetail() {
   const contactPhone = data.contact_phone || data.agent?.phone;
   const contactEmail = data.contact_email || data.agent?.email;
   const isFav = favoriteIds.has(id);
-  const images = data.images ?? [];
+
+  const sections = resolveSections(data.images ?? [], data.image_sections as ImageSection[] | null);
+  const flatImages = sections.flatMap((s) => s.images);
 
   return (
     <div className="min-h-screen site-page">
@@ -173,45 +187,12 @@ function PropertyDetail() {
           </div>
         </header>
 
-        {/* Photo gallery — every tile opens the full lightbox viewer at that
-            photo's index. The 5th visible tile shows a "+N photos" overlay
-            when there are more than 5 images, matching how Zillow/Redfin
-            surface "there's more" without needing a whole extra row. */}
-        {images.length ? (
-          <div className="mt-8 grid gap-3 md:grid-cols-3">
-            <button
-              onClick={() => setLightboxIndex(0)}
-              className="group overflow-hidden rounded-2xl md:col-span-2 md:row-span-2"
-            >
-              <img
-                src={images[0]}
-                alt={data.title}
-                className="aspect-[4/3] h-full w-full object-cover transition duration-300 group-hover:scale-105"
-              />
-            </button>
-            {images.slice(1, 5).map((url, i) => {
-              const photoIndex = i + 1;
-              const isLastVisibleWithMore = i === 3 && images.length > 5;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setLightboxIndex(photoIndex)}
-                  className="group relative overflow-hidden rounded-2xl"
-                >
-                  <img
-                    src={url}
-                    alt={`${data.title} photo ${photoIndex + 1}`}
-                    className="aspect-[4/3] h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                  {isLastVisibleWithMore && (
-                    <span className="absolute inset-0 grid place-items-center bg-black/55 font-display text-lg font-semibold text-white">
-                      +{images.length - 5} photos
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        {/* Room-by-room gallery. Each section (Living Room, Kitchen, etc.)
+            gets its own heading and photo row; every photo opens the same
+            lightbox at its position across the whole flattened photo list,
+            so prev/next still moves seamlessly across section boundaries. */}
+        {sections.length > 0 ? (
+          <SectionedGallery sections={sections} title={data.title} onOpenPhoto={setLightboxIndex} />
         ) : (
           <div className="mt-8 grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
             H
@@ -224,32 +205,15 @@ function PropertyDetail() {
             <p className="mt-4 whitespace-pre-line leading-relaxed text-foreground/85">
               {data.description || "No description provided yet."}
             </p>
-            {data.features?.length > 0 && (
-              <div className="mt-8">
-                <h3 className="font-display text-lg font-semibold">Highlights</h3>
-                <ul className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  {data.features.map((f) => (
-                    <li key={f} className="rounded-md border border-border bg-card px-3 py-2">{f}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+
+            <FactsAndFeatures data={data} />
           </div>
 
           <div className="space-y-6">
-            <aside className="rounded-2xl border border-border bg-card p-6">
-              <dl className="space-y-3 text-sm">
-                {data.bedrooms != null && <Fact label="Bedrooms" value={String(data.bedrooms)} />}
-                {data.bathrooms != null && <Fact label="Bathrooms" value={String(data.bathrooms)} />}
-                {data.area_sqm != null && <Fact label="Area" value={`${data.area_sqm} m²`} />}
-                <Fact label="Type" value={typeLabel(data.property_type)} />
-              </dl>
-            </aside>
-
             {/* Map embed — driven off the free-text `location` field (no
                 lat/lng columns exist yet), so it's a Maps *search* embed
-                rather than a pinpoint marker. Good enough to orient a buyer
-                to the neighborhood at a glance. */}
+                rather than a pinpoint marker. Good enough to orient a
+                buyer to the neighborhood at a glance. */}
             <PropertyMap location={data.location} />
 
             {/* Mortgage calculator for sale listings; a simple total-cost
@@ -324,15 +288,62 @@ function PropertyDetail() {
         <RecentlyViewed excludeId={id} />
       </div>
 
-      {lightboxIndex !== null && images.length > 0 && (
+      {lightboxIndex !== null && flatImages.length > 0 && (
         <PhotoLightbox
-          images={images}
+          images={flatImages}
           title={data.title}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Room-by-room photo gallery — a heading per section (Living Room,
+ * Kitchen, ...) followed by that section's photos, separated by dividers.
+ * Every photo's onClick passes its GLOBAL index across the whole
+ * flattened photo list (not just its position within its own section),
+ * so the lightbox's prev/next controls move seamlessly across section
+ * boundaries exactly as if it were one continuous gallery.
+ */
+function SectionedGallery({
+  sections, title, onOpenPhoto,
+}: {
+  sections: ImageSection[];
+  title: string;
+  onOpenPhoto: (globalIndex: number) => void;
+}) {
+  let runningIndex = 0;
+
+  return (
+    <div className="mt-8 space-y-10">
+      {sections.map((section, si) => {
+        const startIndex = runningIndex;
+        runningIndex += section.images.length;
+        return (
+          <div key={si} className={si > 0 ? "border-t border-border pt-10" : ""}>
+            <h2 className="font-display text-xl font-bold">{section.label}</h2>
+            <div className={`mt-4 grid gap-3 ${section.images.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+              {section.images.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => onOpenPhoto(startIndex + i)}
+                  className="group overflow-hidden rounded-2xl"
+                >
+                  <img
+                    src={url}
+                    alt={`${title} — ${section.label} photo ${i + 1}`}
+                    className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -422,6 +433,63 @@ function PhotoLightbox({
               <img src={url} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Structured "Facts and features" section — replaces the old plain
+ * description-only + tag-list "Highlights" with a proper labeled facts
+ * grid (bedrooms, bathrooms, area, type, year built, lot size, listing
+ * terms) plus a checklist of the listing's free-form features.
+ */
+function FactsAndFeatures({ data }: {
+  data: {
+    bedrooms: number | null;
+    bathrooms: number | null;
+    area_sqm: number | string | null;
+    property_type: string;
+    year_built?: number | null;
+    lot_size_sqm?: number | string | null;
+    for_rent: boolean;
+    features: string[];
+  };
+}) {
+  const facts: { label: string; value: string }[] = [];
+  if (data.bedrooms != null) facts.push({ label: "Bedrooms", value: String(data.bedrooms) });
+  if (data.bathrooms != null) facts.push({ label: "Bathrooms", value: String(data.bathrooms) });
+  if (data.area_sqm != null) facts.push({ label: "Interior area", value: `${data.area_sqm} m²` });
+  facts.push({ label: "Property type", value: typeLabel(data.property_type) });
+  if (data.year_built) facts.push({ label: "Year built", value: String(data.year_built) });
+  if (data.lot_size_sqm != null) facts.push({ label: "Lot size", value: `${data.lot_size_sqm} m²` });
+  facts.push({ label: "Listing terms", value: data.for_rent ? "For rent" : "For sale" });
+
+  return (
+    <div className="mt-10">
+      <h2 className="font-display text-2xl font-semibold">Facts and features</h2>
+
+      <div className="mt-5 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+        {facts.map((f) => (
+          <div key={f.label} className="flex justify-between border-b border-border/70 py-2.5 text-sm">
+            <dt className="text-muted-foreground">{f.label}</dt>
+            <dd className="font-medium">{f.value}</dd>
+          </div>
+        ))}
+      </div>
+
+      {data.features?.length > 0 && (
+        <div className="mt-8">
+          <h3 className="font-display text-lg font-semibold">Features</h3>
+          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+            {data.features.map((f) => (
+              <li key={f} className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 shrink-0 text-primary" />
+                {f}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -800,15 +868,6 @@ function RecentlyViewed({ excludeId }: { excludeId: string }) {
           </Link>
         ))}
       </div>
-    </div>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between border-b border-border/70 pb-2 last:border-0">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
     </div>
   );
 }
