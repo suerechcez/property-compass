@@ -195,9 +195,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="w-80 p-0">
-                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div className="border-b border-border px-4 py-3">
                   <span className="font-display font-semibold">Announcements</span>
-                  <span className="text-xs text-muted-foreground">From One Higala admin</span>
                 </div>
 
                 <div className="max-h-96 overflow-y-auto">
