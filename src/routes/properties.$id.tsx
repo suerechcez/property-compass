@@ -23,6 +23,12 @@ export const Route = createFileRoute("/properties/$id")({
   component: PropertyDetail,
 });
 
+/** Small, grey, Zillow-style label used for card headings in the right rail
+ *  (Mortgage calculator, Listed by, etc.) — deliberately much quieter than
+ *  the bold black headings in the main content column, matching how
+ *  Zillow visually de-emphasizes its sidebar card titles. */
+const ASIDE_TITLE_CLASS = "text-sm font-semibold text-muted-foreground";
+
 /**
  * Falls back to a single synthetic "Photos" section built from the legacy
  * flat `images` column when a listing has no image_sections yet (created
@@ -187,21 +193,29 @@ function PropertyDetail() {
           </div>
         </header>
 
-        {/* Room-by-room gallery. Each section (Living Room, Kitchen, etc.)
-            gets its own heading and photo row; every photo opens the same
-            lightbox at its position across the whole flattened photo list,
-            so prev/next still moves seamlessly across section boundaries. */}
-        {sections.length > 0 ? (
-          <SectionedGallery sections={sections} title={data.title} onOpenPhoto={setLightboxIndex} />
-        ) : (
-          <div className="mt-8 grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
-            H
-          </div>
-        )}
+        {/* Main two-column layout: photos + facts on the left, a sticky
+            right rail (map, calculator, listed-by) beside them from the
+            very top — rather than the rail only starting after the whole
+            gallery + facts section, which pushed it far down the page
+            and left the gallery looking like the only thing on the page. */}
+        <div className="mt-8 grid gap-10 md:grid-cols-3 md:items-start">
+          <div className="min-w-0 md:col-span-2">
+            {/* Room-by-room gallery. Each section (Living Room, Kitchen,
+                etc.) gets its own heading and photo row; every photo opens
+                the same lightbox at its position across the whole
+                flattened photo list, so prev/next still moves seamlessly
+                across section boundaries. Living inside this narrower
+                column (rather than the full page width) keeps individual
+                photos a reasonable size instead of oversized. */}
+            {sections.length > 0 ? (
+              <SectionedGallery sections={sections} title={data.title} onOpenPhoto={setLightboxIndex} />
+            ) : (
+              <div className="grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
+                H
+              </div>
+            )}
 
-        <div className="mt-10 grid gap-10 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <h2 className="font-display text-2xl font-semibold">About this property</h2>
+            <h2 className="mt-10 font-display text-2xl font-semibold">About this property</h2>
             <p className="mt-4 whitespace-pre-line leading-relaxed text-foreground/85">
               {data.description || "No description provided yet."}
             </p>
@@ -209,7 +223,10 @@ function PropertyDetail() {
             <FactsAndFeatures data={data} />
           </div>
 
-          <div className="space-y-6">
+          {/* Sticky right rail — stays in view alongside the gallery/facts
+              as the visitor scrolls, instead of only appearing once
+              they've scrolled all the way past everything on the left. */}
+          <div className="space-y-6 md:sticky md:top-24 md:self-start">
             {/* Map embed — driven off the free-text `location` field (no
                 lat/lng columns exist yet), so it's a Maps *search* embed
                 rather than a pinpoint marker. Good enough to orient a
@@ -224,11 +241,11 @@ function PropertyDetail() {
               : <MortgageCalculator price={Number(data.price)} />}
 
             <aside className="rounded-2xl border border-border bg-card p-6">
-              <h3 className="font-display text-lg font-semibold">Listed by</h3>
+              <h3 className={ASIDE_TITLE_CLASS}>Listed by</h3>
               <Link
                 to="/agents/$id"
                 params={{ id: data.commissioner_id }}
-                className="mt-4 flex items-center gap-3 rounded-lg -mx-2 p-2 transition hover:bg-accent"
+                className="mt-3 flex items-center gap-3 rounded-lg -mx-2 p-2 transition hover:bg-accent"
               >
                 <Avatar className="h-12 w-12 border border-border">
                   {data.agent?.avatar_url && <AvatarImage src={data.agent.avatar_url} alt={data.agent.full_name ?? "Agent"} />}
@@ -319,28 +336,44 @@ function SectionedGallery({
   let runningIndex = 0;
 
   return (
-    <div className="mt-8 space-y-10">
+    <div className="space-y-8">
       {sections.map((section, si) => {
         const startIndex = runningIndex;
         runningIndex += section.images.length;
+        const [cover, ...rest] = section.images;
         return (
-          <div key={si} className={si > 0 ? "border-t border-border pt-10" : ""}>
-            <h2 className="font-display text-xl font-bold">{section.label}</h2>
-            <div className={`mt-4 grid gap-3 ${section.images.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
-              {section.images.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => onOpenPhoto(startIndex + i)}
-                  className="group overflow-hidden rounded-2xl"
-                >
-                  <img
-                    src={url}
-                    alt={`${title} — ${section.label} photo ${i + 1}`}
-                    className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                </button>
-              ))}
-            </div>
+          <div key={si} className={si > 0 ? "border-t border-border pt-8" : ""}>
+            <h2 className="font-display text-lg font-bold">{section.label}</h2>
+            {/* One larger cover photo for the section, with any additional
+                photos underneath at a noticeably smaller size — mirrors
+                how Zillow keeps a room's "hero" shot prominent while
+                remaining photos stay compact and out of the way. */}
+            {cover && (
+              <button onClick={() => onOpenPhoto(startIndex)} className="group mt-3 block w-full overflow-hidden rounded-xl">
+                <img
+                  src={cover}
+                  alt={`${title} — ${section.label} photo 1`}
+                  className="aspect-[16/10] w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+              </button>
+            )}
+            {rest.length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {rest.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onOpenPhoto(startIndex + i + 1)}
+                    className="group overflow-hidden rounded-lg"
+                  >
+                    <img
+                      src={url}
+                      alt={`${title} — ${section.label} photo ${i + 2}`}
+                      className="aspect-square w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -560,7 +593,7 @@ function MortgageCalculator({ price }: { price: number }) {
 
   return (
     <aside className="rounded-2xl border border-border bg-card p-6">
-      <h3 className="font-display text-lg font-semibold">Mortgage calculator</h3>
+      <h3 className={ASIDE_TITLE_CLASS}>Mortgage calculator</h3>
       <p className="mt-1 text-xs text-muted-foreground">
         Estimate your monthly payment — for reference only, actual terms vary by lender.
       </p>
@@ -655,7 +688,7 @@ function RentCalculator({ rent }: { rent: number }) {
 
   return (
     <aside className="rounded-2xl border border-border bg-card p-6">
-      <h3 className="font-display text-lg font-semibold">Monthly cost estimator</h3>
+      <h3 className={ASIDE_TITLE_CLASS}>Monthly cost estimator</h3>
       <p className="mt-1 text-xs text-muted-foreground">
         Estimate your total monthly cost including rent and typical extras.
       </p>
@@ -757,11 +790,11 @@ function MessageAgentBox({
 
   return (
     <aside className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-      <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
-        {user && <MessageSquare className="h-4 w-4 text-primary" />}
+      <h3 className={`flex items-center gap-2 ${ASIDE_TITLE_CLASS}`}>
+        {user && <MessageSquare className="h-3.5 w-3.5 text-primary" />}
         Message {agentName.split(" ")[0]}
       </h3>
-      <form className="mt-4 space-y-3" onSubmit={send}>
+      <form className="mt-3 space-y-3" onSubmit={send}>
         <textarea
           rows={3}
           value={message}
