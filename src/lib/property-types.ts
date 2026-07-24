@@ -29,6 +29,34 @@ export function formatPrice(n: number | string) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", maximumFractionDigits: 0 }).format(v);
 }
 
+/**
+ * A labeled group of photos for a specific room/area (e.g. "Living Room",
+ * "Kitchen") — matches the properties.image_sections JSONB column, and
+ * powers the room-by-room gallery on the property detail page. The
+ * flattened union of every section's images is kept in sync with the
+ * legacy `images: string[]` column, so anything else in the app that just
+ * reads images[0] as a thumbnail (browse cards, agent listing carousels,
+ * recently-viewed) keeps working without any changes.
+ */
+export type ImageSection = { label: string; images: string[] };
+
+/**
+ * Quick-pick buttons shown in the listing form so agents don't have to
+ * type out common room names by hand — "Other" always adds a section with
+ * an empty, freely-editable label instead.
+ */
+export const ROOM_LABEL_PRESETS = [
+  "Living Room",
+  "Kitchen",
+  "Primary Bedroom",
+  "Bedroom",
+  "Bathroom",
+  "Dining Room",
+  "Exterior",
+  "Backyard",
+  "Garage",
+] as const;
+
 // All 80 barangays of Cagayan de Oro City, grouped by congressional district
 // (1st district = west of the Cagayan River, 2nd district = east, including
 // the 40 numbered Poblacion barangays downtown).
