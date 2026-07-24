@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker } from "@/components/LocationPicker";
 import {
   PROPERTY_TYPES, PROPERTY_STATUS, ROOM_LABEL_PRESETS,
   type PropertyTypeValue, type ImageSection,
@@ -50,6 +51,8 @@ export function ListingForm({
     status: "draft" | "pending" | "published" | "sold" | "rented" | "rejected";
     price: number | string;
     location: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     bedrooms: number | null;
     bathrooms: number | null;
     area_sqm: number | string | null;
@@ -74,6 +77,12 @@ export function ListingForm({
   const [status, setStatus] = useState(initial?.status ?? "pending");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [location, setLocation] = useState(initial?.location ?? "");
+  // Precise pinpoint — separate from the free-text `location` field above.
+  // Letting agents drop an exact pin (via LocationPicker) is what lets the
+  // property page show buyers exactly where the place is, rather than just
+  // a neighborhood-level address search.
+  const [latitude, setLatitude] = useState<number | null>(initial?.latitude ?? null);
+  const [longitude, setLongitude] = useState<number | null>(initial?.longitude ?? null);
   const [bedrooms, setBedrooms] = useState(initial?.bedrooms?.toString() ?? "");
   const [bathrooms, setBathrooms] = useState(initial?.bathrooms?.toString() ?? "");
   const [area, setArea] = useState(initial?.area_sqm?.toString() ?? "");
@@ -96,6 +105,17 @@ export function ListingForm({
   const [uploadingSection, setUploadingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [markingRented, setMarkingRented] = useState(false);
+
+  /** LocationPicker reports NaN/NaN to mean "the pin was cleared". */
+  function handleLocationChange(lat: number, lng: number) {
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      setLatitude(null);
+      setLongitude(null);
+      return;
+    }
+    setLatitude(lat);
+    setLongitude(lng);
+  }
 
   useEffect(() => {
     if (!user || mode === "edit") return;
@@ -221,6 +241,8 @@ export function ListingForm({
       status: resolvedStatus,
       price: Number(price) || 0,
       location: location || null,
+      latitude,
+      longitude,
       bedrooms: bedrooms ? Number(bedrooms) : null,
       bathrooms: bathrooms ? Number(bathrooms) : null,
       area_sqm: area ? Number(area) : null,
@@ -475,7 +497,16 @@ export function ListingForm({
               </Field>
               <Field label="Location" full>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="House no., Barangay, Street, City" />
+                <p className="mt-1.5 text-xs text-muted-foreground">A free-text address shown on the listing. Use the map below to also mark the exact spot.</p>
               </Field>
+
+              {/* Precise pinpoint — separate from the free-text address
+                  above. This is what powers the exact-location map on the
+                  listing page, instead of a neighborhood-level search. */}
+              <Field label="" full>
+                <LocationPicker latitude={latitude} longitude={longitude} onChange={handleLocationChange} />
+              </Field>
+
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
               <Field label="Area (m²)"><Input type="number" min="0" value={area} onChange={(e) => setArea(e.target.value)} /></Field>
