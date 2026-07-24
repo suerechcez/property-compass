@@ -14,7 +14,7 @@ import {
 import { uploadPropertyImage } from "@/lib/storage";
 import { ensureSaleRecord } from "@/lib/sales";
 import { toast } from "sonner";
-import { X, Plus, GripVertical } from "lucide-react";
+import { X, Plus, GripVertical, Star } from "lucide-react";
 
 export const Route = createFileRoute("/listings/new")({
   head: () => ({ meta: [{ title: "Post a property · One Higala Properties Inc." }] }),
@@ -85,6 +85,12 @@ export function ListingForm({
   const [sections, setSections] = useState<ImageSection[]>(
     sectionsFromInitial(initial?.images ?? [], initial?.image_sections)
   );
+  // Dedicated main/cover photo — shown on Browse cards and at the top of
+  // the property page. Independent of the room-grouped sections below.
+  // On edit, best-effort default to whatever was previously acting as the
+  // cover (images[0]) so existing listings aren't left without one.
+  const [coverImage, setCoverImage] = useState<string | null>(initial?.images?.[0] ?? null);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [contactPhone, setContactPhone] = useState(initial?.contact_phone ?? "");
   const [contactEmail, setContactEmail] = useState(initial?.contact_email ?? "");
   const [uploadingSection, setUploadingSection] = useState<number | null>(null);
@@ -151,6 +157,20 @@ export function ListingForm({
     }
   }
 
+  async function onCoverFile(files: FileList | null) {
+    const file = files?.[0];
+    if (!file || !user) return;
+    setUploadingCover(true);
+    try {
+      const url = await uploadPropertyImage(file, user.id);
+      setCoverImage(url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
   // True only when the current user is an admin reviewing SOMEONE ELSE'S listing.
   // If the admin also posted the listing (commissioner+admin), they don't get the
   // status control — they edit it like a normal commissioner.
@@ -163,6 +183,12 @@ export function ListingForm({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+
+    if (!coverImage) {
+      toast.error("Please upload a main showcase photo before submitting.");
+      return;
+    }
+
     setSaving(true);
 
     // Admins reviewing someone else's listing → use the dropdown status
@@ -177,10 +203,15 @@ export function ListingForm({
     // into the legacy `images` column so browse cards, agent listing
     // carousels, and recently-viewed — anything reading images[0] as a
     // thumbnail — keep working without needing any changes of their own.
+    // The dedicated cover photo is prepended first (and de-duplicated if
+    // it also happens to appear in one of the room sections), so images[0]
+    // is always the cover chosen above, not whatever the first room
+    // section's first photo happens to be.
     const cleanedSections = sections
       .map((s) => ({ label: s.label.trim() || "Photos", images: s.images }))
       .filter((s) => s.images.length > 0);
-    const flattenedImages = cleanedSections.flatMap((s) => s.images);
+    const sectionImages = cleanedSections.flatMap((s) => s.images);
+    const flattenedImages = [coverImage, ...sectionImages.filter((u) => u !== coverImage)];
 
     const payload = {
       commissioner_id: initial?.commissioner_id ?? user.id,
@@ -294,87 +325,123 @@ export function ListingForm({
 
         <form onSubmit={save} className="mt-10 space-y-8">
           <Section title="Photos">
-            <p className="text-sm text-muted-foreground">
-              Group photos by room — buyers can browse Living Room, Kitchen, and Bedroom photos separately, like on Zillow.
-              The very first photo in your first section becomes this listing's cover photo.
-            </p>
-
-            <div className="mt-4 space-y-6">
-              {sections.map((section, si) => (
-                <div key={si} className="rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    <Input
-                      value={section.label}
-                      onChange={(e) => renameSection(si, e.target.value)}
-                      placeholder="Section name (e.g. Living Room)"
-                      className="h-9 flex-1 font-medium"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSection(si)}
-                      aria-label={`Remove ${section.label || "section"}`}
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+            {/* ── Main showcase photo — required, independent of the room
+                sections below. This is what shows up as the thumbnail on
+                Browse and at the top of the property page. ── */}
+            <div>
+              <Label>Main photo</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This is the cover photo buyers see first — on your Browse card and at the top of your listing page.
+              </p>
+              <div className="mt-3">
+                {coverImage ? (
+                  <div className="group relative w-full max-w-sm overflow-hidden rounded-xl border border-border">
+                    <img src={coverImage} alt="Main showcase" className="aspect-video w-full object-cover" />
+                    <span className="absolute left-2 top-2 flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
+                      <Star className="h-3 w-3 fill-current" />Main photo
+                    </span>
+                    <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
+                      <label className="cursor-pointer rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium hover:bg-background">
+                        Replace
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onCoverFile(e.target.files)} />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setCoverImage(null)}
+                        className="rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-background"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {section.images.map((url, ii) => (
-                      <div key={url} className="group relative overflow-hidden rounded-lg border border-border">
-                        <img src={url} alt="" className="aspect-square w-full object-cover" />
-                        {si === 0 && ii === 0 && (
-                          <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                            Cover
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImageFromSection(si, ii)}
-                          className="absolute right-1 top-1 rounded-full bg-background/90 px-2 py-0.5 text-xs opacity-0 transition group-hover:opacity-100"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-center text-xs text-muted-foreground hover:border-primary hover:text-primary">
-                      {uploadingSection === si ? "Uploading…" : "+ Add photos"}
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => onSectionFiles(si, e.target.files)}
-                      />
-                    </label>
-                  </div>
-                </div>
-              ))}
+                ) : (
+                  <label className="grid aspect-video w-full max-w-sm cursor-pointer place-items-center rounded-xl border-2 border-dashed border-border text-center text-sm text-muted-foreground hover:border-primary hover:text-primary">
+                    {uploadingCover ? "Uploading…" : "+ Upload main photo"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => onCoverFile(e.target.files)} />
+                  </label>
+                )}
+              </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {availablePresets.map((label) => (
+            {/* ── Optional room-grouped photo sections ── */}
+            <div className="mt-8 border-t border-border pt-6">
+              <Label>Additional photos</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Optionally group more photos by room — Living Room, Kitchen, Bedroom, and so on.
+              </p>
+
+              <div className="mt-4 space-y-6">
+                {sections.map((section, si) => (
+                  <div key={si} className="rounded-xl border border-border p-4">
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      <Input
+                        value={section.label}
+                        onChange={(e) => renameSection(si, e.target.value)}
+                        placeholder="Section name (e.g. Living Room)"
+                        className="h-9 flex-1 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSection(si)}
+                        aria-label={`Remove ${section.label || "section"}`}
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {section.images.map((url, ii) => (
+                        <div key={url} className="group relative overflow-hidden rounded-lg border border-border">
+                          <img src={url} alt="" className="aspect-square w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImageFromSection(si, ii)}
+                            className="absolute right-1 top-1 rounded-full bg-background/90 px-2 py-0.5 text-xs opacity-0 transition group-hover:opacity-100"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-center text-xs text-muted-foreground hover:border-primary hover:text-primary">
+                        {uploadingSection === si ? "Uploading…" : "+ Add photos"}
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => onSectionFiles(si, e.target.files)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {availablePresets.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => addSection(label)}
+                    className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
+                  >
+                    <Plus className="h-3 w-3" />{label}
+                  </button>
+                ))}
                 <button
-                  key={label}
                   type="button"
-                  onClick={() => addSection(label)}
+                  onClick={() => addSection("")}
                   className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
                 >
-                  <Plus className="h-3 w-3" />{label}
+                  <Plus className="h-3 w-3" />Other section
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => addSection("")}
-                className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
-              >
-                <Plus className="h-3 w-3" />Other section
-              </button>
+              </div>
+              {sections.length === 0 && (
+                <p className="mt-3 text-xs text-muted-foreground">No additional sections yet — add one above if you'd like.</p>
+              )}
             </div>
-            {sections.length === 0 && (
-              <p className="mt-3 text-xs text-muted-foreground">No photo sections yet — add one above to get started.</p>
-            )}
           </Section>
 
           {/* "Basics" renamed to "Information" */}
