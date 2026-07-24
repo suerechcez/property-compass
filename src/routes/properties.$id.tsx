@@ -7,7 +7,7 @@ import { typeLabel, formatPrice } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
@@ -28,6 +28,7 @@ function PropertyDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, isDeveloper, isAdmin } = useAuth();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["properties", id],
@@ -113,6 +114,7 @@ function PropertyDetail() {
   const contactPhone = data.contact_phone || data.agent?.phone;
   const contactEmail = data.contact_email || data.agent?.email;
   const isFav = favoriteIds.has(id);
+  const images = data.images ?? [];
 
   return (
     <div className="min-h-screen site-page">
@@ -171,16 +173,44 @@ function PropertyDetail() {
           </div>
         </header>
 
-        {data.images?.length ? (
+        {/* Photo gallery — every tile opens the full lightbox viewer at that
+            photo's index. The 5th visible tile shows a "+N photos" overlay
+            when there are more than 5 images, matching how Zillow/Redfin
+            surface "there's more" without needing a whole extra row. */}
+        {images.length ? (
           <div className="mt-8 grid gap-3 md:grid-cols-3">
-            <div className="overflow-hidden rounded-2xl md:col-span-2 md:row-span-2">
-              <img src={data.images[0]} alt={data.title} className="aspect-[4/3] h-full w-full object-cover" />
-            </div>
-            {data.images.slice(1, 5).map((url, i) => (
-              <div key={i} className="overflow-hidden rounded-2xl">
-                <img src={url} alt={`${data.title} ${i + 2}`} className="aspect-[4/3] h-full w-full object-cover" />
-              </div>
-            ))}
+            <button
+              onClick={() => setLightboxIndex(0)}
+              className="group overflow-hidden rounded-2xl md:col-span-2 md:row-span-2"
+            >
+              <img
+                src={images[0]}
+                alt={data.title}
+                className="aspect-[4/3] h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              />
+            </button>
+            {images.slice(1, 5).map((url, i) => {
+              const photoIndex = i + 1;
+              const isLastVisibleWithMore = i === 3 && images.length > 5;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setLightboxIndex(photoIndex)}
+                  className="group relative overflow-hidden rounded-2xl"
+                >
+                  <img
+                    src={url}
+                    alt={`${data.title} photo ${photoIndex + 1}`}
+                    className="aspect-[4/3] h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                  {isLastVisibleWithMore && (
+                    <span className="absolute inset-0 grid place-items-center bg-black/55 font-display text-lg font-semibold text-white">
+                      +{images.length - 5} photos
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="mt-8 grid aspect-[3/1] place-items-center rounded-2xl bg-surface font-display text-4xl text-muted-foreground">
@@ -215,6 +245,19 @@ function PropertyDetail() {
                 <Fact label="Type" value={typeLabel(data.property_type)} />
               </dl>
             </aside>
+
+            {/* Map embed — driven off the free-text `location` field (no
+                lat/lng columns exist yet), so it's a Maps *search* embed
+                rather than a pinpoint marker. Good enough to orient a buyer
+                to the neighborhood at a glance. */}
+            <PropertyMap location={data.location} />
+
+            {/* Mortgage calculator for sale listings; a simple total-cost
+                estimator for rentals, since a mortgage calc doesn't apply
+                to renting. */}
+            {data.for_rent
+              ? <RentCalculator rent={Number(data.price)} />
+              : <MortgageCalculator price={Number(data.price)} />}
 
             <aside className="rounded-2xl border border-border bg-card p-6">
               <h3 className="font-display text-lg font-semibold">Listed by</h3>
@@ -280,7 +323,324 @@ function PropertyDetail() {
             signed-out visitors too. */}
         <RecentlyViewed excludeId={id} />
       </div>
+
+      {lightboxIndex !== null && images.length > 0 && (
+        <PhotoLightbox
+          images={images}
+          title={data.title}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={setLightboxIndex}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Full-screen photo viewer. Click any gallery tile to open it at that
+ * photo's index; arrow keys / on-screen arrows / thumbnail strip all move
+ * between photos, Escape or the backdrop closes it. Body scroll is locked
+ * while open so the page behind it doesn't scroll along with keyboard
+ * arrow presses.
+ */
+function PhotoLightbox({
+  images, title, index, onClose, onNavigate,
+}: {
+  images: string[];
+  title: string;
+  index: number;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+}) {
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onNavigate((index + 1) % images.length);
+      if (e.key === "ArrowLeft") onNavigate((index - 1 + images.length) % images.length);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [index, images.length, onClose, onNavigate]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-black/95"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${title} photo gallery`}
+    >
+      <div className="flex items-center justify-between p-4 text-white">
+        <span className="text-sm text-white/70">{index + 1} / {images.length}</span>
+        <button onClick={onClose} aria-label="Close gallery" className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/10">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="relative flex flex-1 items-center justify-center px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+        {images.length > 1 && (
+          <button
+            onClick={() => onNavigate((index - 1 + images.length) % images.length)}
+            aria-label="Previous photo"
+            className="absolute left-2 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:left-6"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+        )}
+        <img
+          src={images[index]}
+          alt={`${title} photo ${index + 1}`}
+          className="max-h-full max-w-full rounded-lg object-contain"
+        />
+        {images.length > 1 && (
+          <button
+            onClick={() => onNavigate((index + 1) % images.length)}
+            aria-label="Next photo"
+            className="absolute right-2 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:right-6"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        )}
+      </div>
+
+      {images.length > 1 && (
+        <div className="flex justify-center gap-2 overflow-x-auto p-4" onClick={(e) => e.stopPropagation()}>
+          {images.map((url, i) => (
+            <button
+              key={i}
+              onClick={() => onNavigate(i)}
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 transition ${
+                i === index ? "border-white" : "border-transparent opacity-50 hover:opacity-80"
+              }`}
+            >
+              <img src={url} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Map embed driven off the free-text `location` field. There's no lat/lng
+ * stored for properties yet, so this uses Google Maps' query-based embed
+ * (a location *search*, not a precise pinpoint) — enough to orient a buyer
+ * to the neighborhood without needing a Maps API key or a geocoding step.
+ */
+function PropertyMap({ location }: { location: string | null }) {
+  const query = encodeURIComponent(
+    location ? `${location}, Cagayan de Oro City, Philippines` : "Cagayan de Oro City, Philippines"
+  );
+  return (
+    <aside className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="aspect-video w-full bg-muted">
+        <iframe
+          title="Property location map"
+          src={`https://www.google.com/maps?q=${query}&output=embed`}
+          className="h-full w-full border-0"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
+      <div className="flex items-start gap-2 p-4">
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${query}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            View on Google Maps →
+          </a>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+const LOAN_TERM_OPTIONS = [15, 20, 30] as const;
+
+/**
+ * Standard amortization formula (principal & interest only — doesn't
+ * factor in taxes/insurance, same convention Zillow's own calculator
+ * uses for its headline number). Down payment / rate are sliders so
+ * buyers can play with different scenarios without leaving the page.
+ */
+function MortgageCalculator({ price }: { price: number }) {
+  const [downPaymentPct, setDownPaymentPct] = useState(20);
+  const [rate, setRate] = useState(6.5);
+  const [termYears, setTermYears] = useState<(typeof LOAN_TERM_OPTIONS)[number]>(30);
+
+  const downPayment = (price * downPaymentPct) / 100;
+  const principal = Math.max(price - downPayment, 0);
+  const monthlyRate = rate / 100 / 12;
+  const numPayments = termYears * 12;
+  const monthlyPayment =
+    monthlyRate === 0
+      ? principal / numPayments
+      : (principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+  return (
+    <aside className="rounded-2xl border border-border bg-card p-6">
+      <h3 className="font-display text-lg font-semibold">Mortgage calculator</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Estimate your monthly payment — for reference only, actual terms vary by lender.
+      </p>
+
+      <div className="mt-4 rounded-xl bg-surface p-4 text-center">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">Est. monthly payment</p>
+        <p className="mt-1 font-display text-3xl font-bold text-primary">
+          {formatPrice(monthlyPayment)}
+          <span className="text-sm font-normal text-muted-foreground">/mo</span>
+        </p>
+      </div>
+
+      <div className="mt-5 space-y-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="font-medium">Home price</span>
+          <span className="text-muted-foreground">{formatPrice(price)}</span>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="down-payment-slider" className="font-medium">Down payment</label>
+            <span className="text-muted-foreground">{downPaymentPct}% · {formatPrice(downPayment)}</span>
+          </div>
+          <input
+            id="down-payment-slider"
+            type="range"
+            min={0}
+            max={90}
+            step={1}
+            value={downPaymentPct}
+            onChange={(e) => setDownPaymentPct(Number(e.target.value))}
+            className="mt-2 w-full accent-primary"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="rate-slider" className="font-medium">Interest rate</label>
+            <span className="text-muted-foreground">{rate.toFixed(2)}%</span>
+          </div>
+          <input
+            id="rate-slider"
+            type="range"
+            min={2}
+            max={15}
+            step={0.05}
+            value={rate}
+            onChange={(e) => setRate(Number(e.target.value))}
+            className="mt-2 w-full accent-primary"
+          />
+        </div>
+
+        <div>
+          <p className="font-medium">Loan term</p>
+          <div className="mt-2 flex gap-2">
+            {LOAN_TERM_OPTIONS.map((yrs) => (
+              <button
+                key={yrs}
+                type="button"
+                onClick={() => setTermYears(yrs)}
+                className={`flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                  termYears === yrs ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {yrs} yrs
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
+        <div className="flex justify-between"><span>Loan amount</span><span>{formatPrice(principal)}</span></div>
+        <div className="flex justify-between">
+          <span>Total paid over {termYears} yrs</span>
+          <span>{formatPrice(monthlyPayment * numPayments + downPayment)}</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * Simple total-monthly-cost estimator for rentals — a mortgage calculation
+ * doesn't apply to renting, but buyers/renters still want to see rent plus
+ * the usual extras (utilities, renter's insurance) added up at a glance.
+ */
+function RentCalculator({ rent }: { rent: number }) {
+  const [utilities, setUtilities] = useState(3000);
+  const [insurance, setInsurance] = useState(500);
+  const total = rent + utilities + insurance;
+
+  return (
+    <aside className="rounded-2xl border border-border bg-card p-6">
+      <h3 className="font-display text-lg font-semibold">Monthly cost estimator</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Estimate your total monthly cost including rent and typical extras.
+      </p>
+
+      <div className="mt-4 rounded-xl bg-surface p-4 text-center">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">Est. total monthly cost</p>
+        <p className="mt-1 font-display text-3xl font-bold text-primary">
+          {formatPrice(total)}
+          <span className="text-sm font-normal text-muted-foreground">/mo</span>
+        </p>
+      </div>
+
+      <div className="mt-5 space-y-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="font-medium">Rent</span>
+          <span className="text-muted-foreground">{formatPrice(rent)}</span>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="utilities-slider" className="font-medium">Est. utilities</label>
+            <span className="text-muted-foreground">{formatPrice(utilities)}</span>
+          </div>
+          <input
+            id="utilities-slider"
+            type="range"
+            min={0}
+            max={10000}
+            step={500}
+            value={utilities}
+            onChange={(e) => setUtilities(Number(e.target.value))}
+            className="mt-2 w-full accent-primary"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="insurance-slider" className="font-medium">Renter's insurance</label>
+            <span className="text-muted-foreground">{formatPrice(insurance)}</span>
+          </div>
+          <input
+            id="insurance-slider"
+            type="range"
+            min={0}
+            max={2000}
+            step={100}
+            value={insurance}
+            onChange={(e) => setInsurance(Number(e.target.value))}
+            className="mt-2 w-full accent-primary"
+          />
+        </div>
+      </div>
+    </aside>
   );
 }
 
