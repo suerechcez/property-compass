@@ -71,11 +71,19 @@ function SideBarContent() {
   );
 }
 
-/** Desktop sidebar — unchanged visually, still only shown at lg+. */
+/**
+ * Desktop sidebar — visually unchanged, still only shown at lg+.
+ *
+ * top-20 (80px) / calc(100vh-5rem) match the Nav header's ACTUAL rendered
+ * height: py-4 (32px total) + its tallest inline content, the 48px
+ * avatar/bell row = 80px. The previous top-16/4rem (64px) guess was 16px
+ * short, so the top of this panel scrolled 16px underneath the sticky
+ * header before "catching" — this is the fix for that.
+ */
 export function SideBar() {
   return (
     <aside className="hidden w-56 shrink-0 border-r border-border bg-card/40 lg:block">
-      <div className="sticky top-16 flex h-[calc(100vh-4rem)] flex-col gap-6 overflow-y-auto p-4">
+      <div className="sticky top-20 flex h-[calc(100vh-5rem)] flex-col gap-6 overflow-y-auto p-4">
         <SideBarContent />
       </div>
     </aside>
