@@ -106,7 +106,17 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       // Soft blue → gold tint sampled from the brand's own navy/gold palette,
       // applied to every topbar including the dashboard's — light enough
       // that all the existing dark text/icon colors stay legible as-is.
-      className="sticky top-0 z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300"
+      //
+      // Positioning differs on the dashboard on purpose: everywhere else
+      // the header is `sticky top-0`, staying pinned to the viewport as the
+      // page scrolls. On the dashboard it's plain `relative` instead — it
+      // scrolls away with the rest of the page like any normal element, and
+      // is only visible while you're at the very top of the dashboard. The
+      // dashboard's own left sidebar (with the brand logo) is what stays
+      // fixed to the viewport there, not this header.
+      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
+        isDashboard ? "relative" : "sticky top-0"
+      }`}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
