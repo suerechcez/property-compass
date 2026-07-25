@@ -68,7 +68,7 @@ function Sell() {
               <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" /><span><strong className="text-white">Already have someone in mind?</strong> Browse their profile, credentials, and track record before you commit.</span></li>
             </ul>
             <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
-              <Link to="/agents">Find agents near you →</Link>
+              <Link to="/agents">Find agents near you</Link>
             </Button>
           </div>
         </div>
@@ -83,7 +83,7 @@ function Sell() {
             </ul>
             {loading ? null : user ? (
               <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
-                <Link to="/sell/list-your-own">List your home on One Higala Properties →</Link>
+                <Link to="/sell/list-your-own">List your home on One Higala Properties</Link>
               </Button>
             ) : (
               <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
