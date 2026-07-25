@@ -30,9 +30,9 @@ export const Route = createFileRoute("/properties/$id")({
 const ASIDE_TITLE_CLASS = "text-sm font-semibold text-muted-foreground";
 
 /** Small bordered number-input box shared by the mortgage/rent calculators —
- *  a plain typed-in value rather than a slider, so a buyer can enter their
- *  own exact down payment, rate, or cost estimate instead of dragging a
- *  handle to approximate it. */
+ *  a plain typed-in value rather than a slider or preset buttons, so a
+ *  buyer can enter their own exact down payment, rate, loan term, or cost
+ *  estimate instead of picking from fixed choices. */
 function CalcNumberInput({
   id, value, onChange, min, max, step, suffix,
 }: {
@@ -692,24 +692,25 @@ function PropertyMap({ location }: { location: string | null }) {
   );
 }
 
-const LOAN_TERM_OPTIONS = [15, 20, 30] as const;
-
 /**
  * Standard amortization formula (principal & interest only — doesn't
  * factor in taxes/insurance, same convention Zillow's own calculator
- * uses for its headline number). Down payment / rate are entered as
- * plain typed-in numbers (not sliders) so a buyer can key in their own
- * exact scenario instead of dragging a handle to approximate it.
+ * uses for its headline number). Down payment, rate, AND loan term are
+ * all plain typed-in numbers (not sliders or preset-choice buttons), so a
+ * buyer can key in their own exact scenario — e.g. a 22-year term with a
+ * lender that isn't limited to the usual 15/20/30-year buckets.
  */
 function MortgageCalculator({ price }: { price: number }) {
   const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [rate, setRate] = useState(6.5);
-  const [termYears, setTermYears] = useState<(typeof LOAN_TERM_OPTIONS)[number]>(30);
+  const [termYears, setTermYears] = useState(30);
 
   const downPayment = (price * downPaymentPct) / 100;
   const principal = Math.max(price - downPayment, 0);
   const monthlyRate = rate / 100 / 12;
-  const numPayments = termYears * 12;
+  // Guard against a 0-or-blank term (user mid-edit / cleared the field) so
+  // the math doesn't divide by zero and show NaN/Infinity while typing.
+  const numPayments = Math.max(termYears, 1) * 12;
   const monthlyPayment =
     monthlyRate === 0
       ? principal / numPayments
@@ -767,28 +768,23 @@ function MortgageCalculator({ price }: { price: number }) {
         </div>
 
         <div>
-          <p className="font-medium">Loan term</p>
-          <div className="mt-2 flex gap-2">
-            {LOAN_TERM_OPTIONS.map((yrs) => (
-              <button
-                key={yrs}
-                type="button"
-                onClick={() => setTermYears(yrs)}
-                className={`flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                  termYears === yrs ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                {yrs} yrs
-              </button>
-            ))}
-          </div>
+          <label htmlFor="term-input" className="font-medium">Loan term</label>
+          <CalcNumberInput
+            id="term-input"
+            value={termYears}
+            onChange={setTermYears}
+            min={1}
+            max={50}
+            step={1}
+            suffix="yrs"
+          />
         </div>
       </div>
 
       <div className="mt-5 space-y-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
         <div className="flex justify-between"><span>Loan amount</span><span>{formatPrice(principal)}</span></div>
         <div className="flex justify-between">
-          <span>Total paid over {termYears} yrs</span>
+          <span>Total paid over {termYears || 0} yrs</span>
           <span>{formatPrice(monthlyPayment * numPayments + downPayment)}</span>
         </div>
       </div>
