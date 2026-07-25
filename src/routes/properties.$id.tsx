@@ -24,43 +24,10 @@ export const Route = createFileRoute("/properties/$id")({
 });
 
 /** Small, grey, Zillow-style label used for card headings in the right rail
- *  (Mortgage calculator, Listed by, etc.) — deliberately much quieter than
- *  the bold black headings in the main content column, matching how
- *  Zillow visually de-emphasizes its sidebar card titles. */
+ *  (Listed by, Message, etc.) — deliberately much quieter than the bold
+ *  black headings in the main content column, matching how Zillow visually
+ *  de-emphasizes its sidebar card titles. */
 const ASIDE_TITLE_CLASS = "text-sm font-semibold text-muted-foreground";
-
-/** Small bordered number-input box shared by the mortgage/rent calculators —
- *  a plain typed-in value rather than a slider or preset buttons, so a
- *  buyer can enter their own exact down payment, rate, loan term, or cost
- *  estimate instead of picking from fixed choices. */
-function CalcNumberInput({
-  id, value, onChange, min, max, step, suffix,
-}: {
-  id: string;
-  value: number;
-  onChange: (value: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  suffix?: string;
-}) {
-  return (
-    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-input bg-background px-3 py-1.5">
-      <input
-        id={id}
-        type="number"
-        inputMode="decimal"
-        min={min}
-        max={max}
-        step={step ?? 1}
-        value={Number.isFinite(value) ? value : ""}
-        onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-        className="w-full border-0 bg-transparent p-0 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-      />
-      {suffix && <span className="shrink-0 text-xs text-muted-foreground">{suffix}</span>}
-    </div>
-  );
-}
 
 /**
  * Falls back to a single synthetic "Photos" section built from the legacy
@@ -235,7 +202,7 @@ function PropertyDetail() {
         </header>
 
         {/* Main two-column layout: photos + facts on the left, a sticky
-            right rail (map, calculator, listed-by) beside them from the
+            right rail (map, listed-by, message) beside them from the
             very top — rather than the rail only starting after the whole
             gallery + facts section, which pushed it far down the page
             and left the gallery looking like the only thing on the page. */}
@@ -280,13 +247,6 @@ function PropertyDetail() {
                 rather than a pinpoint marker. Good enough to orient a
                 buyer to the neighborhood at a glance. */}
             <PropertyMap location={data.location} />
-
-            {/* Mortgage calculator for sale listings; a simple total-cost
-                estimator for rentals, since a mortgage calc doesn't apply
-                to renting. */}
-            {data.for_rent
-              ? <RentCalculator rent={Number(data.price)} />
-              : <MortgageCalculator price={Number(data.price)} />}
 
             <aside className="rounded-2xl border border-border bg-card p-6">
               <h3 className={ASIDE_TITLE_CLASS}>Listed by</h3>
@@ -686,152 +646,6 @@ function PropertyMap({ location }: { location: string | null }) {
           >
             View on Google Maps →
           </a>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-/**
- * Standard amortization formula (principal & interest only — doesn't
- * factor in taxes/insurance, same convention Zillow's own calculator
- * uses for its headline number). Down payment, rate, AND loan term are
- * all plain typed-in numbers (not sliders or preset-choice buttons), so a
- * buyer can key in their own exact scenario — e.g. a 22-year term with a
- * lender that isn't limited to the usual 15/20/30-year buckets.
- */
-function MortgageCalculator({ price }: { price: number }) {
-  const [downPaymentPct, setDownPaymentPct] = useState(20);
-  const [rate, setRate] = useState(6.5);
-  const [termYears, setTermYears] = useState(30);
-
-  const downPayment = (price * downPaymentPct) / 100;
-  const principal = Math.max(price - downPayment, 0);
-  const monthlyRate = rate / 100 / 12;
-  // Guard against a 0-or-blank term (user mid-edit / cleared the field) so
-  // the math doesn't divide by zero and show NaN/Infinity while typing.
-  const numPayments = Math.max(termYears, 1) * 12;
-  const monthlyPayment =
-    monthlyRate === 0
-      ? principal / numPayments
-      : (principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1);
-
-  return (
-    <aside className="rounded-2xl border border-border bg-card p-6">
-      <h3 className={ASIDE_TITLE_CLASS}>Mortgage calculator</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Estimate your monthly payment — for reference only, actual terms vary by lender.
-      </p>
-
-      <div className="mt-4 rounded-xl bg-surface p-4 text-center">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Est. monthly payment</p>
-        <p className="mt-1 font-display text-3xl font-bold text-primary">
-          {formatPrice(monthlyPayment)}
-          <span className="text-sm font-normal text-muted-foreground">/mo</span>
-        </p>
-      </div>
-
-      <div className="mt-5 space-y-4 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="font-medium">Home price</span>
-          <span className="text-muted-foreground">{formatPrice(price)}</span>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="down-payment-input" className="font-medium">Down payment</label>
-            <span className="text-muted-foreground">{formatPrice(downPayment)}</span>
-          </div>
-          <CalcNumberInput
-            id="down-payment-input"
-            value={downPaymentPct}
-            onChange={setDownPaymentPct}
-            min={0}
-            max={100}
-            step={1}
-            suffix="%"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="rate-input" className="font-medium">Interest rate</label>
-          <CalcNumberInput
-            id="rate-input"
-            value={rate}
-            onChange={setRate}
-            min={0}
-            max={100}
-            step={0.05}
-            suffix="%"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="term-input" className="font-medium">Loan term</label>
-          <CalcNumberInput
-            id="term-input"
-            value={termYears}
-            onChange={setTermYears}
-            min={1}
-            max={50}
-            step={1}
-            suffix="yrs"
-          />
-        </div>
-      </div>
-
-      <div className="mt-5 space-y-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
-        <div className="flex justify-between"><span>Loan amount</span><span>{formatPrice(principal)}</span></div>
-        <div className="flex justify-between">
-          <span>Total paid over {termYears || 0} yrs</span>
-          <span>{formatPrice(monthlyPayment * numPayments + downPayment)}</span>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-/**
- * Simple total-monthly-cost estimator for rentals — a mortgage calculation
- * doesn't apply to renting, but buyers/renters still want to see rent plus
- * the usual extras (utilities, renter's insurance) added up at a glance.
- * Utilities/insurance are plain typed-in number boxes rather than sliders.
- */
-function RentCalculator({ rent }: { rent: number }) {
-  const [utilities, setUtilities] = useState(3000);
-  const [insurance, setInsurance] = useState(500);
-  const total = rent + utilities + insurance;
-
-  return (
-    <aside className="rounded-2xl border border-border bg-card p-6">
-      <h3 className={ASIDE_TITLE_CLASS}>Monthly cost estimator</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Estimate your total monthly cost including rent and typical extras.
-      </p>
-
-      <div className="mt-4 rounded-xl bg-surface p-4 text-center">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Est. total monthly cost</p>
-        <p className="mt-1 font-display text-3xl font-bold text-primary">
-          {formatPrice(total)}
-          <span className="text-sm font-normal text-muted-foreground">/mo</span>
-        </p>
-      </div>
-
-      <div className="mt-5 space-y-4 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="font-medium">Rent</span>
-          <span className="text-muted-foreground">{formatPrice(rent)}</span>
-        </div>
-
-        <div>
-          <label htmlFor="utilities-input" className="font-medium">Est. utilities</label>
-          <CalcNumberInput id="utilities-input" value={utilities} onChange={setUtilities} min={0} step={100} suffix="₱" />
-        </div>
-
-        <div>
-          <label htmlFor="insurance-input" className="font-medium">Renter's insurance</label>
-          <CalcNumberInput id="insurance-input" value={insurance} onChange={setInsurance} min={0} step={50} suffix="₱" />
         </div>
       </div>
     </aside>
