@@ -29,6 +29,39 @@ export const Route = createFileRoute("/properties/$id")({
  *  Zillow visually de-emphasizes its sidebar card titles. */
 const ASIDE_TITLE_CLASS = "text-sm font-semibold text-muted-foreground";
 
+/** Small bordered number-input box shared by the mortgage/rent calculators —
+ *  a plain typed-in value rather than a slider, so a buyer can enter their
+ *  own exact down payment, rate, or cost estimate instead of dragging a
+ *  handle to approximate it. */
+function CalcNumberInput({
+  id, value, onChange, min, max, step, suffix,
+}: {
+  id: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  suffix?: string;
+}) {
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-input bg-background px-3 py-1.5">
+      <input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        min={min}
+        max={max}
+        step={step ?? 1}
+        value={Number.isFinite(value) ? value : ""}
+        onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+        className="w-full border-0 bg-transparent p-0 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      {suffix && <span className="shrink-0 text-xs text-muted-foreground">{suffix}</span>}
+    </div>
+  );
+}
+
 /**
  * Falls back to a single synthetic "Photos" section built from the legacy
  * flat `images` column when a listing has no image_sections yet (created
@@ -664,8 +697,9 @@ const LOAN_TERM_OPTIONS = [15, 20, 30] as const;
 /**
  * Standard amortization formula (principal & interest only — doesn't
  * factor in taxes/insurance, same convention Zillow's own calculator
- * uses for its headline number). Down payment / rate are sliders so
- * buyers can play with different scenarios without leaving the page.
+ * uses for its headline number). Down payment / rate are entered as
+ * plain typed-in numbers (not sliders) so a buyer can key in their own
+ * exact scenario instead of dragging a handle to approximate it.
  */
 function MortgageCalculator({ price }: { price: number }) {
   const [downPaymentPct, setDownPaymentPct] = useState(20);
@@ -705,35 +739,30 @@ function MortgageCalculator({ price }: { price: number }) {
 
         <div>
           <div className="flex items-center justify-between">
-            <label htmlFor="down-payment-slider" className="font-medium">Down payment</label>
-            <span className="text-muted-foreground">{downPaymentPct}% · {formatPrice(downPayment)}</span>
+            <label htmlFor="down-payment-input" className="font-medium">Down payment</label>
+            <span className="text-muted-foreground">{formatPrice(downPayment)}</span>
           </div>
-          <input
-            id="down-payment-slider"
-            type="range"
-            min={0}
-            max={90}
-            step={1}
+          <CalcNumberInput
+            id="down-payment-input"
             value={downPaymentPct}
-            onChange={(e) => setDownPaymentPct(Number(e.target.value))}
-            className="mt-2 w-full accent-primary"
+            onChange={setDownPaymentPct}
+            min={0}
+            max={100}
+            step={1}
+            suffix="%"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="rate-slider" className="font-medium">Interest rate</label>
-            <span className="text-muted-foreground">{rate.toFixed(2)}%</span>
-          </div>
-          <input
-            id="rate-slider"
-            type="range"
-            min={2}
-            max={15}
-            step={0.05}
+          <label htmlFor="rate-input" className="font-medium">Interest rate</label>
+          <CalcNumberInput
+            id="rate-input"
             value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
-            className="mt-2 w-full accent-primary"
+            onChange={setRate}
+            min={0}
+            max={100}
+            step={0.05}
+            suffix="%"
           />
         </div>
 
@@ -771,6 +800,7 @@ function MortgageCalculator({ price }: { price: number }) {
  * Simple total-monthly-cost estimator for rentals — a mortgage calculation
  * doesn't apply to renting, but buyers/renters still want to see rent plus
  * the usual extras (utilities, renter's insurance) added up at a glance.
+ * Utilities/insurance are plain typed-in number boxes rather than sliders.
  */
 function RentCalculator({ rent }: { rent: number }) {
   const [utilities, setUtilities] = useState(3000);
@@ -799,37 +829,13 @@ function RentCalculator({ rent }: { rent: number }) {
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="utilities-slider" className="font-medium">Est. utilities</label>
-            <span className="text-muted-foreground">{formatPrice(utilities)}</span>
-          </div>
-          <input
-            id="utilities-slider"
-            type="range"
-            min={0}
-            max={10000}
-            step={500}
-            value={utilities}
-            onChange={(e) => setUtilities(Number(e.target.value))}
-            className="mt-2 w-full accent-primary"
-          />
+          <label htmlFor="utilities-input" className="font-medium">Est. utilities</label>
+          <CalcNumberInput id="utilities-input" value={utilities} onChange={setUtilities} min={0} step={100} suffix="₱" />
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="insurance-slider" className="font-medium">Renter's insurance</label>
-            <span className="text-muted-foreground">{formatPrice(insurance)}</span>
-          </div>
-          <input
-            id="insurance-slider"
-            type="range"
-            min={0}
-            max={2000}
-            step={100}
-            value={insurance}
-            onChange={(e) => setInsurance(Number(e.target.value))}
-            className="mt-2 w-full accent-primary"
-          />
+          <label htmlFor="insurance-input" className="font-medium">Renter's insurance</label>
+          <CalcNumberInput id="insurance-input" value={insurance} onChange={setInsurance} min={0} step={50} suffix="₱" />
         </div>
       </div>
     </aside>
