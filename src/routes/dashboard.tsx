@@ -39,9 +39,6 @@ const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 // logo box visibly reads as a different size than the header strip beside
 // it, which is what was happening at the previous (73px) guess.
 const LOGO_ROW_PX = 80;
-const SIDEBAR_COLLAPSED_PX = 64;  // w-16
-const SIDEBAR_EXPANDED_PX = 224;  // w-56
-const TOGGLE_BUTTON_PX = 28;      // h-7 w-7
 const BRAND_ICON_URL = "/brand-icon.png";
 
 export const Route = createFileRoute("/dashboard")({
@@ -257,9 +254,28 @@ function DashSidebar({
       {mainItems.filter((t) => t.show).map((t) => (
         <NavItemBtn key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} expanded={expanded} />
       ))}
+
+      {/* Collapse/expand toggle — sits centered on its own divider line,
+          directly between the main nav items above and the Admin section
+          below (falls back to sitting right after the main items when
+          there's no Admin section, i.e. non-admin users). Living inline
+          here means its position always tracks however many main items
+          are actually visible, instead of a hardcoded pixel offset from
+          the logo row. */}
+      <div className="relative my-2 flex w-full items-center justify-center">
+        <div className={`absolute border-t border-border ${expanded ? "inset-x-0" : "left-1/2 w-8 -translate-x-1/2"}`} />
+        <button
+          onClick={onToggleExpanded}
+          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
+        >
+          {expanded ? <ChevronsLeft className="h-3 w-3" /> : <ChevronsRight className="h-3 w-3" />}
+        </button>
+      </div>
+
       {isAdmin && (
         <>
-          <div className={`my-2 border-t border-border ${expanded ? "" : "w-8"}`} />
           {expanded && (
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Admin</p>
           )}
@@ -270,10 +286,6 @@ function DashSidebar({
       )}
     </div>
   );
-
-  // Where the rail's current right edge sits, in px from the viewport's
-  // left edge — used to place the standalone collapse-toggle button below.
-  const railWidthPx = expanded ? SIDEBAR_EXPANDED_PX : SIDEBAR_COLLAPSED_PX;
 
   return (
     <>
@@ -322,29 +334,6 @@ function DashSidebar({
           {desktopContent}
         </div>
       </aside>
-
-      {/* Collapse toggle — rendered as an entirely separate fixed element,
-          NOT a child of the aside above. This matters: the aside has its
-          own background, border, and overflow-y-auto, any of which could
-          clip or paint over a button nested inside it. As a sibling, this
-          button always renders on top, fully visible, regardless of the
-          rail's scroll position or background. Its left offset is
-          recomputed from the same width constants the rail itself uses,
-          so it stays pinned exactly on the rail's right-hand border in
-          both collapsed and expanded states. Its top offset sits just
-          below the logo row. z-[60] keeps it above the (z-50) rail. */}
-      <button
-        onClick={onToggleExpanded}
-        aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        className="fixed z-[60] hidden h-7 w-7 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition hover:bg-accent hover:text-foreground lg:grid"
-        style={{
-          left: railWidthPx - TOGGLE_BUTTON_PX / 2,
-          top: LOGO_ROW_PX + 16,
-        }}
-      >
-        {expanded ? <ChevronsLeft className="h-3.5 w-3.5" /> : <ChevronsRight className="h-3.5 w-3.5" />}
-      </button>
     </>
   );
 }
@@ -379,7 +368,7 @@ function Dashboard() {
   // `loading` is deliberately included in the dependency array for case
   // (2): while auth is still resolving, the component renders nothing but
   // a "Loading…" placeholder (see the early return below) — none of the
-  // <section id="section-...."> elements exist in the DOM yet, so an
+  // <section id="section-....."> elements exist in the DOM yet, so an
   // attempted scrollIntoView at that point silently finds nothing and
   // does nothing. Once `loading` flips to false and the real page (with
   // its sections) mounts, this effect re-runs with the same `urlTab` and
