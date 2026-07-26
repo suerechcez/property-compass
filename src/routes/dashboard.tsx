@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,7 +153,7 @@ function SectionCard({ title, subtitle, action, children }: {
   );
 }
 
-// ── Left sidebar ───────────────────────────────────────────────────────────────
+// ── Left sidebar ───────────────────────────────────────────────────────────────────────────
 // The brand logo now lives INSIDE this sidebar (its own top row) rather
 // than in the shared Nav header. To make that work without any gap or
 // overlap, the rail spans the FULL viewport height starting at the very
@@ -338,7 +339,7 @@ function DashSidebar({
   );
 }
 
-// ── Dashboard shell ────────────────────────────────────────────────────────────
+// ── Dashboard shell ──────────────────────────────────────────────────────────────────────────────
 
 function Dashboard() {
   const { user, loading, isDeveloper, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -536,7 +537,7 @@ function Dashboard() {
   );
 }
 
-// ── Overview ──────────────────────────────────────────────────────────────────
+// ── Overview ───────────────────────────────────────────────────────────────────────────────────────
 
 function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isCommissioner: boolean; isDeveloper: boolean }) {
   const { data: stats } = useQuery({
@@ -657,7 +658,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ── Status dropdown ───────────────────────────────────────────────────────────
+// ── Status dropdown ──────────────────────────────────────────────────────────────────────────
 
 type StatusOption = { label: string; value: string; className: string };
 const LISTING_STATUS_OPTIONS: StatusOption[] = [
@@ -706,7 +707,7 @@ function StatusDropdown({ property, onSelect, loading }: {
   );
 }
 
-// ── Listings ──────────────────────────────────────────────────────────────────
+// ── Listings ───────────────────────────────────────────────────────────────────────────────────────
 
 function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }) {
   const qc = useQueryClient();
@@ -809,7 +810,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
   );
 }
 
-// ── Admin: Listing Approval Queue ─────────────────────────────────────────────
+// ── Admin: Listing Approval Queue ───────────────────────────────────────────────
 
 function ListingQueue() {
   const qc = useQueryClient();
@@ -960,7 +961,7 @@ function ListingQueue() {
   );
 }
 
-// ── Sales ─────────────────────────────────────────────────────────────────────
+// ── Sales ───────────────────────────────────────────────────────────────────────────────────
 
 type GroupBy = "day" | "month";
 
@@ -1100,7 +1101,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
   );
 }
 
-// ── Forecast ──────────────────────────────────────────────────────────────────
+// ── Forecast ────────────────────────────────────────────────────────────────────────────────────
 
 function Forecast() {
   const predict = useServerFn(predictSales);
@@ -1145,14 +1146,14 @@ function Forecast() {
   );
 }
 
-// ── Admin: Users & Roles ──────────────────────────────────────────────────────
+// ── Admin: Users & Roles ───────────────────────────────────────────────────
 
 function UsersRoles() {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({
     queryKey: ["all-users"],
     queryFn: async () => {
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, created_at");
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, created_at, is_verified");
       const { data: roles }    = await supabase.from("user_roles").select("user_id, role");
       const map = new Map<string, string[]>();
       (roles ?? []).forEach((r) => { const list = map.get(r.user_id) ?? []; list.push(r.role); map.set(r.user_id, list); });
@@ -1169,15 +1170,26 @@ function UsersRoles() {
     onSuccess: (_d, v) => { toast.success(`${v.role} role revoked`); qc.invalidateQueries({ queryKey: ["all-users"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+  const setVerified = useMutation({
+    mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
+      const { error } = await supabase.from("profiles").update({ is_verified: verified }).eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => { toast.success(v.verified ? "Profile verified" : "Verification removed"); qc.invalidateQueries({ queryKey: ["all-users"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
 
   return (
     <div className="space-y-6">
-      <SectionCard title="Users & Roles" subtitle="Manage who can post listings and who has admin access." />
-      <BigTable head={<tr><th className="px-4 py-4 sm:px-6 sm:py-5">User</th><th className="px-4 py-4 sm:px-6 sm:py-5">Roles</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th></tr>}>
+      <SectionCard title="Users & Roles" subtitle="Manage who can post listings, who's Verified, and who has admin access." />
+      <BigTable head={<tr><th className="px-4 py-4 sm:px-6 sm:py-5">User</th><th className="px-4 py-4 sm:px-6 sm:py-5">Roles</th><th className="px-4 py-4 sm:px-6 sm:py-5">Verified</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th></tr>}>
         {users.map((u) => (
           <tr key={u.id} className="h-24 border-t border-border sm:h-28">
             <td className="px-4 py-4 sm:px-6 sm:py-5">
-              <div className="font-semibold">{u.full_name ?? u.id.slice(0, 8)}</div>
+              <div className="flex items-center gap-1.5 font-semibold">
+                {u.full_name ?? u.id.slice(0, 8)}
+                <VerifiedBadge verified={u.is_verified} size="sm" />
+              </div>
               <div className="mt-0.5 text-sm text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
             </td>
             <td className="px-4 py-4 sm:px-6 sm:py-5">
@@ -1197,6 +1209,15 @@ function UsersRoles() {
                 })}
               </div>
             </td>
+            <td className="px-4 py-4 sm:px-6 sm:py-5">
+              <Button
+                size="sm"
+                variant={u.is_verified ? "outline" : "default"}
+                onClick={() => setVerified.mutate({ userId: u.id, verified: !u.is_verified })}
+              >
+                {u.is_verified ? "Remove verification" : "Verify"}
+              </Button>
+            </td>
             <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
               {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
               {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
@@ -1209,7 +1230,7 @@ function UsersRoles() {
   );
 }
 
-// ── Admin: C/A Requests ───────────────────────────────────────────────────────
+// ── Admin: C/A Requests ──────────────────────────────────────────────────
 
 function CommissionerRequests() {
   const qc = useQueryClient();
@@ -1281,7 +1302,7 @@ function CommissionerRequests() {
   );
 }
 
-// ── Admin: C/A Tracking ───────────────────────────────────────────────────────
+// ── Admin: C/A Tracking ──────────────────────────────────────────────────
 
 function CommissionerTracking() {
   const { data: users = [] } = useQuery({
@@ -1334,7 +1355,7 @@ function CommissionerTracking() {
   );
 }
 
-// ── Admin: Announcements ───────────────────────────────────────────────────────
+// ── Admin: Announcements ───────────────────────────────────────────────
 // Where admins author the platform-wide announcements that show up as a
 // Megaphone dropdown in the dashboard topbar for every commissioner/agent
 // (see Nav.tsx). Archiving (rather than deleting) keeps history around;
@@ -1466,7 +1487,7 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
   );
 }
 
-// ── Admin: Audit Log ─────────────────────────────────────────────────────────
+// ── Admin: Audit Log ──────────────────────────────────────────────────
 // Read-only feed of who did what and when. Every row here is written by a
 // database trigger (see the create_audit_log migration), not by this page —
 // role grants/revokes and listing creation/deletion are captured
