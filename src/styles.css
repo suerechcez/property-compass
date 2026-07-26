@@ -167,4 +167,19 @@
       width: calc(50% - 1rem);
     }
   }
+
+  /* Mobile bottom tab bar (RightSideBar) reserves this much space below
+     the page so it never overlaps page content or a page's own footer
+     links. Toggled by RightSideBar itself via the "has-mobile-tabbar"
+     class, so routes where the bar is hidden (dashboard, auth) don't
+     carry the extra padding. Cleared entirely at lg and up, where the
+     bar is replaced by the floating desktop rail instead. */
+  body.has-mobile-tabbar {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 1024px) {
+    body.has-mobile-tabbar {
+      padding-bottom: 0;
+    }
+  }
 }
