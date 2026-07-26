@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Footer } from "@/components/Footer";
 import { SideBar, SideBarMobileTrigger } from "@/components/SideBar";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
@@ -62,6 +63,25 @@ function Browse() {
     enabled: !!user,
     queryKey: ["favorite-ids"],
     queryFn: fetchFavoriteIds,
+  });
+
+  // Verified-status lookup for the commissioners behind these listings —
+  // properties.commissioner_id has no declared FK to profiles, so PostgREST
+  // can't embed this in the main query; fetched separately and merged
+  // client-side, same pattern used on the property detail page.
+  const commissionerIds = Array.from(new Set(properties.map((p) => p.commissioner_id)));
+  const { data: verifiedCommissionerIds = new Set<string>() } = useQuery({
+    queryKey: ["verified-commissioners", commissionerIds],
+    enabled: commissionerIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, is_verified")
+        .in("id", commissionerIds)
+        .eq("is_verified", true);
+      if (error) throw error;
+      return new Set((data ?? []).map((d) => d.id));
+    },
   });
 
   const favoriteMutation = useMutation({
@@ -170,7 +190,10 @@ function Browse() {
                               {p.for_rent && p.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
                             </div>
                           </div>
-                          <h3 className="mt-2 font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <h3 className="truncate font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
+                            <VerifiedBadge verified={verifiedCommissionerIds.has(p.commissioner_id)} size="sm" />
+                          </div>
                           <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
                           <p className="mt-3 font-display text-xl font-semibold text-primary sm:mt-4 sm:text-2xl">
                             {formatPrice(p.price)}

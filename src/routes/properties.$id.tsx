@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { typeLabel, formatPrice, type ImageSection } from "@/lib/property-types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -61,7 +62,7 @@ function PropertyDetail() {
 
       const { data: agent } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, title, phone, email")
+        .select("full_name, avatar_url, title, phone, email, is_verified")
         .eq("id", property.commissioner_id)
         .maybeSingle();
 
@@ -262,7 +263,10 @@ function PropertyDetail() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{data.agent?.full_name ?? "One Higala commissioner"}</p>
+                  <p className="flex items-center gap-1.5 truncate font-medium">
+                    <span className="truncate">{data.agent?.full_name ?? "One Higala commissioner"}</span>
+                    <VerifiedBadge verified={data.agent?.is_verified} size="sm" />
+                  </p>
                   {data.agent?.title && <p className="truncate text-xs text-muted-foreground">{data.agent.title}</p>}
                 </div>
               </Link>
