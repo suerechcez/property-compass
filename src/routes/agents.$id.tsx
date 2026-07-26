@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Nav } from "@/components/Nav";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatPrice, typeLabel } from "@/lib/property-types";
@@ -75,7 +76,7 @@ function AgentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at, license_number, agency_name, specialties, languages, facebook_url")
+        .select("id, full_name, avatar_url, phone, email, title, bio, years_experience, created_at, license_number, agency_name, specialties, languages, facebook_url, is_verified")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -186,10 +187,15 @@ function AgentProfile() {
                 </div>
               </div>
               <div className="flex flex-col items-center bg-card p-6 text-center">
-                {profile.license_number && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                    <BadgeCheck className="h-3.5 w-3.5" />Licensed
-                  </span>
+                {(profile.license_number || profile.is_verified) && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {profile.license_number && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                        <BadgeCheck className="h-3.5 w-3.5" />Licensed
+                      </span>
+                    )}
+                    <VerifiedBadge verified={profile.is_verified} />
+                  </div>
                 )}
                 <h1 className="mt-2 font-display text-2xl font-bold">{profile.full_name ?? roleLabel}</h1>
                 {stats.avgRating !== null && (

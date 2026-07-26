@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { typeLabel } from "@/lib/property-types";
 import { Footer } from "@/components/Footer";
 import { Nav } from "@/components/Nav";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Users, Building2, Handshake, User, Search, Mail, Phone } from "lucide-react";
 
 type RoleTab = "all" | "agent" | "commissioner";
@@ -56,7 +57,7 @@ function AgentsList() {
       });
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url, phone, email, created_at, agency_name, title, bio, specialties")
+        .select("id, full_name, avatar_url, phone, email, created_at, agency_name, title, bio, specialties, is_verified")
         .in("id", ids);
       return (profiles ?? []).map((p) => {
         const rs = rolesByUser.get(p.id) ?? [];
@@ -142,13 +143,14 @@ function AgentsList() {
 
                 {/* Content — overflow-hidden prevents it from stretching the card */}
                 <div className="min-w-0 flex-1 overflow-hidden">
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     {a.roles.includes("commissioner") && (
                       <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Commissioner</span>
                     )}
                     {a.roles.includes("agent") && (
                       <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Agent</span>
                     )}
+                    <VerifiedBadge verified={a.is_verified} size="sm" />
                   </div>
                   <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">
                     {a.full_name ?? "Agent"}
