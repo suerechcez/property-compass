@@ -48,6 +48,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     routerState.location.pathname.startsWith(r)
   );
 
+  // True only while `overlay` is requested (the homepage passes it) AND
+  // the page hasn't been scrolled yet — i.e. still sitting over the hero
+  // image. Every class below that reacts to this only takes effect on
+  // mobile (via an `md:` override back to the normal look), since on
+  // desktop the header has always stayed solid.
+  const overlayActive = overlay && !scrolled;
+
   useEffect(() => {
     if (!overlay) return;
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -114,8 +121,16 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       // is only visible while you're at the very top of the dashboard. The
       // dashboard's own left sidebar (with the brand logo) is what stays
       // fixed to the viewport there, not this header.
-      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
-        isDashboard ? "relative" : "sticky top-0"
+      className={`z-40 w-full backdrop-blur transition-all duration-300 ${
+        isDashboard
+          ? "relative"
+          : overlay
+          ? "fixed inset-x-0 top-0 md:sticky md:top-0"
+          : "sticky top-0"
+      } ${
+        overlayActive
+          ? "border-b border-transparent bg-transparent backdrop-blur-none md:border-border/60 md:bg-gradient-to-r md:from-primary/12 md:via-background/90 md:to-gold/15 md:backdrop-blur"
+          : "border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15"
       }`}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
@@ -129,11 +144,35 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               own natural inset, so no spacer is needed there. */}
           <div aria-hidden className="hidden w-12 shrink-0 md:block" />
 
+          {/* Icon-only brand mark for the dashboard topbar, lg:hidden since
+              the fixed dashboard sidebar (which carries its own full logo
+              row) only renders at lg and up — below that breakpoint this
+              is the only place the brand appears on the dashboard at all. */}
+          {isDashboard && (
+            <Link to="/" className="flex shrink-0 items-center lg:hidden">
+              {iconOk ? (
+                <img
+                  src={BRAND_ICON_URL}
+                  alt="One Higala Properties Inc."
+                  className="h-9 w-9 object-contain"
+                  onError={() => setIconOk(false)}
+                />
+              ) : (
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-bold text-primary-foreground shadow-sm">H</span>
+              )}
+            </Link>
+          )}
+
           {/* Only render the hamburger + mobile sheet when not on the dashboard */}
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
+                <button
+                  aria-label="Open menu"
+                  className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${
+                    overlayActive ? "text-white md:text-foreground" : "text-foreground"
+                  }`}
+                >
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
@@ -179,7 +218,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
             )}
             <div className="hidden items-center sm:flex">
-              <BrandTitle light={false} className="items-center text-center" />
+              <BrandTitle light={overlayActive} className="items-center text-center" />
             </div>
           </Link>
         )}
@@ -243,7 +282,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
-                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${
+                    overlayActive
+                      ? "text-white/90 hover:text-white md:text-foreground/80 md:hover:text-foreground"
+                      : "text-foreground/80 hover:text-foreground"
+                  }`}
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
