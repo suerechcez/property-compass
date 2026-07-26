@@ -102,7 +102,7 @@ function Browse() {
               <img src={heroSrc} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }} />
             )}
             {!heroHidden && <div className="absolute inset-0 bg-black/40" />}
-            <div className="relative mx-auto max-w-7xl px-6 py-6 sm:py-8">
+            <div className="relative px-6 py-6 sm:py-8">
               <h1 className="font-display text-2xl font-semibold text-white drop-shadow sm:text-3xl">{heading}</h1>
               <p className="mt-1 text-sm text-white/90 drop-shadow sm:text-base">Condos, hotels, raw land, and resell properties across Cagayan de Oro City.</p>
               <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5">
@@ -113,7 +113,7 @@ function Browse() {
           </section>
 
           <section className="border-b border-border">
-            <div className="mx-auto max-w-7xl px-6 py-4 sm:py-5">
+            <div className="px-6 py-4 sm:py-5">
               <div className="flex flex-wrap items-center gap-2">
                 <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
                 <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>For Sale</FilterChip>
@@ -135,7 +135,7 @@ function Browse() {
             </div>
           )}
 
-          <section className="mx-auto max-w-7xl px-6 py-6 sm:py-12">
+          <section className="px-6 py-6 sm:py-12">
             {isLoading ? (
               <p className="text-muted-foreground">Loading listings…</p>
             ) : filtered.length === 0 ? (
@@ -152,7 +152,7 @@ function Browse() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                 {filtered.map((p) => {
                   const isFav = favoriteIds.has(p.id);
                   return (
