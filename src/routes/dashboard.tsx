@@ -120,8 +120,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <table className="w-full text-base">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+      <table className="w-full min-w-[640px] text-base">
         <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">{head}</thead>
         <tbody>{children}</tbody>
       </table>
@@ -130,8 +130,8 @@ function BigTable({ head, children }: { head: React.ReactNode; children: React.R
 }
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+      <table className="w-full min-w-[560px] text-sm">
         <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">{head}</thead>
         <tbody>{children}</tbody>
       </table>
@@ -142,10 +142,10 @@ function SectionCard({ title, subtitle, action, children }: {
   title: string; subtitle?: string; action?: React.ReactNode; children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-display text-xl font-semibold">{title}</h2>
+          <h2 className="font-display text-lg font-semibold sm:text-xl">{title}</h2>
           {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         {action}
@@ -433,7 +433,7 @@ function Dashboard() {
   }, [adminTab]);
 
   if (loading || !user) {
-    return <div className="site-page"><Nav /><div className="mx-auto max-w-screen-2xl px-8 py-10 text-muted-foreground">Loading…</div></div>;
+    return <div className="site-page"><Nav /><div className="mx-auto max-w-screen-2xl px-4 py-10 text-muted-foreground sm:px-8">Loading…</div></div>;
   }
 
   return (
@@ -455,21 +455,22 @@ function Dashboard() {
       />
 
       {/* Reserves space for the fixed rail on large screens so the centered
-          content never sits underneath it. */}
+          content never sits underneath it. No left padding below lg since
+          the fixed rail itself is lg:flex-only (hidden on phones/tablets). */}
       <div className={`transition-[padding] duration-200 ${sidebarExpanded ? "lg:pl-56" : "lg:pl-16"}`}>
-        <div className="mx-auto max-w-screen-2xl px-6 py-8">
+        <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="font-display text-4xl font-semibold">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
-              <p className="mt-1 text-muted-foreground">Here's what's happening with your properties today.</p>
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl font-semibold sm:text-4xl">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">Here's what's happening with your properties today.</p>
             </div>
             {canManageListings && (
-              <Button asChild><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
+              <Button asChild className="w-full sm:w-auto"><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
             )}
           </div>
 
           {/* Mobile-only nav trigger — the fixed rail above is desktop-only (lg:flex) */}
-          <div className="mt-8 lg:hidden">
+          <div className="mt-6 sm:mt-8 lg:hidden">
             <DashSidebar
               canManageListings={canManageListings}
               isAdmin={isAdmin}
@@ -485,8 +486,10 @@ function Dashboard() {
           {/* mt-10 so the Overview heading starts a little further down,
               giving the sidebar's first nav item (which sits below the
               logo row + toggle button) room to line up comfortably
-              instead of feeling cramped right under the header. */}
-          <div className="mt-10 min-w-0">
+              instead of feeling cramped right under the header. On mobile
+              (where the fixed rail is hidden and the row above already
+              adds its own spacing) a smaller mt keeps things snug. */}
+          <div className="mt-6 min-w-0 sm:mt-10">
             {adminTab ? (
               <div className="space-y-6">
                 <button
@@ -503,7 +506,7 @@ function Dashboard() {
                 {adminTab === "admin-audit"         && <AuditLogAdmin />}
               </div>
             ) : (
-              <div className="space-y-16">
+              <div className="space-y-10 sm:space-y-16">
                 <section id="section-overview">
                   <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
                 </section>
@@ -511,25 +514,25 @@ function Dashboard() {
                 {canManageListings && (
                   <>
                     <section id="section-listings">
-                      <div className="mb-6 flex items-center gap-3">
+                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
                         <Building2 className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-2xl font-semibold">My listings</h2>
+                        <h2 className="font-display text-xl font-semibold sm:text-2xl">My listings</h2>
                       </div>
                       <Listings userId={user.id} isDeveloper={elevated} />
                     </section>
 
                     <section id="section-sales">
-                      <div className="mb-6 flex items-center gap-3">
+                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
                         <Wallet className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-2xl font-semibold">Sales</h2>
+                        <h2 className="font-display text-xl font-semibold sm:text-2xl">Sales</h2>
                       </div>
                       <Sales userId={user.id} isDeveloper={elevated} />
                     </section>
 
                     <section id="section-forecast">
-                      <div className="mb-6 flex items-center gap-3">
+                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-2xl font-semibold">AI forecast</h2>
+                        <h2 className="font-display text-xl font-semibold sm:text-2xl">AI forecast</h2>
                       </div>
                       <Forecast />
                     </section>
@@ -583,10 +586,10 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <LayoutDashboard className="h-5 w-5 text-primary" />
-        <h2 className="font-display text-2xl font-semibold">Overview</h2>
+        <h2 className="font-display text-xl font-semibold sm:text-2xl">Overview</h2>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
         <Stat label="Published" value={String(stats?.published ?? "—")} />
         <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
@@ -595,8 +598,8 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
       {isCommissioner && (
         <>
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-lg font-semibold">{isDeveloper ? "All listings" : "Your listings"}</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-display text-base font-semibold sm:text-lg">{isDeveloper ? "All listings" : "Your listings"}</h3>
             <Button variant="outline" size="sm" asChild>
               <Link to="/browse">Browse all listings →</Link>
             </Button>
@@ -604,7 +607,7 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
           {listingsLoading ? (
             <p className="text-muted-foreground">Loading…</p>
           ) : myListings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
               <p className="text-muted-foreground">No listings yet.</p>
               <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
             </div>
@@ -612,19 +615,19 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
             <BigTable
               head={
                 <tr>
-                  <th className="px-6 py-5">Property</th>
-                  <th className="px-6 py-5">Type</th>
-                  <th className="px-6 py-5 whitespace-nowrap">Status</th>
-                  <th className="px-6 py-5">Price</th>
-                  <th className="px-6 py-5">Location</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5">Property</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5">Type</th>
+                  <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Status</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5">Price</th>
+                  <th className="px-4 py-4 sm:px-6 sm:py-5">Location</th>
                 </tr>
               }
             >
               {myListings.map((p) => (
-                <tr key={p.id} className="h-28 border-t border-border">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                <tr key={p.id} className="h-24 border-t border-border sm:h-28">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-16 sm:w-16">
                         {p.images?.[0]
                           ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" />
                           : <div className="absolute inset-0 grid place-items-center font-display text-base text-muted-foreground">H</div>}
@@ -635,17 +638,17 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-                  <td className="px-6 py-5 whitespace-nowrap">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">{typeLabel(p.property_type)}</td>
+                  <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
                     <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="px-6 py-5 font-semibold whitespace-nowrap">
+                  <td className="whitespace-nowrap px-4 py-4 font-semibold sm:px-6 sm:py-5">
                     {formatPrice(p.price)}
                     {p.for_rent && <span className="text-sm font-normal text-muted-foreground"> /mo</span>}
                   </td>
-                  <td className="px-6 py-5 text-muted-foreground">{p.location ?? "TBD"}</td>
+                  <td className="px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{p.location ?? "TBD"}</td>
                 </tr>
               ))}
             </BigTable>
@@ -658,9 +661,9 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex h-28 flex-col justify-between rounded-2xl border border-border bg-card p-5">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="font-display text-3xl font-semibold leading-none">{value}</p>
+    <div className="flex h-24 flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:h-28 sm:p-5">
+      <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
+      <p className="font-display text-xl font-semibold leading-none sm:text-3xl">{value}</p>
     </div>
   );
 }
@@ -769,7 +772,7 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (properties.length === 0) return (
-    <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+    <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
       <p className="text-muted-foreground">No listings yet.</p>
       <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
     </div>
@@ -779,28 +782,28 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
     <BigTable
       head={
         <tr>
-          <th className="px-6 py-5">Title</th>
-          <th className="px-6 py-5">Type</th>
-          <th className="px-6 py-5 whitespace-nowrap">Status</th>
-          <th className="px-6 py-5">Price</th>
+          <th className="px-4 py-4 sm:px-6 sm:py-5">Title</th>
+          <th className="px-4 py-4 sm:px-6 sm:py-5">Type</th>
+          <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Status</th>
+          <th className="px-4 py-4 sm:px-6 sm:py-5">Price</th>
           <th />
         </tr>
       }
     >
       {properties.map((p) => (
-        <tr key={p.id} className="h-28 border-t border-border">
-          <td className="px-6 py-5">
+        <tr key={p.id} className="h-24 border-t border-border sm:h-28">
+          <td className="px-4 py-4 sm:px-6 sm:py-5">
             <Link to="/properties/$id" params={{ id: p.id }} className="font-semibold hover:text-primary">{p.title}</Link>
             <div className="mt-0.5 text-sm text-muted-foreground">{p.location ?? "—"}</div>
           </td>
-          <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-          <td className="px-6 py-5 whitespace-nowrap">
+          <td className="px-4 py-4 sm:px-6 sm:py-5">{typeLabel(p.property_type)}</td>
+          <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
             <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
               {STATUS_LABEL[p.status] ?? p.status}
             </span>
           </td>
-          <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
-          <td className="px-6 py-5 text-right whitespace-nowrap overflow-visible">
+          <td className="px-4 py-4 font-semibold sm:px-6 sm:py-5">{formatPrice(p.price)}</td>
+          <td className="overflow-visible whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
             <div className="flex items-center justify-end gap-2">
               <StatusDropdown property={p} onSelect={(val) => handleStatusChange(p, val)} loading={loadingId === p.id} />
               <Button size="sm" variant="outline" asChild>
@@ -889,7 +892,7 @@ function ListingQueue() {
           Failed to load: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       ) : listings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
           <CheckCircle2 className="mx-auto h-10 w-10 text-green-400" />
           <p className="mt-3 font-medium">All clear — no {filter === "pending" ? "pending" : ""} listings.</p>
         </div>
@@ -897,14 +900,14 @@ function ListingQueue() {
         <BigTable
           head={
             <tr>
-              <th className="px-6 py-5">Listing</th>
-              <th className="px-6 py-5">Agent</th>
-              <th className="px-6 py-5">Type</th>
-              <th className="px-6 py-5">Price</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Listing</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Agent</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Type</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Price</th>
               {/* whitespace-nowrap on both the header and the cell prevents "Pending Review" from wrapping */}
-              <th className="px-6 py-5 whitespace-nowrap">Status</th>
-              <th className="px-6 py-5 whitespace-nowrap">Submitted</th>
-              <th className="px-6 py-5 text-right">Actions</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Status</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Submitted</th>
+              <th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th>
             </tr>
           }
         >
@@ -912,10 +915,10 @@ function ListingQueue() {
             const isOpen = openId === p.id;
             return (
               <>
-                <tr key={p.id} className="h-28 border-t border-border">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
+                <tr key={p.id} className="h-24 border-t border-border sm:h-28">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-16 sm:w-16">
                         {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">—</div>}
                       </div>
                       <div>
@@ -924,17 +927,17 @@ function ListingQueue() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-muted-foreground">{p.agentName}</td>
-                  <td className="px-6 py-5">{typeLabel(p.property_type)}</td>
-                  <td className="px-6 py-5 font-semibold">{formatPrice(p.price)}</td>
+                  <td className="px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{p.agentName}</td>
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">{typeLabel(p.property_type)}</td>
+                  <td className="px-4 py-4 font-semibold sm:px-6 sm:py-5">{formatPrice(p.price)}</td>
                   {/* whitespace-nowrap keeps the badge on one line */}
-                  <td className="px-6 py-5 whitespace-nowrap">
+                  <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
                     <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
-                  <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
-                  <td className="px-6 py-5 text-right whitespace-nowrap">
+                  <td className="whitespace-nowrap px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{format(new Date(p.created_at), "MMM d, yyyy")}</td>
+                  <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
                     {p.status === "pending" && (
                       <>
                         <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
@@ -950,9 +953,9 @@ function ListingQueue() {
                 </tr>
                 {isOpen && p.status === "pending" && (
                   <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
-                    <td colSpan={7} className="px-6 py-5">
+                    <td colSpan={7} className="px-4 py-4 sm:px-6 sm:py-5">
                       <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional):</p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <Input value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} placeholder="e.g. Missing photos, inaccurate price…" className="flex-1" />
                         <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: p.id, action: "reject", note: rejectNote })}>Confirm rejection</Button>
                       </div>
@@ -1036,10 +1039,10 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
   }), []);
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold">{editingId ? "Edit sale" : "Log a new sale"}</h3>
+          <h3 className="font-display text-base font-semibold sm:text-lg">{editingId ? "Edit sale" : "Log a new sale"}</h3>
           {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>}
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-5" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
@@ -1059,9 +1062,9 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
       </div>
 
       {chartData.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-display text-lg font-semibold">Sales over time</h3>
+            <h3 className="font-display text-base font-semibold sm:text-lg">Sales over time</h3>
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
               {(["day", "month"] as GroupBy[]).map((g) => (
                 <button key={g} onClick={() => setGroupBy(g)} className={`rounded-full px-3 py-1 capitalize transition ${groupBy === g ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -1070,12 +1073,12 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
               ))}
             </div>
           </div>
-          <div className="mt-4 h-72">
+          <div className="mt-4 h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
+              <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
                 <XAxis dataKey="label" tickFormatter={formatXTick} stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} interval="preserveStartEnd" />
-                <YAxis stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} tickFormatter={formatYAxis} width={60} />
+                <YAxis stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} tickFormatter={formatYAxis} width={48} />
                 <Tooltip formatter={(v: number) => [formatPrice(v), "Volume"]} labelFormatter={formatXTick} contentStyle={{ background: chartColors.card, border: `1px solid ${chartColors.border}`, borderRadius: 8, color: chartColors.cardFg }} />
                 <Line type="monotone" dataKey="total" stroke={chartColors.primary} strokeWidth={2.5} dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }} activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }} />
               </LineChart>
@@ -1085,18 +1088,18 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
       )}
 
       <DashTable
-        head={<tr><th className="px-5 py-4">Date</th><th className="px-5 py-4">Property</th><th className="px-5 py-4">Buyer</th><th className="px-5 py-4">Amount</th><th className="px-5 py-4">Commission</th><th /></tr>}
+        head={<tr><th className="px-4 py-3 sm:px-5 sm:py-4">Date</th><th className="px-4 py-3 sm:px-5 sm:py-4">Property</th><th className="px-4 py-3 sm:px-5 sm:py-4">Buyer</th><th className="px-4 py-3 sm:px-5 sm:py-4">Amount</th><th className="px-4 py-3 sm:px-5 sm:py-4">Commission</th><th /></tr>}
       >
         {sales.length === 0
           ? <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">No sales logged yet.</td></tr>
           : sales.map((s) => (
             <tr key={s.id} className="h-20 border-t border-border">
-              <td className="px-5 py-4">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
-              <td className="px-5 py-4">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
-              <td className="px-5 py-4">{s.buyer_name ?? "—"}</td>
-              <td className="px-5 py-4 font-medium">{formatPrice(s.amount)}</td>
-              <td className="px-5 py-4 text-primary">{formatPrice(s.commission)}</td>
-              <td className="px-5 py-4 text-right whitespace-nowrap">
+              <td className="px-4 py-3 sm:px-5 sm:py-4">{format(new Date(s.sale_date), "MMM d, yyyy")}</td>
+              <td className="px-4 py-3 sm:px-5 sm:py-4">{(s as { properties?: { title?: string } }).properties?.title ?? "—"}</td>
+              <td className="px-4 py-3 sm:px-5 sm:py-4">{s.buyer_name ?? "—"}</td>
+              <td className="px-4 py-3 font-medium sm:px-5 sm:py-4">{formatPrice(s.amount)}</td>
+              <td className="px-4 py-3 text-primary sm:px-5 sm:py-4">{formatPrice(s.commission)}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-right sm:px-5 sm:py-4">
                 <Button size="sm" variant="outline" onClick={() => startEdit(s)}>Edit</Button>
                 <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}>Delete</Button>
               </td>
@@ -1124,27 +1127,27 @@ function Forecast() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6 flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <p className="text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
-        <Button onClick={run} disabled={loading} className="shrink-0">{loading ? "Analyzing…" : "Run forecast"}</Button>
+        <Button onClick={run} disabled={loading} className="w-full shrink-0 sm:w-auto">{loading ? "Analyzing…" : "Run forecast"}</Button>
       </div>
       {result && (
         <>
           {result.forecast.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-6">
-              <h3 className="font-display text-lg font-semibold">Projected volume — next 3 months</h3>
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+              <h3 className="font-display text-base font-semibold sm:text-lg">Projected volume — next 3 months</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {result.forecast.map((f) => (
-                  <div key={f.month} className="flex h-28 flex-col justify-between rounded-xl border border-border bg-surface p-5">
+                  <div key={f.month} className="flex h-24 flex-col justify-between rounded-xl border border-border bg-surface p-4 sm:h-28 sm:p-5">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">{f.month}</p>
-                    <p className="font-display text-2xl font-semibold text-primary leading-none">{formatPrice(f.projected)}</p>
+                    <p className="font-display text-xl font-semibold text-primary leading-none sm:text-2xl">{formatPrice(f.projected)}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <h3 className="font-display text-lg font-semibold">AI analysis</h3>
+          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+            <h3 className="font-display text-base font-semibold sm:text-lg">AI analysis</h3>
             <p className="mt-4 whitespace-pre-line leading-relaxed text-foreground/85">{result.summary}</p>
           </div>
         </>
@@ -1181,14 +1184,14 @@ function UsersRoles() {
   return (
     <div className="space-y-6">
       <SectionCard title="Users & Roles" subtitle="Manage who can post listings and who has admin access." />
-      <BigTable head={<tr><th className="px-6 py-5">User</th><th className="px-6 py-5">Roles</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
+      <BigTable head={<tr><th className="px-4 py-4 sm:px-6 sm:py-5">User</th><th className="px-4 py-4 sm:px-6 sm:py-5">Roles</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th></tr>}>
         {users.map((u) => (
-          <tr key={u.id} className="h-28 border-t border-border">
-            <td className="px-6 py-5">
+          <tr key={u.id} className="h-24 border-t border-border sm:h-28">
+            <td className="px-4 py-4 sm:px-6 sm:py-5">
               <div className="font-semibold">{u.full_name ?? u.id.slice(0, 8)}</div>
               <div className="mt-0.5 text-sm text-muted-foreground">Joined {format(new Date(u.created_at), "MMM d, yyyy")}</div>
             </td>
-            <td className="px-6 py-5">
+            <td className="px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex flex-wrap gap-1.5">
                 {u.roles.length === 0 ? <span className="text-muted-foreground">—</span> : u.roles.map((r) => {
                   const isRevocable = r === "commissioner" || r === "agent";
@@ -1205,7 +1208,7 @@ function UsersRoles() {
                 })}
               </div>
             </td>
-            <td className="px-6 py-5 text-right whitespace-nowrap">
+            <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
               {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
               {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
               {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
@@ -1248,24 +1251,24 @@ function CommissionerRequests() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Requests" subtitle="Review pending applications and approve or deny them." />
-      <BigTable head={<tr><th className="px-6 py-5">Applicant</th><th className="px-6 py-5">Requested role</th><th className="px-6 py-5 whitespace-nowrap">Date</th><th className="px-6 py-5 text-right">Actions</th></tr>}>
+      <BigTable head={<tr><th className="px-4 py-4 sm:px-6 sm:py-5">Applicant</th><th className="px-4 py-4 sm:px-6 sm:py-5">Requested role</th><th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Date</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th></tr>}>
         {requests.length === 0
-          ? <tr><td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No pending requests.</td></tr>
+          ? <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground sm:px-6 sm:py-12">No pending requests.</td></tr>
           : requests.map((r) => {
             const isOpen = openId === r.id;
             const displayName = r.full_name ?? r.profile?.full_name ?? r.user_id.slice(0, 8);
             const requestedLabel = r.requested_role === "agent" ? "Agent" : r.requested_role === "commissioner" ? "Commissioner" : "—";
             return (
               <>
-                <tr key={r.id} className="h-28 border-t border-border">
-                  <td className="px-6 py-5"><div className="font-semibold">{displayName}</div><div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
-                  <td className="px-6 py-5">{r.requested_role ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
-                  <td className="px-6 py-5 whitespace-nowrap">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
-                  <td className="px-6 py-5 text-right"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
+                <tr key={r.id} className="h-24 border-t border-border sm:h-28">
+                  <td className="px-4 py-4 sm:px-6 sm:py-5"><div className="font-semibold">{displayName}</div><div className="mt-0.5 text-sm text-muted-foreground">{r.email ?? r.profile?.email ?? ""}</div></td>
+                  <td className="px-4 py-4 sm:px-6 sm:py-5">{r.requested_role ? <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">{requestedLabel}</span> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">{format(new Date(r.created_at), "MMM d, yyyy")}</td>
+                  <td className="px-4 py-4 text-right sm:px-6 sm:py-5"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
                 </tr>
                 {isOpen && (
                   <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
-                    <td colSpan={4} className="px-6 py-6">
+                    <td colSpan={4} className="px-4 py-5 sm:px-6 sm:py-6">
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p><p className="mt-1 text-sm">{displayName}</p></div>
                         <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</p><p className="mt-1 text-sm">{r.phone ?? r.profile?.phone ?? "—"}</p></div>
@@ -1321,18 +1324,18 @@ function CommissionerTracking() {
   return (
     <div className="space-y-6">
       <SectionCard title="Commissioner / Agent Tracking" subtitle="Monitor sales performance across all commissioners and agents." />
-      <BigTable head={<tr><th className="px-6 py-5">Agent</th><th className="px-6 py-5 text-right">Deals</th><th className="px-6 py-5 text-right">Volume</th><th className="px-6 py-5 text-right">Commission</th><th className="px-6 py-5 whitespace-nowrap">Last sale</th></tr>}>
+      <BigTable head={<tr><th className="px-4 py-4 sm:px-6 sm:py-5">Agent</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Deals</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Volume</th><th className="px-4 py-4 text-right sm:px-6 sm:py-5">Commission</th><th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Last sale</th></tr>}>
         {commissioners.length === 0
-          ? <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No commissioners or agents yet.</td></tr>
+          ? <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground sm:px-6 sm:py-12">No commissioners or agents yet.</td></tr>
           : commissioners.map((c) => {
             const s = byAgent.get(c.id) ?? { volume: 0, commission: 0, count: 0, last: null };
             return (
-              <tr key={c.id} className="h-28 border-t border-border">
-                <td className="px-6 py-5"><Link to="/agents/$id" params={{ id: c.id }} className="font-semibold hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link></td>
-                <td className="px-6 py-5 text-right">{s.count}</td>
-                <td className="px-6 py-5 text-right font-semibold">{formatPrice(s.volume)}</td>
-                <td className="px-6 py-5 text-right text-primary font-semibold">{formatPrice(s.commission)}</td>
-                <td className="px-6 py-5 whitespace-nowrap">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
+              <tr key={c.id} className="h-24 border-t border-border sm:h-28">
+                <td className="px-4 py-4 sm:px-6 sm:py-5"><Link to="/agents/$id" params={{ id: c.id }} className="font-semibold hover:text-primary">{c.full_name ?? c.id.slice(0, 8)}</Link></td>
+                <td className="px-4 py-4 text-right sm:px-6 sm:py-5">{s.count}</td>
+                <td className="px-4 py-4 text-right font-semibold sm:px-6 sm:py-5">{formatPrice(s.volume)}</td>
+                <td className="px-4 py-4 text-right text-primary font-semibold sm:px-6 sm:py-5">{formatPrice(s.commission)}</td>
+                <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">{s.last ? format(new Date(s.last), "MMM d, yyyy") : "—"}</td>
               </tr>
             );
           })
@@ -1396,8 +1399,8 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
         subtitle="Push a platform-wide notice to every commissioner and agent — it appears as a megaphone dropdown in their dashboard topbar."
       />
 
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <h3 className="font-display text-lg font-semibold">New announcement</h3>
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <h3 className="font-display text-base font-semibold sm:text-lg">New announcement</h3>
         <form
           className="mt-4 space-y-3"
           onSubmit={(e) => { e.preventDefault(); if (title.trim() && body.trim()) create.mutate(); }}
@@ -1417,7 +1420,7 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
               className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
             />
           </div>
-          <Button type="submit" disabled={create.isPending || !title.trim() || !body.trim()}>
+          <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || !title.trim() || !body.trim()}>
             <Megaphone className="h-4 w-4" />{create.isPending ? "Publishing…" : "Publish announcement"}
           </Button>
         </form>
@@ -1426,7 +1429,7 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : announcements.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
           <Megaphone className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-muted-foreground">No announcements yet.</p>
         </div>
@@ -1434,26 +1437,26 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
         <BigTable
           head={
             <tr>
-              <th className="px-6 py-5">Announcement</th>
-              <th className="px-6 py-5 whitespace-nowrap">Status</th>
-              <th className="px-6 py-5 whitespace-nowrap">Published</th>
-              <th className="px-6 py-5 text-right">Actions</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Announcement</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Status</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Published</th>
+              <th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th>
             </tr>
           }
         >
           {announcements.map((a) => (
-            <tr key={a.id} className="h-28 border-t border-border">
-              <td className="px-6 py-5">
+            <tr key={a.id} className="h-24 border-t border-border sm:h-28">
+              <td className="px-4 py-4 sm:px-6 sm:py-5">
                 <p className="font-semibold">{a.title}</p>
                 <p className="mt-0.5 line-clamp-2 max-w-md text-sm text-muted-foreground">{a.body}</p>
               </td>
-              <td className="px-6 py-5 whitespace-nowrap">
+              <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
                 <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${a.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
                   {a.is_active ? "Active" : "Archived"}
                 </span>
               </td>
-              <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(a.created_at), "MMM d, yyyy")}</td>
-              <td className="px-6 py-5 text-right whitespace-nowrap">
+              <td className="whitespace-nowrap px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{format(new Date(a.created_at), "MMM d, yyyy")}</td>
+              <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
                 <Button size="sm" variant="outline" onClick={() => toggleActive.mutate({ id: a.id, isActive: !a.is_active })}>
                   {a.is_active ? "Archive" : "Re-activate"}
                 </Button>
@@ -1507,7 +1510,7 @@ function AuditLogAdmin() {
           Failed to load: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
           <History className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-muted-foreground">No activity logged yet.</p>
         </div>
@@ -1515,10 +1518,10 @@ function AuditLogAdmin() {
         <BigTable
           head={
             <tr>
-              <th className="px-6 py-5 whitespace-nowrap">When</th>
-              <th className="px-6 py-5">Actor</th>
-              <th className="px-6 py-5 whitespace-nowrap">Action</th>
-              <th className="px-6 py-5">Details</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">When</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Actor</th>
+              <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Action</th>
+              <th className="px-4 py-4 sm:px-6 sm:py-5">Details</th>
             </tr>
           }
         >
@@ -1532,14 +1535,14 @@ function AuditLogAdmin() {
                 : JSON.stringify(details);
             return (
               <tr key={e.id} className="h-20 border-t border-border">
-                <td className="px-6 py-5 whitespace-nowrap text-muted-foreground">{format(new Date(e.created_at), "MMM d, yyyy · h:mm a")}</td>
-                <td className="px-6 py-5 font-medium">{e.actorName}</td>
-                <td className="px-6 py-5 whitespace-nowrap">
+                <td className="whitespace-nowrap px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{format(new Date(e.created_at), "MMM d, yyyy · h:mm a")}</td>
+                <td className="px-4 py-4 font-medium sm:px-6 sm:py-5">{e.actorName}</td>
+                <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
                   <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${AUDIT_ACTION_BADGE[e.action] ?? "bg-gray-100 text-gray-600"}`}>
                     {actionLabel(e.action)}
                   </span>
                 </td>
-                <td className="px-6 py-5 text-muted-foreground">{detailText}</td>
+                <td className="px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{detailText}</td>
               </tr>
             );
           })}
