@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Rss, Heart, MessageSquare, GripHorizontal } from "lucide-react";
@@ -53,7 +53,18 @@ export function RightSideBar() {
     refetchInterval: 15000,
   });
 
-  if (HIDDEN_ON.some((prefix) => path.startsWith(prefix))) return null;
+  const hiddenHere = HIDDEN_ON.some((prefix) => path.startsWith(prefix));
+
+  // Reserves room at the bottom of the page for the fixed mobile tab bar
+  // below (see styles.css) so it never overlaps page content or a page's
+  // own footer links — only applied on routes where the bar actually
+  // renders, and only has any visual effect below the lg breakpoint.
+  useEffect(() => {
+    document.body.classList.toggle("has-mobile-tabbar", !hiddenHere);
+    return () => document.body.classList.remove("has-mobile-tabbar");
+  }, [hiddenHere]);
+
+  if (hiddenHere) return null;
 
   /**
    * Clamps a candidate (x, y) to the viewport, with an extra floor on the Y
@@ -120,50 +131,87 @@ export function RightSideBar() {
     : {};
 
   return (
-    <aside
-      ref={asideRef}
-      className={`fixed right-0 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur transition-shadow lg:flex ${
-        position ? "rounded-2xl" : "rounded-l-2xl border-r-0"
-      } ${dragging ? "shadow-xl" : ""}`}
-      style={{ width: "3.75rem", ...positionStyle }}
-    >
-      {/* Drag handle — grabbing anywhere else on the sidebar would fight
-          with clicking the nav buttons, so dragging is scoped to this
-          dedicated strip at the top. touch-action: none stops the page
-          itself from scrolling while dragging on a touchscreen. */}
-      <div
-        onPointerDown={handleDragStart}
-        onPointerMove={handleDragMove}
-        onPointerUp={handleDragEnd}
-        onPointerCancel={handleDragEnd}
-        onDoubleClick={resetPosition}
-        title="Drag to move · double-click to reset"
-        aria-label="Drag to move this menu"
-        className={`flex w-full touch-none items-center justify-center rounded-t-xl py-1.5 text-muted-foreground/50 transition hover:text-muted-foreground ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
-        style={{ touchAction: "none" }}
+    <>
+      {/* Desktop / tablet-landscape — the floating draggable rail, unchanged. */}
+      <aside
+        ref={asideRef}
+        className={`fixed right-0 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border border-border bg-card/90 p-1 shadow-soft backdrop-blur transition-shadow lg:flex ${
+          position ? "rounded-2xl" : "rounded-l-2xl border-r-0"
+        } ${dragging ? "shadow-xl" : ""}`}
+        style={{ width: "3.75rem", ...positionStyle }}
       >
-        <GripHorizontal className="h-3.5 w-3.5" />
-      </div>
+        {/* Drag handle — grabbing anywhere else on the sidebar would fight
+            with clicking the nav buttons, so dragging is scoped to this
+            dedicated strip at the top. touch-action: none stops the page
+            itself from scrolling while dragging on a touchscreen. */}
+        <div
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+          onDoubleClick={resetPosition}
+          title="Drag to move · double-click to reset"
+          aria-label="Drag to move this menu"
+          className={`flex w-full touch-none items-center justify-center rounded-t-xl py-1.5 text-muted-foreground/50 transition hover:text-muted-foreground ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+          style={{ touchAction: "none" }}
+        >
+          <GripHorizontal className="h-3.5 w-3.5" />
+        </div>
 
-      {items.map((item) => {
-        const dest = !item.authRequired || user ? item.to : (item.guestTo ?? item.to);
-        return (
-          <button
-            key={item.label}
-            className={SIDEBAR_RIGHT_ICON_CLASS}
-            onClick={() => navigate({ to: dest })}
-            aria-label={item.label}
-          >
-            {!!item.badge && item.badge > 0 && (
-              <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground">
-                {item.badge > 9 ? "9+" : item.badge}
-              </span>
-            )}
-            {item.icon}
-            <span className="text-[10px] font-medium leading-none">{item.label}</span>
-          </button>
-        );
-      })}
-    </aside>
+        {items.map((item) => {
+          const dest = !item.authRequired || user ? item.to : (item.guestTo ?? item.to);
+          return (
+            <button
+              key={item.label}
+              className={SIDEBAR_RIGHT_ICON_CLASS}
+              onClick={() => navigate({ to: dest })}
+              aria-label={item.label}
+            >
+              {!!item.badge && item.badge > 0 && (
+                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              )}
+              {item.icon}
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            </button>
+          );
+        })}
+      </aside>
+
+      {/* Mobile / tablet-portrait — the same four destinations as a fixed
+          bottom tab bar instead, since the floating draggable rail above
+          is desktop-only (lg:flex). Reachable via thumb, safe-area aware
+          for phones with a home-indicator, and reserves its own space via
+          the "has-mobile-tabbar" body class (see styles.css) so it never
+          sits on top of page content. */}
+      <nav
+        aria-label="Quick navigation"
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.12)] backdrop-blur lg:hidden"
+      >
+        {items.map((item) => {
+          const dest = !item.authRequired || user ? item.to : (item.guestTo ?? item.to);
+          const isActive = path === item.to || path.startsWith(`${item.to}/`);
+          return (
+            <button
+              key={item.label}
+              onClick={() => navigate({ to: dest })}
+              aria-label={item.label}
+              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              {!!item.badge && item.badge > 0 && (
+                <span className="absolute right-1/2 top-1 translate-x-3 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              )}
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }
