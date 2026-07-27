@@ -187,17 +187,15 @@ function AgentProfile() {
                 </div>
               </div>
               <div className="flex flex-col items-center bg-card p-6 text-center">
-                {(profile.license_number || profile.is_verified) && (
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    {profile.license_number && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                        <BadgeCheck className="h-3.5 w-3.5" />Licensed
-                      </span>
-                    )}
-                    <VerifiedBadge verified={profile.is_verified} />
-                  </div>
+                {profile.license_number && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                    <BadgeCheck className="h-3.5 w-3.5" />Licensed
+                  </span>
                 )}
-                <h1 className="mt-2 font-display text-2xl font-bold">{profile.full_name ?? roleLabel}</h1>
+                <h1 className="mt-2 flex items-center gap-1.5 font-display text-2xl font-bold">
+                  {profile.full_name ?? roleLabel}
+                  <VerifiedBadge verified={profile.is_verified} size="icon" />
+                </h1>
                 {stats.avgRating !== null && (
                   <div className="mt-1 flex items-center justify-center gap-1.5">
                     <div className="flex gap-0.5">

@@ -150,10 +150,10 @@ function AgentsList() {
                     {a.roles.includes("agent") && (
                       <span className="inline-block rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold-foreground">Agent</span>
                     )}
-                    <VerifiedBadge verified={a.is_verified} size="sm" />
                   </div>
-                  <h3 className="mt-1 truncate font-display text-xl font-bold group-hover:text-primary">
+                  <h3 className="mt-1 flex items-center gap-1 truncate font-display text-xl font-bold group-hover:text-primary">
                     {a.full_name ?? "Agent"}
+                    <VerifiedBadge verified={a.is_verified} size="icon" />
                   </h3>
                   <p className="truncate text-sm text-muted-foreground">{a.agency_name || "One Higala Properties Inc."}</p>
                   <div className="mt-4 space-y-1.5 text-sm">
