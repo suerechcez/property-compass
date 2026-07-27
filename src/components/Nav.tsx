@@ -25,11 +25,12 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 const BRAND_ICON_URL = "/brand-icon.png";
-const NAV_LINK_CLASS = "nav-link-underline text-foreground hover:text-primary font-medium transition-colors";
+const NAV_LINK_CLASS = "text-foreground hover:text-primary";
 
+// Routes where the marketing nav links (Browse / Sell / Find an Agent) should be hidden
 const DASHBOARD_ROUTES = ["/dashboard"];
 
-export function Nav({ overlay = false }: { overlay?: boolean }) {
+export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { overlay?: boolean; dashboardSidebarExpanded?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const routerState = useRouterState();
@@ -40,11 +41,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const canManageListings = isCommissioner || isAgent;
 
+  // Hide marketing nav links / full brand lockup on the dashboard (its own
+  // sidebar shows a compact icon-only brand instead) — this no longer
+  // affects color, only which elements render.
   const isDashboard = DASHBOARD_ROUTES.some((r) =>
     routerState.location.pathname.startsWith(r)
   );
-
-  const overlayActive = overlay && !scrolled;
 
   useEffect(() => {
     if (!overlay) return;
@@ -62,6 +64,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     },
   });
 
+  // Badge count — polls every 15s
   const { data: unreadCount = 0 } = useQuery({
     enabled: !!user,
     queryKey: ["nav-unread-messages", user?.id],
@@ -69,6 +72,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     refetchInterval: 15000,
   });
 
+  // Actual notification items shown in the dropdown. Only fetched once the
+  // bell is opened (no point loading full previews on every page load) but
+  // also kept warm on the same 15s interval so it doesn't feel stale.
   const { data: notifications = [], isLoading: notifLoading } = useQuery({
     enabled: !!user && notifOpen,
     queryKey: ["nav-notifications", user?.id],
@@ -76,6 +82,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     refetchInterval: 15000,
   });
 
+  // Platform-wide announcements — admin-authored, shown only to
+  // commissioners/agents, only in the dashboard topbar, to the left of the
+  // notification bell. See the "Announcements" admin tab for authoring them.
   const showAnnouncements = isDashboard && canManageListings;
   const { data: announcements = [] } = useQuery({
     enabled: !!user && showAnnouncements,
@@ -94,125 +103,102 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <header
-      className={`z-40 w-full backdrop-blur animate-nav-drop ${
-        isDashboard
-          ? "relative"
-          : overlay
-          ? "fixed inset-x-0 top-0 md:sticky md:top-0"
-          : "sticky top-0"
+      // Soft blue → gold tint sampled from the brand's own navy/gold palette,
+      // applied to every topbar including the dashboard's — light enough
+      // that all the existing dark text/icon colors stay legible as-is.
+      //
+      // Positioning differs on the dashboard on purpose: everywhere else
+      // the header is `sticky top-0`, staying pinned to the viewport as the
+      // page scrolls. On the dashboard it's plain `relative` instead — it
+      // scrolls away with the rest of the page like any normal element, and
+      // is only visible while you're at the very top of the dashboard. The
+      // dashboard's own left sidebar (with the brand logo) is what stays
+      // fixed to the viewport there, not this header.
+      //
+      // On the dashboard (desktop only — `lg:`), this header no longer
+      // relies on the sidebar simply painting over its top-left corner via
+      // z-index: it now starts its own box exactly where the fixed sidebar
+      // ends (`lg:ml-16`/`lg:ml-56` matching the sidebar's own `w-16`/`w-56`).
+      // That guarantees the header's bottom border and the sidebar's own
+      // logo-row bottom border always sit on the exact same line, since
+      // neither one has to overlap or cover the other to look right.
+      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
+        isDashboard ? "relative" : "sticky top-0"
       } ${
-        overlayActive
-          ? "border-b border-transparent bg-transparent backdrop-blur-none md:border-border/60 md:bg-gradient-to-r md:from-primary/12 md:via-background/90 md:to-gold/15 md:backdrop-blur"
-          : "border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15"
-      } ${
-        scrolled && !isDashboard ? "shadow-md" : ""
+        isDashboard ? (dashboardSidebarExpanded ? "lg:ml-56 lg:w-[calc(100%-14rem)]" : "lg:ml-16 lg:w-[calc(100%-4rem)]") : ""
       }`}
-      style={{ transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease" }}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
+          {/* Invisible spacer — pushes "Browse / Sell / Find an agent" away
+              from the true left edge instead of sitting flush against it.
+              Desktop only (matches where the nav links themselves become
+              visible); on mobile the hamburger button already provides its
+              own natural inset, so no spacer is needed there. */}
           <div aria-hidden className="hidden w-12 shrink-0 md:block" />
 
-          {isDashboard && (
-            <Link to="/" className="flex shrink-0 items-center lg:hidden transition hover:opacity-80">
-              {iconOk ? (
-                <img
-                  src={BRAND_ICON_URL}
-                  alt="One Higala Properties Inc."
-                  className="h-9 w-9 object-contain"
-                  onError={() => setIconOk(false)}
-                />
-              ) : (
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-bold text-primary-foreground shadow-sm">H</span>
-              )}
-            </Link>
-          )}
-
+          {/* Only render the hamburger + mobile sheet when not on the dashboard */}
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <button
-                  aria-label="Open menu"
-                  className={`grid h-10 w-10 place-items-center rounded-full transition hover:bg-white/15 active:scale-90 md:hidden ${
-                    overlayActive ? "text-white md:text-foreground" : "text-foreground"
-                  }`}
-                >
+                <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
-              {/* Mobile menu panel slides in from the left */}
-              <SheetContent side="left" hideClose className="w-full max-w-xs p-0 animate-slide-left">
+              <SheetContent side="left" hideClose className="w-full max-w-xs p-0">
                 <div className="relative flex items-center justify-center border-b border-border px-5 py-4">
                   <div className="flex items-center gap-2">
                     <img src={BRAND_ICON_URL} alt="One Higala" className="h-8 w-8 object-contain" onError={() => {}} />
                     <span className="text-base font-extrabold tracking-tight text-primary" style={{ fontFamily: "var(--font-montserrat)" }}>ONE HIGALA</span>
                   </div>
                   <SheetClose asChild>
-                    <button aria-label="Close menu" className="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent transition active:scale-90">
-                      <X className="h-5 w-5" />
-                    </button>
+                    <button aria-label="Close menu" className="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-accent"><X className="h-5 w-5" /></button>
                   </SheetClose>
                 </div>
                 <nav className="divide-y divide-border">
-                  {[
-                    { to: "/browse", label: "Browse" },
-                    { to: "/sell",   label: "Sell" },
-                    { to: "/agents", label: "Find an agent" },
-                  ].map(({ to, label }, i) => (
-                    <SheetClose asChild key={to}>
-                      <Link
-                        to={to}
-                        className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent transition animate-slide-left"
-                        style={{ animationDelay: `${80 + i * 60}ms` }}
-                      >
-                        {label}
-                      </Link>
-                    </SheetClose>
-                  ))}
+                  <SheetClose asChild><Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Browse</Link></SheetClose>
+                  <SheetClose asChild><Link to="/sell"   className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Sell</Link></SheetClose>
+                  <SheetClose asChild><Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Find an agent</Link></SheetClose>
                 </nav>
               </SheetContent>
             </Sheet>
           )}
 
-          {/* Desktop nav links */}
+          {/* Desktop nav links — hidden on dashboard */}
           {!isDashboard && (
-            <nav className="hidden items-center gap-6 text-base md:flex">
-              {[
-                { to: "/browse", label: "Browse" },
-                { to: "/sell",   label: "Sell" },
-                { to: "/agents", label: "Find an agent" },
-              ].map(({ to, label }, i) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className={`${NAV_LINK_CLASS} animate-fade-in`}
-                  style={{ animationDelay: `${100 + i * 60}ms` }}
-                >
-                  {label}
-                </Link>
-              ))}
+            <nav className="hidden items-center gap-6 text-base font-medium md:flex">
+              <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
+              <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
+              <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
             </nav>
           )}
         </div>
 
-        {/* Brand centre */}
+        {/* Brand — full logo + title on every page EXCEPT the dashboard.
+            On the dashboard the brand lives inside the fixed sidebar
+            itself (see DashSidebar in dashboard.tsx) — that sidebar
+            renders above this header (higher z-index) and physically
+            covers this slot, so nothing needs to render here at all. */}
         {!isDashboard && (
-          <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center transition hover:opacity-85 animate-fade-in" style={{ animationDelay: "60ms" }}>
+          <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
             {iconOk ? (
               <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
             ) : (
               <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
             )}
             <div className="hidden items-center sm:flex">
-              <BrandTitle light={overlayActive} className="items-center text-center" />
+              <BrandTitle light={false} className="items-center text-center" />
             </div>
           </Link>
         )}
 
-        {/* Right — announcements + bell + profile */}
+        {/* Right — announcements (dashboard, commissioner/agent only) + notification bell + profile / sign-in */}
         <div className="col-start-3 flex items-center justify-end gap-2">
+          {/* Platform-wide announcements — sits immediately LEFT of the bell,
+              only shown on the dashboard topbar and only to commissioners/
+              agents (the audience admin announcements are pushed to). */}
           {showAnnouncements && (
             <DropdownMenu
               open={announceOpen}
@@ -224,21 +210,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={unseenAnnouncementCount > 0 ? `${unseenAnnouncementCount} new announcements` : "Announcements"}
-                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground hover:scale-105 active:scale-90 focus-visible:ring-2 focus-visible:ring-ring"
+                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Megaphone className="h-5 w-5" />
                   {unseenAnnouncementCount > 0 && (
-                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold leading-none text-gold-foreground animate-badge-pop">
+                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-semibold leading-none text-gold-foreground">
                       {unseenAnnouncementCount > 9 ? "9+" : unseenAnnouncementCount}
                     </span>
                   )}
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-80 p-0 animate-scale-in">
+              <DropdownMenuContent align="end" className="w-80 p-0">
                 <div className="border-b border-border px-4 py-3">
                   <span className="font-display font-semibold">Announcements</span>
                 </div>
+
                 <div className="max-h-96 overflow-y-auto">
                   {announcements.length === 0 ? (
                     <div className="flex flex-col items-center gap-2 p-8 text-center">
@@ -246,8 +233,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                       <p className="text-sm text-muted-foreground">No announcements right now.</p>
                     </div>
                   ) : (
-                    announcements.map((a, i) => (
-                      <div key={a.id} className="border-b border-border px-4 py-3 last:border-b-0 animate-reveal" style={{ animationDelay: `${i * 40}ms` }}>
+                    announcements.map((a) => (
+                      <div key={a.id} className="border-b border-border px-4 py-3 last:border-b-0">
                         <p className="text-sm font-medium">{a.title}</p>
                         <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">{a.body}</p>
                         <p className="mt-1 text-[11px] text-muted-foreground/70">
@@ -266,28 +253,25 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
-                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:scale-105 active:scale-90 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${
-                    overlayActive
-                      ? "text-white/90 hover:text-white md:text-foreground/80 md:hover:text-foreground"
-                      : "text-foreground/80 hover:text-foreground"
-                  }`}
+                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground animate-badge-pop">
+                    <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-80 p-0 animate-scale-in">
+              <DropdownMenuContent align="end" className="w-80 p-0">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <span className="font-display font-semibold">Notifications</span>
                   {unreadCount > 0 && (
                     <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
                   )}
                 </div>
+
                 <div className="max-h-96 overflow-y-auto">
                   {notifLoading ? (
                     <p className="p-5 text-center text-sm text-muted-foreground">Loading…</p>
@@ -297,14 +281,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                       <p className="text-sm text-muted-foreground">You're all caught up!</p>
                     </div>
                   ) : (
-                    notifications.map((n, i) => (
+                    notifications.map((n) => (
                       <Link
                         key={n.id}
                         to="/messages"
                         search={{ c: n.href.split("c=")[1] }}
                         onClick={() => setNotifOpen(false)}
-                        className="flex items-start gap-3 border-b border-border px-4 py-3 transition last:border-b-0 hover:bg-accent animate-reveal"
-                        style={{ animationDelay: `${i * 40}ms` }}
+                        className="flex items-start gap-3 border-b border-border px-4 py-3 transition last:border-b-0 hover:bg-accent"
                       >
                         <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-semibold text-primary-foreground">
                           {n.avatarUrl
@@ -329,7 +312,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="rounded-full outline-none ring-offset-background transition hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-ring">
+                <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-12 w-12 border border-border">
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
@@ -337,10 +320,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-56 animate-scale-in">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="truncate">{profile?.full_name || user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
+                {/* ── Admin section ── */}
                 {isAdmin && (
                   <>
                     <DropdownMenuGroup>
@@ -369,6 +353,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   </>
                 )}
 
+                {/* ── Commissioner / Agent section ── */}
                 {canManageListings && (
                   <>
                     <DropdownMenuGroup>
@@ -409,7 +394,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild size="sm" className="transition hover:scale-105 active:scale-95">
+            <Button asChild size="sm">
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
