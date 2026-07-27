@@ -8,6 +8,10 @@ import { ShieldCheck } from "lucide-react";
  *
  * Renders nothing when `verified` is falsy, so callers can drop
  * <VerifiedBadge verified={x.is_verified} /> inline without an extra guard.
+ *
+ * size="icon" renders just the shield-check glyph with no pill/border/text
+ * — meant to sit directly beside a name (e.g. <h1>Name <VerifiedBadge .../></h1>)
+ * without adding much visual weight or taking extra horizontal space.
  */
 export function VerifiedBadge({
   verified,
@@ -15,10 +19,20 @@ export function VerifiedBadge({
   className = "",
 }: {
   verified: boolean | null | undefined;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "icon";
   className?: string;
 }) {
   if (!verified) return null;
+
+  if (size === "icon") {
+    return (
+      <ShieldCheck
+        aria-label="Verified by One Higala Properties"
+        title="Verified by One Higala Properties"
+        className={`h-4 w-4 shrink-0 text-primary ${className}`}
+      />
+    );
+  }
 
   const isSm = size === "sm";
   return (
