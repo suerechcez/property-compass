@@ -33,12 +33,7 @@ const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
-// Height of the sidebar's own top "logo row". This is set to 80px to match
-// the Nav header's ACTUAL rendered height: py-4 (16px top + 16px bottom =
-// 32px) plus its tallest inline element, the 48px avatar/bell row (h-12) —
-// 32 + 48 = 80px. The two rows need to be pixel-identical or the sidebar's
-// logo box visibly reads as a different size than the header strip beside
-// it, which is what was happening at the previous (73px) guess.
+// Nav header height: py-4 (32px) + h-12 avatar (48px) = 80px.
 const LOGO_ROW_PX = 80;
 const BRAND_ICON_URL = "/brand-icon.png";
 
@@ -154,15 +149,16 @@ function SectionCard({ title, subtitle, action, children }: {
 }
 
 // ── Left sidebar ───────────────────────────────────────────────────────────────────────────
-// The brand logo now lives INSIDE this sidebar (its own top row) rather
-// than in the shared Nav header. To make that work without any gap or
-// overlap, the rail spans the FULL viewport height starting at the very
-// top (top: 0), and sits at a higher z-index than the header — so it
-// paints directly over the header's left-hand corner, and that corner
-// never needs to render anything of its own (Nav.tsx already skips
-// rendering its brand block on the dashboard route for this exact reason).
-// Everywhere else stays a true fixed rail: flush to the left edge, pinned
-// in place through the whole page scroll.
+//
+// Desktop: sticky in-flow sidebar that scrolls WITH the page rather than
+// being viewport-fixed. It sits in a flex row beside the main content.
+// `sticky top-0 self-start` makes the rail stick to the top of the
+// viewport as you scroll DOWN, while still flowing normally so the page
+// width is shared between the rail and the content — no compensating
+// padding-left needed on the content column.
+//
+// The logo row height matches the Nav header exactly so the brand icon
+// lines up with the header strip on first paint.
 
 function DashSidebar({
   canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin, expanded, onToggleExpanded,
@@ -209,7 +205,6 @@ function DashSidebar({
 
   const currentLabel = adminTab ? TAB_LABELS[adminTab] : TAB_LABELS[activeSection];
 
-  /** A single nav icon button. `itemExpanded` controls icon-only (rail) vs icon+label (mobile / expanded rail). */
   function NavItemBtn({ id, isActive, expanded: itemExpanded }: { id: ActiveView; isActive: boolean; expanded: boolean }) {
     const Icon = TAB_ICONS[id];
     return (
@@ -231,8 +226,6 @@ function DashSidebar({
     );
   }
 
-  // Mobile popover always shows the labeled version — collapsing to icons
-  // only makes sense on the desktop rail where there's a hover tooltip.
   const mobileContent = (
     <div className="flex flex-col gap-1 p-3">
       {mainItems.filter((t) => t.show).map((t) => (
@@ -256,13 +249,6 @@ function DashSidebar({
         <NavItemBtn key={t.id} id={t.id} isActive={!adminTab && activeSection === t.id} expanded={expanded} />
       ))}
 
-      {/* Collapse/expand toggle — sits centered on its own divider line,
-          directly between the main nav items above and the Admin section
-          below (falls back to sitting right after the main items when
-          there's no Admin section, i.e. non-admin users). Living inline
-          here means its position always tracks however many main items
-          are actually visible, instead of a hardcoded pixel offset from
-          the logo row. */}
       <div className="relative my-2 flex w-full items-center justify-center">
         <div className={`absolute border-t border-border ${expanded ? "inset-x-0" : "left-1/2 w-8 -translate-x-1/2"}`} />
         <button
@@ -290,9 +276,7 @@ function DashSidebar({
 
   return (
     <>
-      {/* Mobile trigger — unchanged behavior, just a labeled dropdown, laid
-          out inline within the page (not fixed) since only the desktop
-          rail below needs to attach to the viewport edge. */}
+      {/* Mobile — inline dropdown trigger */}
       <button
         className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
@@ -303,20 +287,28 @@ function DashSidebar({
         <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
       )}
 
-      {/* Desktop — fixed to the true left edge of the browser window,
-          spanning the ENTIRE viewport height including the row where the
-          header normally sits. z-50 keeps it painted above the header
-          (z-40), so this rail — not the header — owns that top-left
-          corner and its own logo. */}
+      {/*
+        Desktop sticky sidebar — in-flow (not fixed), sits in a flex row
+        with the main content. `sticky top-0 self-start` means:
+          • it doesn't scroll out of view as you scroll down
+          • it doesn't stretch to match the (taller) content column
+          • no compensating padding-left on the content column needed
+        `overflow-y-auto` lets nav items scroll if there are more than fit.
+      */}
       <aside
-        className={`fixed left-0 top-0 z-50 hidden h-dvh flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
+        className={[
+          "hidden lg:flex flex-col",
+          "sticky top-0 self-start",
+          "h-screen overflow-y-auto",
+          "border-r border-border bg-card",
+          "transition-[width] duration-200",
+          expanded ? "w-56" : "w-16",
+        ].join(" ")}
       >
-        {/* Logo row — height matches the header's own height so this row
-            lines up with it for the rest of the page. This is the ONLY
-            place the brand mark renders on the dashboard. */}
+        {/* Logo row — aligns with the Nav header height */}
         <Link
           to="/"
-          className="flex shrink-0 items-center justify-center border-b border-border"
+          className="flex shrink-0 items-center justify-center border-b border-border transition hover:opacity-80"
           style={{ height: LOGO_ROW_PX }}
         >
           {iconOk ? (
@@ -352,30 +344,10 @@ function Dashboard() {
     ADMIN_TABS.includes(urlTab as AdminTab) ? (urlTab as AdminTab) : null
   );
   const [activeSection, setActiveSection] = useState<ScrollSection>("overview");
-  // Lifted up from DashSidebar so the main content column can reserve
-  // matching left padding for whichever width the fixed rail currently is.
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [loading, user, navigate]);
 
-  // Reacts to `tab` changing in the URL — this covers BOTH cases: (1)
-  // clicking "My listings"/"Sales" in the profile dropdown while ALREADY
-  // on /dashboard (TanStack Router doesn't remount the component for a
-  // search-param-only navigation, so the useState initializer above only
-  // ever runs once and would otherwise silently ignore this), and (2)
-  // navigating to /dashboard?tab=... fresh from an entirely different page
-  // (Browse, the homepage, etc.) or the very first load.
-  //
-  // `loading` is deliberately included in the dependency array for case
-  // (2): while auth is still resolving, the component renders nothing but
-  // a "Loading…" placeholder (see the early return below) — none of the
-  // <section id="section-....."> elements exist in the DOM yet, so an
-  // attempted scrollIntoView at that point silently finds nothing and
-  // does nothing. Once `loading` flips to false and the real page (with
-  // its sections) mounts, this effect re-runs with the same `urlTab` and
-  // correctly scrolls — without this, arriving at /dashboard?tab=sales
-  // from outside the dashboard while logged out (or on a slow connection)
-  // would always land on Overview instead.
   useEffect(() => {
     if (loading || !user) return;
 
@@ -388,16 +360,8 @@ function Dashboard() {
       ? (urlTab as ScrollSection)
       : "overview";
     setActiveSection(section);
-    if (section === "overview") return; // already at the top — nothing to scroll to
+    if (section === "overview") return;
 
-    // Retries at a few staggered delays rather than a single attempt.
-    // Clicking a <Link> inside the profile dropdown (a Radix DropdownMenu)
-    // fires navigation while the menu is still mid-close-transition,
-    // which can leave the page briefly scroll-locked (overflow: hidden on
-    // <html>/<body>) for that exit animation — a scrollIntoView call that
-    // lands inside that window silently does nothing, with no later retry
-    // to correct it. Repeating the call covers that gap without needing
-    // to know its exact duration up front.
     const timers = [50, 250, 600].map((delay) =>
       setTimeout(() => {
         document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -423,113 +387,116 @@ function Dashboard() {
   }, [adminTab]);
 
   if (loading || !user) {
-    return <div className="site-page"><Nav /><div className="mx-auto max-w-screen-2xl px-4 py-10 text-muted-foreground sm:px-8">Loading…</div></div>;
+    return (
+      <div className="site-page">
+        <Nav />
+        <div className="mx-auto max-w-screen-2xl px-4 py-10 text-muted-foreground sm:px-8">Loading…</div>
+      </div>
+    );
   }
+
+  const sidebarProps = {
+    canManageListings,
+    isAdmin,
+    activeSection,
+    adminTab,
+    onAdminTab: (t: AdminTab) => setAdminTab(t),
+    onExitAdmin: () => setAdminTab(null),
+    expanded: sidebarExpanded,
+    onToggleExpanded: () => setSidebarExpanded((e) => !e),
+  };
 
   return (
     <div className="min-h-screen site-page">
       <Nav />
 
-      {/* Fixed left-edge rail — rendered as a sibling of the centered
-          content below, not nested inside it, so it's flush against the
-          true viewport edge instead of the max-width container's edge. */}
-      <DashSidebar
-        canManageListings={canManageListings}
-        isAdmin={isAdmin}
-        activeSection={activeSection}
-        adminTab={adminTab}
-        onAdminTab={(t) => setAdminTab(t)}
-        onExitAdmin={() => setAdminTab(null)}
-        expanded={sidebarExpanded}
-        onToggleExpanded={() => setSidebarExpanded((e) => !e)}
-      />
+      {/*
+        Two-column flex layout: sticky sidebar + scrollable content.
+        The sidebar is `sticky top-0 self-start h-screen` so it pins
+        to the viewport top while the right column scrolls freely.
+        No padding-left hacks needed — the sidebar occupies its own
+        in-flow column.
+      */}
+      <div className="flex flex-1 items-start">
+        {/* Desktop sidebar — hidden below lg, rendered as first flex child */}
+        <DashSidebar {...sidebarProps} />
 
-      {/* Reserves space for the fixed rail on large screens so the centered
-          content never sits underneath it. No left padding below lg since
-          the fixed rail itself is lg:flex-only (hidden on phones/tablets). */}
-      <div className={`transition-[padding] duration-200 ${sidebarExpanded ? "lg:pl-56" : "lg:pl-16"}`}>
-        <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl font-semibold sm:text-4xl">{pickGreeting(user.id)}, {friendlyName(user)} 👋</h1>
-              <p className="mt-1 text-sm text-muted-foreground sm:text-base">Here's what's happening with your properties today.</p>
+        {/* Main content — grows to fill remaining width */}
+        <div className="min-w-0 flex-1">
+          <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="font-display text-2xl font-semibold sm:text-4xl">
+                  {pickGreeting(user.id)}, {friendlyName(user)} 👋
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                  Here's what's happening with your properties today.
+                </p>
+              </div>
+              {canManageListings && (
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link>
+                </Button>
+              )}
             </div>
-            {canManageListings && (
-              <Button asChild className="w-full sm:w-auto"><Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link></Button>
-            )}
-          </div>
 
-          {/* Mobile-only nav trigger — the fixed rail above is desktop-only (lg:flex) */}
-          <div className="mt-6 sm:mt-8 lg:hidden">
-            <DashSidebar
-              canManageListings={canManageListings}
-              isAdmin={isAdmin}
-              activeSection={activeSection}
-              adminTab={adminTab}
-              onAdminTab={(t) => setAdminTab(t)}
-              onExitAdmin={() => setAdminTab(null)}
-              expanded={sidebarExpanded}
-              onToggleExpanded={() => setSidebarExpanded((e) => !e)}
-            />
-          </div>
+            {/* Mobile-only nav trigger (sidebar is lg:flex only) */}
+            <div className="mt-6 sm:mt-8 lg:hidden">
+              <DashSidebar {...sidebarProps} />
+            </div>
 
-          {/* mt-10 so the Overview heading starts a little further down,
-              giving the sidebar's first nav item (which sits below the
-              logo row + toggle button) room to line up comfortably
-              instead of feeling cramped right under the header. On mobile
-              (where the fixed rail is hidden and the row above already
-              adds its own spacing) a smaller mt keeps things snug. */}
-          <div className="mt-6 min-w-0 sm:mt-10">
-            {adminTab ? (
-              <div className="space-y-6">
-                <button
-                  onClick={() => setAdminTab(null)}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  ← Back to dashboard
-                </button>
-                {adminTab === "admin-users"         && <UsersRoles />}
-                {adminTab === "admin-requests"      && <CommissionerRequests />}
-                {adminTab === "admin-tracking"      && <CommissionerTracking />}
-                {adminTab === "admin-listings"      && <ListingQueue />}
-                {adminTab === "admin-announcements" && <AnnouncementsAdmin userId={user.id} />}
-                {adminTab === "admin-audit"         && <AuditLogAdmin />}
-              </div>
-            ) : (
-              <div className="space-y-10 sm:space-y-16">
-                <section id="section-overview">
-                  <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
-                </section>
+            <div className="mt-6 min-w-0 sm:mt-10">
+              {adminTab ? (
+                <div className="space-y-6">
+                  <button
+                    onClick={() => setAdminTab(null)}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ← Back to dashboard
+                  </button>
+                  {adminTab === "admin-users"         && <UsersRoles />}
+                  {adminTab === "admin-requests"      && <CommissionerRequests />}
+                  {adminTab === "admin-tracking"      && <CommissionerTracking />}
+                  {adminTab === "admin-listings"      && <ListingQueue />}
+                  {adminTab === "admin-announcements" && <AnnouncementsAdmin userId={user.id} />}
+                  {adminTab === "admin-audit"         && <AuditLogAdmin />}
+                </div>
+              ) : (
+                <div className="space-y-10 sm:space-y-16">
+                  <section id="section-overview">
+                    <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
+                  </section>
 
-                {canManageListings && (
-                  <>
-                    <section id="section-listings">
-                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                        <Building2 className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-xl font-semibold sm:text-2xl">My listings</h2>
-                      </div>
-                      <Listings userId={user.id} isDeveloper={elevated} />
-                    </section>
+                  {canManageListings && (
+                    <>
+                      <section id="section-listings">
+                        <div className="mb-4 flex items-center gap-3 sm:mb-6">
+                          <Building2 className="h-5 w-5 text-primary" />
+                          <h2 className="font-display text-xl font-semibold sm:text-2xl">My listings</h2>
+                        </div>
+                        <Listings userId={user.id} isDeveloper={elevated} />
+                      </section>
 
-                    <section id="section-sales">
-                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                        <Wallet className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-xl font-semibold sm:text-2xl">Sales</h2>
-                      </div>
-                      <Sales userId={user.id} isDeveloper={elevated} />
-                    </section>
+                      <section id="section-sales">
+                        <div className="mb-4 flex items-center gap-3 sm:mb-6">
+                          <Wallet className="h-5 w-5 text-primary" />
+                          <h2 className="font-display text-xl font-semibold sm:text-2xl">Sales</h2>
+                        </div>
+                        <Sales userId={user.id} isDeveloper={elevated} />
+                      </section>
 
-                    <section id="section-forecast">
-                      <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-xl font-semibold sm:text-2xl">AI forecast</h2>
-                      </div>
-                      <Forecast />
-                    </section>
-                  </>
-                )}
-              </div>
-            )}
+                      <section id="section-forecast">
+                        <div className="mb-4 flex items-center gap-3 sm:mb-6">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                          <h2 className="font-display text-xl font-semibold sm:text-2xl">AI forecast</h2>
+                        </div>
+                        <Forecast />
+                      </section>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -894,7 +861,6 @@ function ListingQueue() {
               <th className="px-4 py-4 sm:px-6 sm:py-5">Agent</th>
               <th className="px-4 py-4 sm:px-6 sm:py-5">Type</th>
               <th className="px-4 py-4 sm:px-6 sm:py-5">Price</th>
-              {/* whitespace-nowrap on both the header and the cell prevents "Pending Review" from wrapping */}
               <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Status</th>
               <th className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">Submitted</th>
               <th className="px-4 py-4 text-right sm:px-6 sm:py-5">Actions</th>
@@ -920,7 +886,6 @@ function ListingQueue() {
                   <td className="px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{p.agentName}</td>
                   <td className="px-4 py-4 sm:px-6 sm:py-5">{typeLabel(p.property_type)}</td>
                   <td className="px-4 py-4 font-semibold sm:px-6 sm:py-5">{formatPrice(p.price)}</td>
-                  {/* whitespace-nowrap keeps the badge on one line */}
                   <td className="whitespace-nowrap px-4 py-4 sm:px-6 sm:py-5">
                     <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium ${STATUS_BADGE[p.status] ?? "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[p.status] ?? p.status}
@@ -1356,10 +1321,6 @@ function CommissionerTracking() {
 }
 
 // ── Admin: Announcements ───────────────────────────────────────────────
-// Where admins author the platform-wide announcements that show up as a
-// Megaphone dropdown in the dashboard topbar for every commissioner/agent
-// (see Nav.tsx). Archiving (rather than deleting) keeps history around;
-// deleting removes it entirely for everyone, including from history here.
 
 function AnnouncementsAdmin({ userId }: { userId: string }) {
   const qc = useQueryClient();
@@ -1488,10 +1449,6 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
 }
 
 // ── Admin: Audit Log ──────────────────────────────────────────────────
-// Read-only feed of who did what and when. Every row here is written by a
-// database trigger (see the create_audit_log migration), not by this page —
-// role grants/revokes and listing creation/deletion are captured
-// automatically no matter which part of the app performed them.
 
 const AUDIT_ACTION_BADGE: Record<string, string> = {
   role_granted:    "bg-green-100 text-green-800",
