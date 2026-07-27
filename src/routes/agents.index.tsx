@@ -132,8 +132,14 @@ function AgentsList() {
           // Plain grid, 1 column mobile / 2 equal columns desktop.
           // Grid tracks are spec-guaranteed equal width — no calc needed.
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {filtered.map((a) => (
-              <Link key={a.id} to="/agents/$id" params={{ id: a.id }} className={CARD_CLASS}>
+            {filtered.map((a, i) => (
+              <Link
+                key={a.id}
+                to="/agents/$id"
+                params={{ id: a.id }}
+                className={`${CARD_CLASS} animate-reveal`}
+                style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
+              >
                 {/* Fixed-size avatar */}
                 <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold">
                   {a.avatar_url

@@ -173,10 +173,14 @@ function Browse() {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-                {filtered.map((p) => {
+                {filtered.map((p, i) => {
                   const isFav = favoriteIds.has(p.id);
                   return (
-                    <div key={p.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-lg">
+                    <div
+                      key={p.id}
+                      className="group relative animate-reveal overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-lg"
+                      style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
+                    >
                       <Link to="/properties/$id" params={{ id: p.id }} className="block">
                         <div className="aspect-[4/3] overflow-hidden bg-muted">
                           {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}

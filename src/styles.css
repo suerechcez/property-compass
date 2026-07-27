@@ -123,6 +123,9 @@
   * {
     border-color: var(--color-border);
   }
+  html {
+    scroll-behavior: smooth;
+  }
   html, body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -136,15 +139,53 @@
     letter-spacing: normal;
   }
 
+  /* Sitewide subtle-motion defaults. Plain <a> tags and anything else
+     that doesn't already carry an explicit Tailwind `transition-*`
+     utility still gets a gentle color/background fade on hover, instead
+     of snapping instantly — this is what makes "the whole site" feel
+     animated without touching every single file. Explicit `transition`
+     classes elsewhere aren't affected; they just override this. */
+  a, button, [role="button"] {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Sticky footer: pages wrapped in .site-page fill the full viewport
      height and push <footer> to the bottom on short pages. */
   .site-page {
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
+    animation: fade-in-up 0.35s ease-out both;
   }
   .site-page > footer {
     margin-top: auto;
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Reveal-on-mount utility for grids of cards (listings, agents, etc).
+     Pair with an inline `style={{ animationDelay: \`${i * 40}ms\` }}` on
+     each item for a subtle staggered cascade instead of everything
+     popping in at once. */
+  .animate-reveal {
+    animation: fade-in-up 0.4s ease-out both;
   }
 
   /* Agent/commissioner directory cards (Find an Agent page). Written
@@ -165,21 +206,6 @@
   @media (min-width: 768px) {
     .agent-card {
       width: calc(50% - 1rem);
-    }
-  }
-
-  /* Mobile bottom tab bar (RightSideBar) reserves this much space below
-     the page so it never overlaps page content or a page's own footer
-     links. Toggled by RightSideBar itself via the "has-mobile-tabbar"
-     class, so routes where the bar is hidden (dashboard, auth) don't
-     carry the extra padding. Cleared entirely at lg and up, where the
-     bar is replaced by the floating desktop rail instead. */
-  body.has-mobile-tabbar {
-    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
-  }
-  @media (min-width: 1024px) {
-    body.has-mobile-tabbar {
-      padding-bottom: 0;
     }
   }
 }
