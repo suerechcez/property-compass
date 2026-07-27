@@ -512,43 +512,79 @@ function SectionedGallery({
 }) {
   return (
     <div className="space-y-8">
-      {sections.map((section, si) => {
-        const [cover, ...rest] = section.images;
-        return (
-          <div key={si} className={si > 0 ? "border-t border-border pt-8" : ""}>
-            <h2 className="font-display text-lg font-bold">{section.label}</h2>
-            {cover && (
-              <button
-                onClick={() => onOpenPhoto(Math.max(allImages.indexOf(cover), 0))}
-                className="group mt-3 block w-full overflow-hidden rounded-xl"
-              >
-                <img
-                  src={cover}
-                  alt={`${title} — ${section.label} photo 1`}
-                  className="aspect-[16/10] w-full object-cover transition duration-300 group-hover:scale-105"
-                />
-              </button>
-            )}
-            {rest.length > 0 && (
-              <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {rest.map((url, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onOpenPhoto(Math.max(allImages.indexOf(url), 0))}
-                    className="group overflow-hidden rounded-lg"
-                  >
-                    <img
-                      src={url}
-                      alt={`${title} — ${section.label} photo ${i + 2}`}
-                      className="aspect-square w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+      {sections.map((section, si) => (
+        <SectionRow
+          key={si}
+          section={section}
+          title={title}
+          allImages={allImages}
+          onOpenPhoto={onOpenPhoto}
+          isFirst={si === 0}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * One room's row within the room-by-room breakdown: a heading, plus that
+ * room's photos laid out smaller and side by side in a horizontally-
+ * scrollable strip (Zillow-style) rather than one big cover photo plus a
+ * grid. Scroll buttons only appear once there's enough photos to actually
+ * need scrolling. Every photo still opens the SAME lightbox/hero gallery
+ * ("slideshow overview") at the top of the page, at its correct global
+ * index — this is just a smaller, more compact way to browse a room's
+ * photos inline, not a separate photo set.
+ */
+function SectionRow({
+  section, title, allImages, onOpenPhoto, isFirst,
+}: {
+  section: ImageSection;
+  title: string;
+  allImages: string[];
+  onOpenPhoto: (globalIndex: number) => void;
+  isFirst: boolean;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className={isFirst ? "" : "border-t border-border pt-8"}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold">{section.label}</h2>
+        {section.images.length > 2 && (
+          <div className="flex gap-1.5">
+            <button
+              aria-label="Scroll left"
+              onClick={() => scrollRef.current?.scrollBy({ left: -320, behavior: "smooth" })}
+              className="grid h-7 w-7 place-items-center rounded-full border border-border hover:bg-accent"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button
+              aria-label="Scroll right"
+              onClick={() => scrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
+              className="grid h-7 w-7 place-items-center rounded-full border border-border hover:bg-accent"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-        );
-      })}
+        )}
+      </div>
+      <div ref={scrollRef} className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {section.images.map((url, i) => (
+          <button
+            key={i}
+            onClick={() => onOpenPhoto(Math.max(allImages.indexOf(url), 0))}
+            className="group h-52 w-72 shrink-0 overflow-hidden rounded-xl sm:h-64 sm:w-[26rem]"
+          >
+            <img
+              src={url}
+              alt={`${title} — ${section.label} photo ${i + 1}`}
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
