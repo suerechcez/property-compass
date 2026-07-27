@@ -309,7 +309,7 @@ function DashSidebar({
           (z-40), so this rail — not the header — owns that top-left
           corner and its own logo. */}
       <aside
-        className={`fixed left-0 top-0 z-50 hidden h-screen flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
+        className={`fixed left-0 top-0 z-50 hidden h-dvh flex-col overflow-y-auto border-r border-border bg-card lg:flex ${expanded ? "w-56" : "w-16"} transition-[width] duration-200`}
       >
         {/* Logo row — height matches the header's own height so this row
             lines up with it for the rest of the page. This is the ONLY
