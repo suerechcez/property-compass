@@ -24,37 +24,34 @@ function AboutPage() {
 
       <section className="bg-primary">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-          <h1 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">
+          <h1
+            className="font-display text-3xl font-bold leading-tight text-white md:text-5xl animate-reveal"
+            style={{ animationDelay: "80ms" }}
+          >
             Your dream property starts with{" "}
             <span className="text-gold">One Higala Properties</span>
           </h1>
 
           <div className="mx-auto mt-8 max-w-2xl space-y-5 text-sm leading-relaxed text-white/85 md:text-base">
-            <p>
-              Welcome to One Higala Properties, your trusted partner in finding the perfect
-              property in Cagayan de Oro and nearby areas. We specialize in helping individuals,
-              families, and investors discover quality real estate opportunities—from condominium
-              units and residential lots to investment properties that fit every lifestyle and budget.
-            </p>
-            <p>
-              At One Higala Properties, we believe that owning a property is more than just making
-              a purchase—it's building a future. Our team is committed to providing honest advice,
-              personalized service, and a smooth buying experience from property inquiry to turnover.
-              Whether you're looking for your dream home, a rental investment, or your first property,
-              we're here to guide you every step of the way.
-            </p>
-            <p>
-              Driven by integrity, professionalism, and a genuine passion for helping our clients,
-              One Higala Properties is dedicated to making your real estate journey simple,
-              transparent, and rewarding.
-            </p>
-            <p className="font-semibold text-white">
+            {[
+              "Welcome to One Higala Properties, your trusted partner in finding the perfect property in Cagayan de Oro and nearby areas. We specialize in helping individuals, families, and investors discover quality real estate opportunities—from condominium units and residential lots to investment properties that fit every lifestyle and budget.",
+              "At One Higala Properties, we believe that owning a property is more than just making a purchase—it's building a future. Our team is committed to providing honest advice, personalized service, and a smooth buying experience from property inquiry to turnover. Whether you're looking for your dream home, a rental investment, or your first property, we're here to guide you every step of the way.",
+              "Driven by integrity, professionalism, and a genuine passion for helping our clients, One Higala Properties is dedicated to making your real estate journey simple, transparent, and rewarding.",
+            ].map((text, i) => (
+              <p key={i} className="animate-reveal" style={{ animationDelay: `${200 + i * 120}ms` }}>{text}</p>
+            ))}
+            <p className="font-semibold text-white animate-reveal" style={{ animationDelay: "560ms" }}>
               Your dream property starts with One Higala Properties.
             </p>
           </div>
 
           {!loading && !user && (
-            <Button asChild size="lg" className="mt-8 rounded-full bg-white text-primary hover:bg-white/90">
+            <Button
+              asChild
+              size="lg"
+              className="mt-8 rounded-full bg-white text-primary hover:bg-white/90 transition hover:scale-105 active:scale-95 animate-reveal"
+              style={{ animationDelay: "680ms" }}
+            >
               <Link to="/auth">
                 <LogIn className="h-4 w-4" />
                 Sign in

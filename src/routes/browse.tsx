@@ -65,10 +65,6 @@ function Browse() {
     queryFn: fetchFavoriteIds,
   });
 
-  // Verified-status lookup for the commissioners behind these listings —
-  // properties.commissioner_id has no declared FK to profiles, so PostgREST
-  // can't embed this in the main query; fetched separately and merged
-  // client-side, same pattern used on the property detail page.
   const commissionerIds = Array.from(new Set(properties.map((p) => p.commissioner_id)));
   const { data: verifiedCommissionerIds = new Set<string>() } = useQuery({
     queryKey: ["verified-commissioners", commissionerIds],
@@ -113,26 +109,34 @@ function Browse() {
     <div className="min-h-screen site-page">
       <Nav />
       <div className="flex flex-1">
-        {/* Listing Updates sidebar — logged-in users only */}
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* Hero banner */}
           <section className="relative overflow-hidden border-b border-border bg-surface">
             {!heroHidden && (
-              <img src={heroSrc} alt="" className="absolute inset-0 h-full w-full object-cover" onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }} />
+              <img
+                src={heroSrc}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover animate-hero-image"
+                onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }}
+              />
             )}
             {!heroHidden && <div className="absolute inset-0 bg-black/40" />}
             <div className="relative px-6 py-6 sm:py-8">
-              <h1 className="font-display text-2xl font-semibold text-white drop-shadow sm:text-3xl">{heading}</h1>
-              <p className="mt-1 text-sm text-white/90 drop-shadow sm:text-base">Condos, hotels, raw land, and resell properties across Cagayan de Oro City.</p>
-              <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5">
+              <h1 className="font-display text-2xl font-semibold text-white drop-shadow sm:text-3xl animate-reveal">{heading}</h1>
+              <p className="mt-1 text-sm text-white/90 drop-shadow sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
+                Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
+              </p>
+              <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5 animate-reveal" style={{ animationDelay: "160ms" }}>
                 <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
               </div>
             </div>
           </section>
 
-          <section className="border-b border-border">
+          {/* Filter chips */}
+          <section className="border-b border-border animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 py-4 sm:py-5">
               <div className="flex flex-wrap items-center gap-2">
                 <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
@@ -148,26 +152,30 @@ function Browse() {
             </div>
           </section>
 
-          {/* Listing Updates mobile trigger — logged-in users only */}
           {user && (
-            <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden">
+            <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden animate-fade-in">
               <SideBarMobileTrigger />
             </div>
           )}
 
+          {/* Listings grid */}
           <section className="px-6 py-6 sm:py-12">
             {isLoading ? (
-              <p className="text-muted-foreground">Loading listings…</p>
+              <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-72 rounded-2xl border border-border bg-muted animate-shimmer animate-reveal" style={{ animationDelay: `${i * 40}ms` }} />
+                ))}
+              </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center sm:p-16">
+              <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center sm:p-16 animate-scale-in">
                 <h3 className="font-display text-xl font-semibold sm:text-2xl">No listings for now</h3>
                 <p className="mt-2 text-muted-foreground">When commissioners and agents post properties, they'll appear here.</p>
                 {user ? (
-                  <Button asChild className="mt-6"><Link to="/apply">Become a Commissioner / Agent</Link></Button>
+                  <Button asChild className="mt-6 transition hover:scale-105 active:scale-95"><Link to="/apply">Become a Commissioner / Agent</Link></Button>
                 ) : (
                   <div className="mx-auto mt-6 max-w-sm">
                     <p className="font-display italic text-foreground/85">"Every home sold starts with someone brave enough to take the first step."</p>
-                    <Button asChild className="mt-4"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in to get started</Link></Button>
+                    <Button asChild className="mt-4 transition hover:scale-105 active:scale-95"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in to get started</Link></Button>
                   </div>
                 )}
               </div>
@@ -178,12 +186,15 @@ function Browse() {
                   return (
                     <div
                       key={p.id}
-                      className="group relative animate-reveal overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-lg"
-                      style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
+                      className="group relative animate-reveal overflow-hidden rounded-2xl border border-border bg-card card-hover"
+                      style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
                     >
                       <Link to="/properties/$id" params={{ id: p.id }} className="block">
                         <div className="aspect-[4/3] overflow-hidden bg-muted">
-                          {p.images?.[0] ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover transition group-hover:scale-105" /> : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}
+                          {p.images?.[0]
+                            ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover group-img-zoom" />
+                            : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>
+                          }
                         </div>
                         <div className="p-4 sm:p-5">
                           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
@@ -205,10 +216,9 @@ function Browse() {
                           </p>
                         </div>
                       </Link>
-                      {/* Heart / favorite button */}
                       <button
                         onClick={(e) => handleHeart(e, p.id)}
-                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
+                        className="btn-bounce absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
                         aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
                       >
                         <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
@@ -219,11 +229,7 @@ function Browse() {
               </div>
             )}
 
-            {/* "You recently viewed" — same localStorage-driven row shown on
-                a property's own detail page, surfaced here too so browsing
-                back to the main listings still shows a quick way back to
-                whatever you'd already looked at. */}
-            <div className="mt-12 border-t border-border pt-10">
+            <div className="mt-12 border-t border-border pt-10 animate-reveal" style={{ animationDelay: "200ms" }}>
               <RecentlyViewed />
             </div>
           </section>
@@ -239,7 +245,14 @@ function Browse() {
 
 function FilterChip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm transition ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/70 hover:bg-accent"}`}>
+    <button
+      onClick={onClick}
+      className={`filter-chip shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card text-foreground/70 hover:bg-accent"
+      }`}
+    >
       {children}
     </button>
   );

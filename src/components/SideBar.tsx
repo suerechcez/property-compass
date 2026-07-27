@@ -27,20 +27,19 @@ function useRecentUpdates() {
   });
 }
 
-/** The actual "Listing updates" list — shared between the desktop <aside> and the mobile HUD. */
 function SideBarContent() {
   const { data: recent = [] } = useRecentUpdates();
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground animate-fade-in">
         <Newspaper className="h-3.5 w-3.5" /> Listing updates
       </div>
       {recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No listing updates yet.</p>
+        <p className="text-sm text-muted-foreground animate-fade-in">No listing updates yet.</p>
       ) : (
         <ul className="space-y-3">
-          {recent.map((p) => (
-            <li key={p.id}>
+          {recent.map((p, i) => (
+            <li key={p.id} className="sidebar-item" style={{ animationDelay: `${i * 50}ms` }}>
               <Link
                 to="/properties/$id"
                 params={{ id: p.id }}
@@ -48,13 +47,13 @@ function SideBarContent() {
               >
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
                   {p.images?.[0] ? (
-                    <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                    <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover group-img-zoom" />
                   ) : (
                     <div className="grid h-full w-full place-items-center font-display text-sm text-muted-foreground">H</div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium group-hover:text-primary">{p.title}</p>
+                  <p className="truncate text-sm font-medium group-hover:text-primary transition-colors">{p.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {typeLabel(p.property_type)} · {formatPrice(p.price)}
                   </p>
@@ -71,18 +70,9 @@ function SideBarContent() {
   );
 }
 
-/**
- * Desktop sidebar — visually unchanged, still only shown at lg+.
- *
- * top-20 (80px) / calc(100vh-5rem) match the Nav header's ACTUAL rendered
- * height: py-4 (32px total) + its tallest inline content, the 48px
- * avatar/bell row = 80px. The previous top-16/4rem (64px) guess was 16px
- * short, so the top of this panel scrolled 16px underneath the sticky
- * header before "catching" — this is the fix for that.
- */
 export function SideBar() {
   return (
-    <aside className="hidden w-56 shrink-0 border-r border-border bg-card/40 lg:block">
+    <aside className="hidden w-56 shrink-0 border-r border-border bg-card/40 lg:block animate-slide-left">
       <div className="sticky top-20 flex h-[calc(100vh-5rem)] flex-col gap-6 overflow-y-auto p-4">
         <SideBarContent />
       </div>
@@ -90,24 +80,17 @@ export function SideBar() {
   );
 }
 
-/**
- * Mobile-only "Listing Updates" button — opens the same content as a
- * fullscreen HUD (not a side drawer) covering the entire screen, dismissed
- * by tapping the scrim rather than an explicit close button. Meant to be
- * placed as a standalone button between the filter/category row and the
- * listings grid on the Browse page (the <aside> above is hidden below lg).
- */
 export function SideBarMobileTrigger() {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="mx-auto flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:border-primary hover:text-primary lg:hidden">
+        <button className="mx-auto flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:border-primary hover:text-primary hover:scale-105 active:scale-95 lg:hidden">
           <Megaphone className="h-4 w-4" />
           Listing Updates
         </button>
       </SheetTrigger>
-      <SheetContent side="fullscreen" hideClose className="overflow-y-auto p-6">
+      <SheetContent side="fullscreen" hideClose className="overflow-y-auto p-6 animate-fade-in">
         <SheetHeader>
           <SheetTitle className="font-display">Listing updates</SheetTitle>
         </SheetHeader>
