@@ -135,6 +135,15 @@ function PropertyDetail() {
   const isFav = favoriteIds.has(id);
 
   const sections = resolveSections(data.images ?? [], data.image_sections as ImageSection[] | null);
+  // Distinct from `sections.length` on purpose: resolveSections() also
+  // returns a length-1 array for legacy listings with NO image_sections
+  // at all (a synthetic single "Photos" section built from the flat
+  // `images` column, so old listings still render a gallery). Checking
+  // the raw column here means a listing the agent deliberately grouped
+  // into just one named room — e.g. only "Living Room" — still shows
+  // that label and its own row below, instead of being treated the same
+  // as an unsectioned legacy listing and hidden entirely.
+  const hasNamedSections = !!(data.image_sections as ImageSection[] | null)?.length;
   // Sourced straight from the legacy `images` column rather than flattening
   // `sections` — this is deliberate. The dedicated "main photo" saved from
   // the listing form is prepended to `images` (so images[0] is always the
@@ -226,15 +235,17 @@ function PropertyDetail() {
                 smaller, quick-glance companion to it — not a replacement. */}
             <RoomPhotoStrip sections={sections} title={data.title} allImages={flatImages} onOpenPhoto={setLightboxIndex} />
 
-            {/* Room-by-room breakdown — only shown when the listing
-                actually uses more than one named section; with just one
-                section (or the legacy single "Photos" fallback) every
-                photo is already visible in the hero gallery above, so
-                repeating them here would just be a duplicate of the same
-                photos. Section indices are offset to match their position
-                in the flattened `images` list (cover photo is always
-                index 0), so the lightbox's prev/next still lines up. */}
-            {sections.length > 1 && (
+            {/* Room-by-room breakdown — shown whenever the listing has any
+                real, agent-named section(s) in image_sections, even just
+                one (e.g. only "Living Room"). Only the synthetic single
+                "Photos" fallback used for legacy/unsectioned listings is
+                excluded here, since every one of ITS photos is already
+                visible in the hero gallery above and it has no meaningful
+                label of its own to show. Section indices are offset to
+                match their position in the flattened `images` list (cover
+                photo is always index 0), so the lightbox's prev/next
+                still lines up. */}
+            {hasNamedSections && (
               <div className="mt-10">
                 <SectionedGallery sections={sections} title={data.title} allImages={flatImages} onOpenPhoto={setLightboxIndex} />
               </div>
