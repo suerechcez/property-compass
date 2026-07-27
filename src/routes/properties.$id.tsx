@@ -217,6 +217,15 @@ function PropertyDetail() {
                 sections below. */}
             <HeroGallery images={flatImages} title={data.title} onOpenPhoto={setLightboxIndex} />
 
+            {/* Small scrollable "browse by room" strip — one small photo per
+                section (Kitchen, Bathroom, Backyard, etc.), so a visitor can
+                jump straight to a specific room's photo without scrolling
+                all the way down to the full room-by-room breakdown below.
+                That fuller breakdown (SectionedGallery) already shows every
+                section's photos at full size, so this strip is purely a
+                smaller, quick-glance companion to it — not a replacement. */}
+            <RoomPhotoStrip sections={sections} title={data.title} allImages={flatImages} onOpenPhoto={setLightboxIndex} />
+
             {/* Room-by-room breakdown — only shown when the listing
                 actually uses more than one named section; with just one
                 section (or the legacy single "Photos" fallback) every
@@ -284,10 +293,9 @@ function PropertyDetail() {
                 {contactEmail && (
                   <a
                     href={`mailto:${contactEmail}`}
-                    className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary hover:text-primary"
+                    className="flex items-center gap-2.5 truncate rounded-lg border border-border px-3 py-2.5 text-sm transition hover:border-primary hover:text-primary"
                   >
-                    <Mail className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{contactEmail}</span>
+                    <Mail className="h-4 w-4 shrink-0" /><span className="truncate">{contactEmail}</span>
                   </a>
                 )}
                 {!contactPhone && !contactEmail && (
@@ -405,6 +413,82 @@ function HeroGallery({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Small horizontally-scrollable strip of one thumbnail per room section
+ * (Kitchen, Bathroom, Backyard, etc.), sitting right under the hero
+ * gallery. Deliberately much smaller than the full room-by-room
+ * breakdown further down the page (SectionedGallery) — this is a
+ * quick-glance way to jump straight to a specific room's photo, not a
+ * duplicate of that fuller section. Only renders when the listing
+ * actually has more than one named section; a single section (or the
+ * legacy "Photos" fallback) is already fully covered by the hero gallery
+ * above, so a one-item strip here would just repeat it.
+ */
+function RoomPhotoStrip({
+  sections, title, allImages, onOpenPhoto,
+}: {
+  sections: ImageSection[];
+  title: string;
+  allImages: string[];
+  onOpenPhoto: (globalIndex: number) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (sections.length <= 1) return null;
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-muted-foreground">Browse by room</h3>
+        <div className="flex gap-1.5">
+          <button
+            aria-label="Scroll left"
+            onClick={() => scrollRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+            className="grid h-7 w-7 place-items-center rounded-full border border-border hover:bg-accent"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            aria-label="Scroll right"
+            onClick={() => scrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+            className="grid h-7 w-7 place-items-center rounded-full border border-border hover:bg-accent"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div ref={scrollRef} className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {sections.map((section, si) => {
+          const cover = section.images[0];
+          // Global index within the flattened cover-first `images` list,
+          // so clicking a room here opens the lightbox at the correct
+          // photo and prev/next still moves across section boundaries —
+          // same convention SectionedGallery uses below.
+          const globalIndex = cover ? Math.max(allImages.indexOf(cover), 0) : 0;
+          return (
+            <button
+              key={si}
+              onClick={() => onOpenPhoto(globalIndex)}
+              aria-label={`View ${section.label} photos`}
+              className="group w-28 shrink-0 overflow-hidden rounded-xl border border-border text-left transition hover:border-primary"
+            >
+              <div className="aspect-[4/3] overflow-hidden bg-muted">
+                {cover
+                  ? <img src={cover} alt={`${title} — ${section.label}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  : <div className="grid h-full w-full place-items-center text-[10px] text-muted-foreground">No photo</div>}
+              </div>
+              <div className="px-2 py-1.5">
+                <p className="truncate text-xs font-medium">{section.label}</p>
+                <p className="text-[10px] text-muted-foreground">{section.images.length} photo{section.images.length !== 1 ? "s" : ""}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
