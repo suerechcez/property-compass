@@ -193,6 +193,11 @@
     80%  { transform: scale(0.96); }
     100% { opacity: 1; transform: scale(1); }
   }
+  @keyframes brand-pop-hover {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
 
   /* Entrance "pop" for the "Bringing You Home, the Higala Way." tagline
      in the top bar — a small bounce (overshoot past 1, settle back) via
@@ -201,10 +206,20 @@
      PROPERTIES INC." above it land first, so the two lines don't animate
      in as one flat block. transform-origin: left keeps the scale
      anchored to where the text starts instead of growing from its
-     center. */
+     center.
+
+     Hovering replays the same bounce (brand-pop-hover): a DIFFERENT
+     keyframe name than the mount animation on purpose. If :hover just
+     re-declared `brand-pop` with the exact same values, the browser
+     would treat it as the same already-finished animation and NOT
+     restart it — a distinct name (even for a near-identical effect)
+     always triggers a fresh run. */
   .animate-brand-pop {
     transform-origin: left center;
     animation: brand-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+  }
+  .animate-brand-pop:hover {
+    animation: brand-pop-hover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Reveal-on-mount utility for grids of cards (listings, agents, etc).
