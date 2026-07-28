@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const HERO_IMAGE_URL = "/hero-oh.jpg";
+const HERO_IMAGE_URL = "/hero-oh.png";
 
 function Home() {
   const [q, setQ] = useState("");
