@@ -25,10 +25,24 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 
 const BRAND_ICON_URL = "/brand-icon.png";
-const NAV_LINK_CLASS = "text-foreground hover:text-primary";
-
 // Routes where the marketing nav links (Browse / Sell / Find an Agent) should be hidden
 const DASHBOARD_ROUTES = ["/dashboard"];
+
+/**
+ * Desktop marketing nav link (Browse / Sell / Find an agent) with an
+ * animated underline that grows in from the left on hover, rather than a
+ * plain color-only hover state. `scale-x-0 → scale-x-100` (instead of
+ * animating `width`) keeps the animation smooth since transforms don't
+ * trigger layout the way width changes do.
+ */
+function NavLink({ to, children }: { to: string; children: string }) {
+  return (
+    <Link to={to} className="group relative py-1 text-foreground transition-colors hover:text-primary">
+      {children}
+      <span className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out group-hover:scale-x-100" />
+    </Link>
+  );
+}
 
 export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { overlay?: boolean; dashboardSidebarExpanded?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
@@ -169,9 +183,9 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
           {/* Desktop nav links — hidden on dashboard */}
           {!isDashboard && (
             <nav className="hidden items-center gap-6 text-base font-medium md:flex">
-              <Link to="/browse" className={NAV_LINK_CLASS}>Browse</Link>
-              <Link to="/sell"   className={NAV_LINK_CLASS}>Sell</Link>
-              <Link to="/agents" className={NAV_LINK_CLASS}>Find an agent</Link>
+              <NavLink to="/browse">Browse</NavLink>
+              <NavLink to="/sell">Sell</NavLink>
+              <NavLink to="/agents">Find an agent</NavLink>
             </nav>
           )}
         </div>
