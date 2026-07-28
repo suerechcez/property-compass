@@ -113,20 +113,20 @@ const STATUS_LABEL: Record<string, string> = {
 
 function BigTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card animate-reveal">
       <table className="w-full min-w-[640px] text-base">
         <thead className="bg-surface text-left text-sm font-semibold uppercase tracking-wider text-muted-foreground">{head}</thead>
-        <tbody>{children}</tbody>
+        <tbody className="[&>tr]:transition-colors [&>tr:hover]:bg-accent/40">{children}</tbody>
       </table>
     </div>
   );
 }
 function DashTable({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card animate-reveal">
       <table className="w-full min-w-[560px] text-sm">
         <thead className="bg-surface text-left text-xs uppercase tracking-wider text-muted-foreground">{head}</thead>
-        <tbody>{children}</tbody>
+        <tbody className="[&>tr]:transition-colors [&>tr:hover]:bg-accent/40">{children}</tbody>
       </table>
     </div>
   );
@@ -135,7 +135,7 @@ function SectionCard({ title, subtitle, action, children }: {
   title: string; subtitle?: string; action?: React.ReactNode; children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+    <div className="rounded-2xl border border-border bg-card p-4 transition-shadow duration-300 hover:shadow-soft animate-reveal sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-semibold sm:text-xl">{title}</h2>
@@ -212,11 +212,11 @@ function DashSidebar({
         onClick={() => handleItemClick(id)}
         title={TAB_LABELS[id]}
         aria-label={TAB_LABELS[id]}
-        className={`flex shrink-0 items-center gap-3 rounded-xl transition-all ${
+        className={`flex shrink-0 items-center gap-3 rounded-xl transition-all hover:scale-[1.03] active:scale-95 ${
           itemExpanded ? "w-full justify-start px-3 py-2.5 text-sm font-medium" : "h-10 w-10 justify-center"
         } ${
           isActive
-            ? "bg-primary text-primary-foreground shadow-sm"
+            ? "bg-primary text-primary-foreground shadow-sm animate-scale-in"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         }`}
       >
@@ -255,7 +255,7 @@ function DashSidebar({
           onClick={onToggleExpanded}
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
           title={expanded ? "Collapse sidebar" : "Expand sidebar"}
-          className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
+          className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:scale-110 hover:bg-accent hover:text-foreground active:scale-90"
         >
           {expanded ? <ChevronsLeft className="h-3 w-3" /> : <ChevronsRight className="h-3 w-3" />}
         </button>
@@ -278,13 +278,13 @@ function DashSidebar({
     <>
       {/* Mobile — inline dropdown trigger */}
       <button
-        className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium lg:hidden"
+        className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition hover:bg-accent active:scale-95 lg:hidden"
         onClick={() => setMobileOpen((o) => !o)}
       >
         <Menu className="h-4 w-4" />{currentLabel}
       </button>
       {mobileOpen && (
-        <div className="rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
+        <div className="animate-scale-in rounded-2xl border border-border bg-card shadow-lg lg:hidden">{mobileContent}</div>
       )}
 
       {/*
@@ -302,13 +302,14 @@ function DashSidebar({
           "h-screen overflow-y-auto",
           "border-r border-border bg-card",
           "transition-[width] duration-200",
+          "animate-slide-left",
           expanded ? "w-56" : "w-16",
         ].join(" ")}
       >
         {/* Logo row — aligns with the Nav header height */}
         <Link
           to="/"
-          className="flex shrink-0 items-center justify-center border-b border-border transition hover:opacity-80"
+          className="flex shrink-0 items-center justify-center border-b border-border transition hover:scale-105 hover:opacity-80 animate-fade-in"
           style={{ height: LOGO_ROW_PX }}
         >
           {iconOk ? (
@@ -426,15 +427,15 @@ function Dashboard() {
           <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="font-display text-2xl font-semibold sm:text-4xl">
+                <h1 className="font-display text-2xl font-semibold sm:text-4xl animate-reveal">
                   {pickGreeting(user.id)}, {friendlyName(user)} 👋
                 </h1>
-                <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
                   Here's what's happening with your properties today.
                 </p>
               </div>
               {canManageListings && (
-                <Button asChild className="w-full sm:w-auto">
+                <Button asChild className="w-full transition hover:scale-105 active:scale-95 animate-scale-in sm:w-auto" style={{ animationDelay: "160ms" }}>
                   <Link to="/listings/new"><Plus className="h-4 w-4" />Post Property</Link>
                 </Button>
               )}
@@ -447,10 +448,10 @@ function Dashboard() {
 
             <div className="mt-6 min-w-0 sm:mt-10">
               {adminTab ? (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-fade-in">
                   <button
                     onClick={() => setAdminTab(null)}
-                    className="text-sm text-muted-foreground hover:text-foreground"
+                    className="text-sm text-muted-foreground transition hover:translate-x-[-2px] hover:text-foreground"
                   >
                     ← Back to dashboard
                   </button>
@@ -463,31 +464,31 @@ function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-10 sm:space-y-16">
-                  <section id="section-overview">
+                  <section id="section-overview" className="animate-reveal">
                     <Overview userId={user.id} isCommissioner={canManageListings} isDeveloper={elevated} />
                   </section>
 
                   {canManageListings && (
                     <>
-                      <section id="section-listings">
+                      <section id="section-listings" className="animate-reveal" style={{ animationDelay: "80ms" }}>
                         <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                          <Building2 className="h-5 w-5 text-primary" />
+                          <Building2 className="h-5 w-5 text-primary animate-float" />
                           <h2 className="font-display text-xl font-semibold sm:text-2xl">My listings</h2>
                         </div>
                         <Listings userId={user.id} isDeveloper={elevated} />
                       </section>
 
-                      <section id="section-sales">
+                      <section id="section-sales" className="animate-reveal" style={{ animationDelay: "140ms" }}>
                         <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                          <Wallet className="h-5 w-5 text-primary" />
+                          <Wallet className="h-5 w-5 text-primary animate-float" style={{ animationDelay: "200ms" }} />
                           <h2 className="font-display text-xl font-semibold sm:text-2xl">Sales</h2>
                         </div>
                         <Sales userId={user.id} isDeveloper={elevated} />
                       </section>
 
-                      <section id="section-forecast">
+                      <section id="section-forecast" className="animate-reveal" style={{ animationDelay: "200ms" }}>
                         <div className="mb-4 flex items-center gap-3 sm:mb-6">
-                          <Sparkles className="h-5 w-5 text-primary" />
+                          <Sparkles className="h-5 w-5 text-primary animate-float" style={{ animationDelay: "400ms" }} />
                           <h2 className="font-display text-xl font-semibold sm:text-2xl">AI forecast</h2>
                         </div>
                         <Forecast />
@@ -541,32 +542,32 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 animate-fade-in">
         <LayoutDashboard className="h-5 w-5 text-primary" />
         <h2 className="font-display text-xl font-semibold sm:text-2xl">Overview</h2>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} />
-        <Stat label="Published" value={String(stats?.published ?? "—")} />
-        <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} />
-        <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} />
+        <Stat label={isDeveloper ? "All listings" : "Your listings"} value={String(stats?.propsCount ?? "—")} delay={0} />
+        <Stat label="Published" value={String(stats?.published ?? "—")} delay={60} />
+        <Stat label={isDeveloper ? "All sales" : "Your sales"} value={String(stats?.salesCount ?? "—")} delay={120} />
+        <Stat label="Total volume" value={stats ? formatPrice(stats.totalSales) : "—"} delay={180} />
       </div>
 
       {isCommissioner && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 animate-fade-in">
             <h3 className="font-display text-base font-semibold sm:text-lg">{isDeveloper ? "All listings" : "Your listings"}</h3>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="transition hover:scale-105 active:scale-95">
               <Link to="/browse">Browse all listings →</Link>
             </Button>
           </div>
           {listingsLoading ? (
             <p className="text-muted-foreground">Loading…</p>
           ) : myListings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
+            <div className="animate-scale-in rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
               <p className="text-muted-foreground">No listings yet.</p>
-              <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
+              <Button asChild className="mt-4 transition hover:scale-105 active:scale-95"><Link to="/listings/new">Post your first property</Link></Button>
             </div>
           ) : (
             <BigTable
@@ -616,9 +617,12 @@ function Overview({ userId, isCommissioner, isDeveloper }: { userId: string; isC
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, delay = 0 }: { label: string; value: string; delay?: number }) {
   return (
-    <div className="flex h-24 flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:h-28 sm:p-5">
+    <div
+      className="flex h-24 flex-col justify-between rounded-2xl border border-border bg-card p-4 animate-reveal card-hover sm:h-28 sm:p-5"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
       <p className="font-display text-xl font-semibold leading-none sm:text-3xl">{value}</p>
     </div>
@@ -658,13 +662,18 @@ function StatusDropdown({ property, onSelect, loading }: {
   if (options.length === 0) return null;
   return (
     <div className="relative" ref={ref}>
-      <Button size="sm" variant="outline" disabled={loading} onClick={() => setOpen((o) => !o)} className="gap-1" title="Update status">
+      <Button size="sm" variant="outline" disabled={loading} onClick={() => setOpen((o) => !o)} className="gap-1 transition active:scale-90" title="Update status">
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </Button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1 min-w-[120px] rounded-xl border border-border bg-white shadow-lg">
-          {options.map((o) => (
-            <button key={o.value} className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`} onClick={() => { setOpen(false); onSelect(o.value); }}>
+        <div className="animate-scale-in absolute right-0 z-50 mt-1 min-w-[120px] rounded-xl border border-border bg-white shadow-lg">
+          {options.map((o, i) => (
+            <button
+              key={o.value}
+              className={`flex w-full items-center px-4 py-2.5 text-left text-sm font-medium transition ${o.className}`}
+              style={{ animationDelay: `${i * 30}ms` }}
+              onClick={() => { setOpen(false); onSelect(o.value); }}
+            >
               {o.label}
             </button>
           ))}
@@ -727,11 +736,11 @@ function Listings({ userId, isDeveloper }: { userId: string; isDeveloper: boolea
     }
   }
 
-  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (isLoading) return <p className="text-muted-foreground animate-fade-in">Loading…</p>;
   if (properties.length === 0) return (
-    <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
+    <div className="animate-scale-in rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
       <p className="text-muted-foreground">No listings yet.</p>
-      <Button asChild className="mt-4"><Link to="/listings/new">Post your first property</Link></Button>
+      <Button asChild className="mt-4 transition hover:scale-105 active:scale-95"><Link to="/listings/new">Post your first property</Link></Button>
     </div>
   );
 
@@ -831,7 +840,7 @@ function ListingQueue() {
         action={
           <div className="flex items-center gap-3">
             {pendingCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">{pendingCount} pending</span>
+              <span className="animate-badge-pop inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">{pendingCount} pending</span>
             )}
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
               {(["pending", "all"] as const).map((f) => (
@@ -849,8 +858,8 @@ function ListingQueue() {
           Failed to load: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       ) : listings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-green-400" />
+        <div className="animate-scale-in rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-green-400 animate-float" />
           <p className="mt-3 font-medium">All clear — no {filter === "pending" ? "pending" : ""} listings.</p>
         </div>
       ) : (
@@ -895,19 +904,19 @@ function ListingQueue() {
                   <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
                     {p.status === "pending" && (
                       <>
-                        <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 hover:bg-green-700 text-white">
+                        <Button size="sm" onClick={() => decide.mutate({ id: p.id, action: "approve" })} className="bg-green-600 text-white transition hover:scale-105 hover:bg-green-700 active:scale-95">
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Approve
                         </Button>
-                        <Button size="sm" variant="outline" className="ml-2 text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}>
+                        <Button size="sm" variant="outline" className="ml-2 border-destructive/40 text-destructive transition hover:scale-105 hover:bg-destructive/10 active:scale-95" onClick={() => { setOpenId(isOpen ? null : p.id); setRejectNote(""); }}>
                           <XCircle className="mr-1 h-3.5 w-3.5" />{isOpen ? "Cancel" : "Reject"}
                         </Button>
                       </>
                     )}
-                    {p.status !== "pending" && <Button size="sm" variant="outline" asChild><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>}
+                    {p.status !== "pending" && <Button size="sm" variant="outline" asChild className="transition hover:scale-105 active:scale-95"><Link to="/listings/$id/edit" params={{ id: p.id }}>Edit</Link></Button>}
                   </td>
                 </tr>
                 {isOpen && p.status === "pending" && (
-                  <tr key={`${p.id}-reject`} className="border-t border-border bg-red-50/50">
+                  <tr key={`${p.id}-reject`} className="animate-fade-in border-t border-border bg-red-50/50">
                     <td colSpan={7} className="px-4 py-4 sm:px-6 sm:py-5">
                       <p className="mb-2 text-sm font-medium text-destructive">Rejection note (optional):</p>
                       <div className="flex flex-col gap-2 sm:flex-row">
@@ -995,10 +1004,10 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div className="animate-reveal rounded-2xl border border-border bg-card p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-base font-semibold sm:text-lg">{editingId ? "Edit sale" : "Log a new sale"}</h3>
-          {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel edit</Button>}
+          {editingId && <Button type="button" variant="ghost" size="sm" className="transition hover:scale-105 active:scale-95" onClick={resetForm}>Cancel edit</Button>}
         </div>
         <form className="mt-4 grid gap-3 md:grid-cols-5" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
           <div className="md:col-span-2">
@@ -1012,12 +1021,12 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
           <div><Label>Commission</Label><Input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} /></div>
           <div><Label>Date</Label><Input type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} /></div>
           <div className="md:col-span-4"><Label>Buyer (optional)</Label><Input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} /></div>
-          <div className="flex items-end"><Button className="w-full" type="submit">{editingId ? "Save changes" : "Add sale"}</Button></div>
+          <div className="flex items-end"><Button className="w-full transition hover:scale-105 active:scale-95" type="submit">{editingId ? "Save changes" : "Add sale"}</Button></div>
         </form>
       </div>
 
       {chartData.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+        <div className="animate-reveal rounded-2xl border border-border bg-card p-4 sm:p-6" style={{ animationDelay: "80ms" }}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-display text-base font-semibold sm:text-lg">Sales over time</h3>
             <div className="flex gap-1 rounded-full border border-border bg-surface p-0.5 text-xs font-medium">
@@ -1035,7 +1044,7 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
                 <XAxis dataKey="label" tickFormatter={formatXTick} stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} interval="preserveStartEnd" />
                 <YAxis stroke={chartColors.mutedFg} tick={{ fill: chartColors.mutedFg, fontSize: 11 }} tickFormatter={formatYAxis} width={48} />
                 <Tooltip formatter={(v: number) => [formatPrice(v), "Volume"]} labelFormatter={formatXTick} contentStyle={{ background: chartColors.card, border: `1px solid ${chartColors.border}`, borderRadius: 8, color: chartColors.cardFg }} />
-                <Line type="monotone" dataKey="total" stroke={chartColors.primary} strokeWidth={2.5} dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }} activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="total" stroke={chartColors.primary} strokeWidth={2.5} dot={{ r: 4, fill: chartColors.primary, strokeWidth: 0 }} activeDot={{ r: 6, fill: chartColors.primary, strokeWidth: 0 }} animationDuration={900} animationEasing="ease-out" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -1055,8 +1064,8 @@ function Sales({ userId, isDeveloper }: { userId: string; isDeveloper: boolean }
               <td className="px-4 py-3 font-medium sm:px-5 sm:py-4">{formatPrice(s.amount)}</td>
               <td className="px-4 py-3 text-primary sm:px-5 sm:py-4">{formatPrice(s.commission)}</td>
               <td className="whitespace-nowrap px-4 py-3 text-right sm:px-5 sm:py-4">
-                <Button size="sm" variant="outline" onClick={() => startEdit(s)}>Edit</Button>
-                <Button size="sm" variant="ghost" className="ml-2 text-destructive" onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}>Delete</Button>
+                <Button size="sm" variant="outline" className="transition hover:scale-105 active:scale-95" onClick={() => startEdit(s)}>Edit</Button>
+                <Button size="sm" variant="ghost" className="ml-2 text-destructive transition hover:scale-105 active:scale-95" onClick={() => { if (confirm("Delete this sale?")) del.mutate(s.id); }}>Delete</Button>
               </td>
             </tr>
           ))
@@ -1082,18 +1091,22 @@ function Forecast() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-4 animate-reveal sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <p className="text-sm text-muted-foreground">Analyze your logged sales and project the next three months.</p>
-        <Button onClick={run} disabled={loading} className="w-full shrink-0 sm:w-auto">{loading ? "Analyzing…" : "Run forecast"}</Button>
+        <Button onClick={run} disabled={loading} className="w-full shrink-0 transition hover:scale-105 active:scale-95 sm:w-auto">{loading ? "Analyzing…" : "Run forecast"}</Button>
       </div>
       {result && (
         <>
           {result.forecast.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+            <div className="animate-reveal rounded-2xl border border-border bg-card p-4 sm:p-6">
               <h3 className="font-display text-base font-semibold sm:text-lg">Projected volume — next 3 months</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {result.forecast.map((f) => (
-                  <div key={f.month} className="flex h-24 flex-col justify-between rounded-xl border border-border bg-surface p-4 sm:h-28 sm:p-5">
+                {result.forecast.map((f, i) => (
+                  <div
+                    key={f.month}
+                    className="flex h-24 flex-col justify-between rounded-xl border border-border bg-surface p-4 animate-reveal card-hover sm:h-28 sm:p-5"
+                    style={{ animationDelay: `${i * 80}ms` }}
+                  >
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">{f.month}</p>
                     <p className="font-display text-xl font-semibold text-primary leading-none sm:text-2xl">{formatPrice(f.projected)}</p>
                   </div>
@@ -1101,7 +1114,7 @@ function Forecast() {
               </div>
             </div>
           )}
-          <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+          <div className="animate-reveal rounded-2xl border border-border bg-card p-4 sm:p-6" style={{ animationDelay: "120ms" }}>
             <h3 className="font-display text-base font-semibold sm:text-lg">AI analysis</h3>
             <p className="mt-4 whitespace-pre-line leading-relaxed text-foreground/85">{result.summary}</p>
           </div>
@@ -1178,15 +1191,16 @@ function UsersRoles() {
               <Button
                 size="sm"
                 variant={u.is_verified ? "outline" : "default"}
+                className="transition hover:scale-105 active:scale-95"
                 onClick={() => setVerified.mutate({ userId: u.id, verified: !u.is_verified })}
               >
                 {u.is_verified ? "Remove verification" : "Verify"}
               </Button>
             </td>
             <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
-              {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
-              {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
-              {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
+              {!u.roles.includes("commissioner") && <Button size="sm" variant="outline" className="transition hover:scale-105 active:scale-95" onClick={() => grant.mutate({ userId: u.id, role: "commissioner" })}>Make commissioner</Button>}
+              {!u.roles.includes("agent")        && <Button size="sm" variant="outline" className="ml-2 transition hover:scale-105 active:scale-95" onClick={() => grant.mutate({ userId: u.id, role: "agent" })}>Make agent</Button>}
+              {!u.roles.includes("admin")        && <Button size="sm" variant="ghost"   className="ml-2 transition hover:scale-105 active:scale-95" onClick={() => grant.mutate({ userId: u.id, role: "admin" })}>Make admin</Button>}
             </td>
           </tr>
         ))}
@@ -1242,7 +1256,7 @@ function CommissionerRequests() {
                   <td className="px-4 py-4 text-right sm:px-6 sm:py-5"><Button size="sm" variant="outline" onClick={() => setOpenId(isOpen ? null : r.id)}>{isOpen ? "Close" : "View details"}</Button></td>
                 </tr>
                 {isOpen && (
-                  <tr key={`${r.id}-detail`} className="border-t border-border bg-surface/60">
+                  <tr key={`${r.id}-detail`} className="animate-fade-in border-t border-border bg-surface/60">
                     <td colSpan={4} className="px-4 py-5 sm:px-6 sm:py-6">
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full name</p><p className="mt-1 text-sm">{displayName}</p></div>
@@ -1251,9 +1265,9 @@ function CommissionerRequests() {
                       </div>
                       <div className="mt-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</p><p className="mt-1 whitespace-pre-line text-sm text-foreground/85">{r.reason ?? r.note ?? "No reason provided."}</p></div>
                       <div className="mt-5 flex flex-wrap gap-2">
-                        <Button size="sm" variant={r.requested_role === "commissioner" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
-                        <Button size="sm" variant={r.requested_role === "agent" ? "default" : "outline"} onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
+                        <Button size="sm" variant={r.requested_role === "commissioner" ? "default" : "outline"} className="transition hover:scale-105 active:scale-95" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "commissioner" })}>Approve as Commissioner</Button>
+                        <Button size="sm" variant={r.requested_role === "agent" ? "default" : "outline"} className="transition hover:scale-105 active:scale-95" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: "agent" })}>Approve as Agent</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive transition hover:scale-105 active:scale-95" onClick={() => decide.mutate({ id: r.id, userId: r.user_id, role: null })}>Deny</Button>
                       </div>
                     </td>
                   </tr>
@@ -1370,7 +1384,7 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
         subtitle="Push a platform-wide notice to every commissioner and agent — it appears as a megaphone dropdown in their dashboard topbar."
       />
 
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div className="animate-reveal rounded-2xl border border-border bg-card p-4 sm:p-6">
         <h3 className="font-display text-base font-semibold sm:text-lg">New announcement</h3>
         <form
           className="mt-4 space-y-3"
@@ -1391,17 +1405,17 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
               className="mt-1.5 w-full rounded-md border border-input bg-background p-3 text-sm"
             />
           </div>
-          <Button type="submit" className="w-full sm:w-auto" disabled={create.isPending || !title.trim() || !body.trim()}>
+          <Button type="submit" className="w-full transition hover:scale-105 active:scale-95 sm:w-auto" disabled={create.isPending || !title.trim() || !body.trim()}>
             <Megaphone className="h-4 w-4" />{create.isPending ? "Publishing…" : "Publish announcement"}
           </Button>
         </form>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <p className="text-muted-foreground animate-fade-in">Loading…</p>
       ) : announcements.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
-          <Megaphone className="mx-auto h-10 w-10 text-muted-foreground/40" />
+        <div className="animate-scale-in rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
+          <Megaphone className="mx-auto h-10 w-10 text-muted-foreground/40 animate-float" />
           <p className="mt-3 text-muted-foreground">No announcements yet.</p>
         </div>
       ) : (
@@ -1428,13 +1442,13 @@ function AnnouncementsAdmin({ userId }: { userId: string }) {
               </td>
               <td className="whitespace-nowrap px-4 py-4 text-muted-foreground sm:px-6 sm:py-5">{format(new Date(a.created_at), "MMM d, yyyy")}</td>
               <td className="whitespace-nowrap px-4 py-4 text-right sm:px-6 sm:py-5">
-                <Button size="sm" variant="outline" onClick={() => toggleActive.mutate({ id: a.id, isActive: !a.is_active })}>
+                <Button size="sm" variant="outline" className="transition hover:scale-105 active:scale-95" onClick={() => toggleActive.mutate({ id: a.id, isActive: !a.is_active })}>
                   {a.is_active ? "Archive" : "Re-activate"}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="ml-2 text-destructive"
+                  className="ml-2 text-destructive transition hover:scale-105 active:scale-95"
                   onClick={() => { if (confirm("Delete this announcement permanently?")) del.mutate(a.id); }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -1471,14 +1485,14 @@ function AuditLogAdmin() {
       />
 
       {isLoading ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <p className="text-muted-foreground animate-fade-in">Loading…</p>
       ) : error ? (
-        <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+        <div className="animate-fade-in rounded-2xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
           Failed to load: {error instanceof Error ? error.message : "Unknown error"}
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
-          <History className="mx-auto h-10 w-10 text-muted-foreground/40" />
+        <div className="animate-scale-in rounded-2xl border border-dashed border-border p-8 text-center sm:p-12">
+          <History className="mx-auto h-10 w-10 text-muted-foreground/40 animate-float" />
           <p className="mt-3 text-muted-foreground">No activity logged yet.</p>
         </div>
       ) : (
