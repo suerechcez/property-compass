@@ -31,7 +31,7 @@ export function BrandTitle({
         </span>
       </span>
       {!nameOnly && (
-        <span className="text-sm sm:text-base">
+        <span className="animate-brand-pop text-sm sm:text-base">
           <span
             className={light ? "text-white/90 md:text-primary" : "text-primary"}
             style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}
