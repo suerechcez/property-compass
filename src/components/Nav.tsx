@@ -44,7 +44,7 @@ function NavLink({ to, children }: { to: string; children: string }) {
   );
 }
 
-export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { overlay?: boolean; dashboardSidebarExpanded?: boolean }) {
+export function Nav({ overlay = false }: { overlay?: boolean }) {
   const { user, isCommissioner, isAgent, isAdmin } = useAuth();
   const navigate = useNavigate();
   const routerState = useRouterState();
@@ -144,22 +144,16 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
       // Positioning differs on the dashboard on purpose: everywhere else
       // the header is `sticky top-0`, staying pinned to the viewport as the
       // page scrolls. On the dashboard it's plain `relative` instead — it
-      // scrolls away with the rest of the page like any normal element, and
-      // is only visible while you're at the very top of the dashboard. The
-      // dashboard's own left sidebar (with the brand logo) is what stays
-      // fixed to the viewport there, not this header.
-      //
-      // On the dashboard (desktop only — `lg:`), this header no longer
-      // relies on the sidebar simply painting over its top-left corner via
-      // z-index: it now starts its own box exactly where the fixed sidebar
-      // ends (`lg:ml-16`/`lg:ml-56` matching the sidebar's own `w-16`/`w-56`).
-      // That guarantees the header's bottom border and the sidebar's own
-      // logo-row bottom border always sit on the exact same line, since
-      // neither one has to overlap or cover the other to look right.
+      // scrolls away with the rest of the page like any normal element.
+      // The dashboard's own left sidebar is `sticky top-0 self-start`
+      // inside a flex row alongside the main content (see DashSidebar in
+      // dashboard.tsx) — it's in normal document flow, not `position:
+      // fixed`, so this header does NOT need any left margin/offset to
+      // "make room" for it. It renders full-width, exactly like every
+      // other page's header, with the sidebar sitting naturally below and
+      // beside it as a flex sibling.
       className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
         isDashboard ? "relative" : "sticky top-0"
-      } ${
-        isDashboard ? (dashboardSidebarExpanded ? "lg:ml-56 lg:w-[calc(100%-14rem)]" : "lg:ml-16 lg:w-[calc(100%-4rem)]") : ""
       }`}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
