@@ -87,8 +87,7 @@ export function LocationPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  async function performSearch() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     setSearchError(null);
@@ -126,20 +125,39 @@ export function LocationPicker({
         Search an address to jump nearby, then click exactly on the map (or drag the pin) to mark the precise spot buyers will see.
       </p>
 
-      <form className="mt-3 flex gap-2" onSubmit={handleSearch}>
+      {/*
+        Intentionally a plain <div>, NOT a <form> — this whole component
+        is always rendered inside the listing form's own outer <form
+        onSubmit={save}> (see listings.new.tsx). A <form> is not valid
+        HTML nested inside another <form>, and in practice the "Search"
+        button's click was being captured by the OUTER listing form
+        instead of running geocodeAddress, so pressing it just submitted
+        the whole page (a full navigation/refresh) instead of searching.
+        Enter-to-search and the button's onClick below both call
+        performSearch() directly, so no native form submission — and
+        therefore no ambiguity about which form owns the button — is
+        involved at all.
+      */}
+      <div className="mt-3 flex gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                performSearch();
+              }
+            }}
             placeholder="Search an address or landmark…"
             className="pl-9"
           />
         </div>
-        <Button type="submit" variant="outline" disabled={searching || !searchQuery.trim()}>
+        <Button type="button" variant="outline" disabled={searching || !searchQuery.trim()} onClick={performSearch}>
           {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
         </Button>
-      </form>
+      </div>
       {searchError && <p className="mt-1.5 text-xs text-destructive">{searchError}</p>}
 
       <div className="relative mt-3 overflow-hidden rounded-xl border border-border">
