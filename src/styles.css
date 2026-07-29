@@ -193,51 +193,33 @@
     80%  { transform: scale(0.96); }
     100% { opacity: 1; transform: scale(1); }
   }
+  @keyframes brand-pop-hover {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
 
-  /* One-time entrance "pop" for the "Bringing You Home, the Higala Way."
-     tagline in the top bar — a small bounce (overshoot past 1, settle
-     back) via cubic-bezier rather than a linear ease, so it reads as a
-     little flourish instead of a plain fade. The 0.15s delay lets "ONE
-     HIGALA PROPERTIES INC." above it land first, so the two lines don't
-     animate in as one flat block. transform-origin: left keeps the scale
+  /* Entrance "pop" for the "Bringing You Home, the Higala Way." tagline
+     in the top bar — a small bounce (overshoot past 1, settle back) via
+     cubic-bezier rather than a linear ease, so it reads as a little
+     flourish instead of a plain fade. The 0.15s delay lets "ONE HIGALA
+     PROPERTIES INC." above it land first, so the two lines don't animate
+     in as one flat block. transform-origin: left keeps the scale
      anchored to where the text starts instead of growing from its
-     center. This animation only ever plays once, on mount — it is NOT
-     touched by hover (see .brand-tagline-hover-scale below), which
-     matters: if hover swapped THIS element's `animation` property
-     between two different keyframe names, leaving hover would revert to
-     this rule and the browser would restart it from scratch, replaying
-     the whole "pop in from invisible" entrance every time the cursor
-     left — which is exactly the bug this split avoids. */
+     center.
+
+     Hovering replays the same bounce (brand-pop-hover): a DIFFERENT
+     keyframe name than the mount animation on purpose. If :hover just
+     re-declared `brand-pop` with the exact same values, the browser
+     would treat it as the same already-finished animation and NOT
+     restart it — a distinct name (even for a near-identical effect)
+     always triggers a fresh run. */
   .animate-brand-pop {
     transform-origin: left center;
     animation: brand-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
   }
-
-  /* Hover-replay effect for the tagline, on its OWN separate inner
-     element (.brand-tagline-hover-scale, a child of .animate-brand-pop —
-     see BrandTitle.tsx) rather than reusing the entrance element above.
-     Two things matter here:
-     - It's a `transition`, not a competing `animation`. Transitions
-       smoothly interpolate toward whatever the current target state is
-       in BOTH directions (hover-in and hover-out) without ever
-       "restarting from zero" the way swapping between two `animation`
-       keyframe values does — so it can't replay a jarring entrance pop.
-     - It's a different element (and therefore a different `transform`
-       property) than .animate-brand-pop. A still-"held" CSS animation
-       (fill-mode both) keeps ongoing precedence over transitions on the
-       SAME element's transform, so a hover transition declared directly
-       on .animate-brand-pop would simply never take effect. Nesting it
-       one level deeper avoids that conflict entirely.
-     .brand-tagline-zone (the outermost, non-transforming wrapper) is
-     what owns :hover — not this element itself — so the scaling here
-     never shifts the hover hit-box out from under the cursor mid-bounce. */
-  .brand-tagline-hover-scale {
-    display: inline-block;
-    transform-origin: left center;
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .brand-tagline-zone:hover .brand-tagline-hover-scale {
-    transform: scale(1.08);
+  .animate-brand-pop:hover {
+    animation: brand-pop-hover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Reveal-on-mount utility for grids of cards (listings, agents, etc).
@@ -246,6 +228,58 @@
      popping in at once. */
   .animate-reveal {
     animation: fade-in-up 0.4s ease-out both;
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes badge-pop {
+    0%   { transform: scale(0.7); }
+    60%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+  }
+  @keyframes slide-left {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Small pop-in for newly-active/selected UI (active nav item, opened
+     dropdowns, empty-state icons). */
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out both;
+  }
+  /* Attention-grabbing bounce for count badges (e.g. "N pending"). */
+  .animate-badge-pop {
+    animation: badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  /* Gentle continuous bob for decorative section icons. */
+  .animate-float {
+    animation: float 2.4s ease-in-out infinite;
+  }
+  /* Slides the dashboard sidebar in from the left on mount. NOTE: this is
+     the sidebar's ENTRANCE animation only — like .site-page, it must never
+     leave a resting `transform` behind (fill-mode `both` would), since the
+     sidebar itself is `position: fixed` and any transform on it directly
+     (not just on an ancestor) is harmless here because fixed positioning
+     is resolved before the element's own transform is applied, but to
+     keep this safe and easy to reason about it still ends on `forwards`
+     with a plain `translateX(0)` — not a lingering nonzero transform. */
+  .animate-slide-left {
+    animation: slide-left 0.3s ease-out both;
+  }
+
+  /* Subtle lift for stat/summary cards on hover. */
+  .card-hover {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
   }
 
   /* Generic hover-lift for cards that don't already define their own
