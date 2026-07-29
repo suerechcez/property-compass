@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { fetchUnreadCount, fetchMessageNotifications } from "@/lib/messages";
-import { fetchActiveAnnouncements, getUnseenCount, markAnnouncementsSeen } from "@/lib/announcements";
+import { fetchUnreadCount, fetchMessageNotifications, type NotificationItem } from "@/lib/messages";
+import { fetchActiveAnnouncements, getUnseenCount, markAnnouncementsSeen, announcementsToNotifications } from "@/lib/announcements";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BrandTitle } from "@/components/BrandTitle";
@@ -89,24 +89,44 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
   // Actual notification items shown in the dropdown. Only fetched once the
   // bell is opened (no point loading full previews on every page load) but
   // also kept warm on the same 15s interval so it doesn't feel stale.
-  const { data: notifications = [], isLoading: notifLoading } = useQuery({
+  const { data: messageNotifications = [], isLoading: notifLoading } = useQuery({
     enabled: !!user && notifOpen,
     queryKey: ["nav-notifications", user?.id],
     queryFn: () => fetchMessageNotifications(user!.id),
     refetchInterval: 15000,
   });
 
-  // Platform-wide announcements — admin-authored, shown only to
-  // commissioners/agents, only in the dashboard topbar, to the left of the
-  // notification bell. See the "Announcements" admin tab for authoring them.
-  const showAnnouncements = isDashboard && canManageListings;
+  // Platform-wide announcements — admin-authored, targeted at commissioners/
+  // agents. Fetched for that audience on EVERY page (not just the
+  // dashboard) so they can be merged into the notification bell below;
+  // the bell is visible everywhere, whereas the dedicated megaphone icon
+  // further down only ever renders while actually on the dashboard page.
   const { data: announcements = [] } = useQuery({
-    enabled: !!user && showAnnouncements,
+    enabled: !!user && canManageListings,
     queryKey: ["nav-announcements", user?.id],
     queryFn: fetchActiveAnnouncements,
     refetchInterval: 60000,
   });
   const unseenAnnouncementCount = getUnseenCount(announcements);
+
+  // Megaphone icon itself stays dashboard-only, as before — it's a
+  // dedicated, always-visible announcements list for when they're already
+  // in the dashboard. The bell (below) additionally surfaces the same
+  // announcements everywhere else on the site.
+  const showAnnouncements = isDashboard && canManageListings;
+
+  // Merge unseen announcements + unread messages into one time-sorted list
+  // for the bell dropdown. Announcement items don't carry a `href`/
+  // `avatarUrl` (see NotificationItem in lib/messages.ts), so they're
+  // rendered as plain non-navigating rows further down instead of <Link>s.
+  const announcementNotifications = announcementsToNotifications(announcements);
+  const combinedNotifications: NotificationItem[] = [...announcementNotifications, ...messageNotifications].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  // Bell badge reflects BOTH unread messages and unseen announcements, so
+  // commissioners/agents get a single, honest "you have something new"
+  // count regardless of which of the two categories it came from.
+  const bellBadgeCount = unreadCount + announcementNotifications.length;
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -212,7 +232,10 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
         <div className="col-start-3 flex items-center justify-end gap-2">
           {/* Platform-wide announcements — sits immediately LEFT of the bell,
               only shown on the dashboard topbar and only to commissioners/
-              agents (the audience admin announcements are pushed to). */}
+              agents (the audience admin announcements are pushed to). New
+              announcements ALSO surface in the bell below regardless of
+              page, so this icon is a dedicated dashboard-only view of the
+              same underlying list, not the only place to see them. */}
           {showAnnouncements && (
             <DropdownMenu
               open={announceOpen}
@@ -263,16 +286,28 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
           )}
 
           {user && (
-            <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
+            <DropdownMenu
+              open={notifOpen}
+              onOpenChange={(open) => {
+                setNotifOpen(open);
+                // Opening the bell also clears any unseen-announcement
+                // badge weight it was carrying, same as opening the
+                // dedicated megaphone dropdown does — otherwise a
+                // commissioner/agent who only ever checks the bell (not
+                // the dashboard-only megaphone icon) would see the same
+                // announcement's badge count forever.
+                if (open && announcementNotifications.length > 0) markAnnouncementsSeen(announcements);
+              }}
+            >
               <DropdownMenuTrigger asChild>
                 <button
-                  aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+                  aria-label={bellBadgeCount > 0 ? `${bellBadgeCount} unread notifications` : "Notifications"}
                   className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
+                  {bellBadgeCount > 0 && (
                     <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-                      {unreadCount > 9 ? "9+" : unreadCount}
+                      {bellBadgeCount > 9 ? "9+" : bellBadgeCount}
                     </span>
                   )}
                 </button>
@@ -281,42 +316,62 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
               <DropdownMenuContent align="end" className="w-80 p-0">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <span className="font-display font-semibold">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
+                  {bellBadgeCount > 0 && (
+                    <span className="text-xs text-muted-foreground">{bellBadgeCount} unread</span>
                   )}
                 </div>
 
                 <div className="max-h-96 overflow-y-auto">
                   {notifLoading ? (
                     <p className="p-5 text-center text-sm text-muted-foreground">Loading…</p>
-                  ) : notifications.length === 0 ? (
+                  ) : combinedNotifications.length === 0 ? (
                     <div className="flex flex-col items-center gap-2 p-8 text-center">
                       <Bell className="h-6 w-6 text-muted-foreground/40" />
                       <p className="text-sm text-muted-foreground">You're all caught up!</p>
                     </div>
                   ) : (
-                    notifications.map((n) => (
-                      <Link
-                        key={n.id}
-                        to="/messages"
-                        search={{ c: n.href.split("c=")[1] }}
-                        onClick={() => setNotifOpen(false)}
-                        className="flex items-start gap-3 border-b border-border px-4 py-3 transition last:border-b-0 hover:bg-accent"
-                      >
-                        <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-semibold text-primary-foreground">
-                          {n.avatarUrl
-                            ? <img src={n.avatarUrl} alt="" className="h-full w-full object-cover" />
-                            : <MessageSquare className="h-4 w-4" />}
+                    combinedNotifications.map((n) =>
+                      n.type === "message" ? (
+                        <Link
+                          key={n.id}
+                          to="/messages"
+                          search={{ c: n.href.split("c=")[1] }}
+                          onClick={() => setNotifOpen(false)}
+                          className="flex items-start gap-3 border-b border-border px-4 py-3 transition last:border-b-0 hover:bg-accent"
+                        >
+                          <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-semibold text-primary-foreground">
+                            {n.avatarUrl
+                              ? <img src={n.avatarUrl} alt="" className="h-full w-full object-cover" />
+                              : <MessageSquare className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{n.title}</p>
+                            <p className="truncate text-sm text-muted-foreground">{n.body}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                              {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </Link>
+                      ) : (
+                        // Announcement items — no conversation to open, so
+                        // a plain (non-Link) row instead of navigating.
+                        <div
+                          key={n.id}
+                          className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                        >
+                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
+                            <Megaphone className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{n.title}</p>
+                            <p className="truncate text-sm text-muted-foreground">{n.body}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                              {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{n.title}</p>
-                          <p className="truncate text-sm text-muted-foreground">{n.body}</p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground/70">
-                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </Link>
-                    ))
+                      )
+                    )
                   )}
                 </div>
               </DropdownMenuContent>

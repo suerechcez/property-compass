@@ -45,20 +45,32 @@ export type PropertyPreview = {
 
 /**
  * Generic shape for anything shown in the notification bell dropdown.
- * Only "message" is populated today — future notification sources
- * (e.g. listing approvals, C/A request decisions) can be appended to
- * the same list by producing items in this shape and merging arrays
- * in whatever calls fetchMessageNotifications.
+ * A discriminated union on `type` — "message" items are unread messages
+ * (see fetchMessageNotifications below) and link straight to their
+ * conversation; "announcement" items are unseen platform-wide admin
+ * announcements (see announcementsToNotifications in lib/announcements.ts)
+ * and have no `href`/`avatarUrl` since they're not tied to a conversation
+ * or a person. Nav.tsx merges both kinds into one time-sorted list so
+ * commissioners/agents see new announcements from the bell wherever they
+ * are on the site, not only while on the dashboard page.
  */
-export type NotificationItem = {
-  id: string;
-  type: "message";
-  title: string;
-  body: string;
-  createdAt: string;
-  href: string;
-  avatarUrl: string | null;
-};
+export type NotificationItem =
+  | {
+      id: string;
+      type: "message";
+      title: string;
+      body: string;
+      createdAt: string;
+      href: string;
+      avatarUrl: string | null;
+    }
+  | {
+      id: string;
+      type: "announcement";
+      title: string;
+      body: string;
+      createdAt: string;
+    };
 
 /**
  * Finds an existing conversation between this buyer and commissioner, or

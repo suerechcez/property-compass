@@ -207,7 +207,7 @@ function Browse() {
                           </div>
                           <div className="mt-2 flex items-center gap-1.5">
                             <h3 className="truncate font-display text-lg font-semibold leading-tight sm:text-xl">{p.title}</h3>
-                            <VerifiedBadge verified={verifiedCommissionerIds.has(p.commissioner_id)} size="sm" />
+                            <VerifiedBadge verified={verifiedCommissionerIds.has(p.commissioner_id)} size="icon" />
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">{p.location ?? "Location TBD"}</p>
                           <p className="mt-3 font-display text-xl font-semibold text-primary sm:mt-4 sm:text-2xl">

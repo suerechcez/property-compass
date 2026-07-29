@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { NotificationItem } from "@/lib/messages";
 
 export type Announcement = {
   id: string;
@@ -79,4 +80,27 @@ export function markAnnouncementsSeen(announcements: Announcement[]): void {
   } catch {
     // ignore
   }
+}
+
+/**
+ * Shapes currently-unseen active announcements as NotificationItem[] so
+ * Nav.tsx can merge them straight into the same notification bell dropdown
+ * used for unread messages — not just the separate megaphone icon, which
+ * previously only ever rendered while a commissioner/agent was actually on
+ * the dashboard page (`isDashboard && canManageListings`). Merging into the
+ * bell — which is visible on every page for any signed-in user — means a
+ * new announcement shows up the same way a new unread message would,
+ * wherever they happen to be on the site.
+ */
+export function announcementsToNotifications(announcements: Announcement[]): NotificationItem[] {
+  const seen = new Set(getSeenIds());
+  return announcements
+    .filter((a) => !seen.has(a.id))
+    .map((a) => ({
+      id: `announcement-${a.id}`,
+      type: "announcement" as const,
+      title: a.title,
+      body: a.body,
+      createdAt: a.created_at,
+    }));
 }
