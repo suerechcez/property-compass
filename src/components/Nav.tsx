@@ -136,42 +136,23 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
       // That guarantees the header's bottom border and the sidebar's own
       // logo-row bottom border always sit on the exact same line, since
       // neither one has to overlap or cover the other to look right.
-      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/20 via-background/85 to-gold/24 backdrop-blur transition-all duration-300 ${
+      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
         isDashboard ? "relative" : "sticky top-0"
       } ${
         isDashboard ? (dashboardSidebarExpanded ? "lg:ml-56 lg:w-[calc(100%-14rem)]" : "lg:ml-16 lg:w-[calc(100%-4rem)]") : ""
       }`}
     >
-      <div className="flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-10">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
-        {/* Left — full logo + tagline lockup, on every page EXCEPT the
-            dashboard. On the dashboard the brand lives inside the fixed
-            sidebar itself (see DashSidebar in dashboard.tsx) — that
-            sidebar renders above this header (higher z-index) and
-            physically covers this slot, so nothing needs to render here
-            at all there. */}
+        {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
-          {!isDashboard && (
-            <Link to="/" className="flex items-center gap-3">
-              {iconOk ? (
-                <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
-              ) : (
-                <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
-              )}
-              <div className="hidden items-center sm:flex">
-                <BrandTitle light={false} className="items-center text-center" />
-              </div>
-            </Link>
-          )}
-        </div>
+          {/* Invisible spacer — pushes "Browse / Sell / Find an agent" away
+              from the true left edge instead of sitting flush against it.
+              Desktop only (matches where the nav links themselves become
+              visible); on mobile the hamburger button already provides its
+              own natural inset, so no spacer is needed there. */}
+          <div aria-hidden className="hidden w-12 shrink-0 md:block" />
 
-        {/* Right — hamburger (mobile) + nav links (desktop), followed by
-            announcements/bell/profile. Grouping the marketing nav links
-            in with the account icons here (rather than splitting them
-            across opposite edges of the header) is what puts
-            "Browse / Sell / Find an agent" on the same side as the
-            profile controls, with the brand alone on the left. */}
-        <div className="flex items-center gap-4 sm:gap-6">
           {/* Only render the hamburger + mobile sheet when not on the dashboard */}
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -207,8 +188,28 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
               <NavLink to="/agents">Find an agent</NavLink>
             </nav>
           )}
+        </div>
 
-        <div className="flex items-center gap-2">
+        {/* Brand — full logo + title on every page EXCEPT the dashboard.
+            On the dashboard the brand lives inside the fixed sidebar
+            itself (see DashSidebar in dashboard.tsx) — that sidebar
+            renders above this header (higher z-index) and physically
+            covers this slot, so nothing needs to render here at all. */}
+        {!isDashboard && (
+          <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
+            {iconOk ? (
+              <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
+            ) : (
+              <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
+            )}
+            <div className="hidden items-center sm:flex">
+              <BrandTitle light={false} className="items-center text-center" />
+            </div>
+          </Link>
+        )}
+
+        {/* Right — announcements (dashboard, commissioner/agent only) + notification bell + profile / sign-in */}
+        <div className="col-start-3 flex items-center justify-end gap-2">
           {/* Platform-wide announcements — sits immediately LEFT of the bell,
               only shown on the dashboard topbar and only to commissioners/
               agents (the audience admin announcements are pushed to). */}
@@ -411,7 +412,6 @@ export function Nav({ overlay = false, dashboardSidebarExpanded = false }: { ove
               <Link to="/auth">Sign in</Link>
             </Button>
           )}
-        </div>
         </div>
       </div>
     </header>
