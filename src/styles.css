@@ -206,19 +206,37 @@
      PROPERTIES INC." above it land first, so the two lines don't animate
      in as one flat block. transform-origin: left keeps the scale
      anchored to where the text starts instead of growing from its
-     center.
-
-     Hovering replays the same bounce (brand-pop-hover): a DIFFERENT
-     keyframe name than the mount animation on purpose. If :hover just
-     re-declared `brand-pop` with the exact same values, the browser
-     would treat it as the same already-finished animation and NOT
-     restart it — a distinct name (even for a near-identical effect)
-     always triggers a fresh run. */
+     center. This is a MOUNT-ONLY animation — no :hover rule here (see
+     .brand-tagline-zone below for why hover is handled separately). */
   .animate-brand-pop {
     transform-origin: left center;
     animation: brand-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
   }
-  .animate-brand-pop:hover {
+
+  /* Hover replay for the tagline, deliberately split across two nested
+     elements:
+       .brand-tagline-zone        — outer, size-STABLE hit box. Only this
+                                     element's :hover state decides when
+                                     the bounce plays.
+       .brand-tagline-hover-scale — inner element that actually receives
+                                     the scale animation.
+     Previously the same element both detected :hover AND scaled itself.
+     Growing on hover moved its own edges out from under the cursor (and
+     shrinking back pulled them in), so the pointer kept crossing the
+     boundary and the animation kept restarting — a rapid, jittery
+     repeat-pop instead of one clean pop per hover. Scoping the trigger
+     to the never-resizing outer zone fixes that: the inner span is free
+     to scale without ever changing whether :hover is still true, so it
+     pops once on hover-in and stays settled while the cursor moves
+     around inside it. */
+  .brand-tagline-zone {
+    display: inline-block;
+  }
+  .brand-tagline-hover-scale {
+    display: inline-block;
+    transform-origin: left center;
+  }
+  .brand-tagline-zone:hover .brand-tagline-hover-scale {
     animation: brand-pop-hover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
