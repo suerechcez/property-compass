@@ -208,17 +208,21 @@
      anchored to where the text starts instead of growing from its
      center.
 
-     Hovering replays the same bounce (brand-pop-hover): a DIFFERENT
-     keyframe name than the mount animation on purpose. If :hover just
-     re-declared `brand-pop` with the exact same values, the browser
-     would treat it as the same already-finished animation and NOT
-     restart it — a distinct name (even for a near-identical effect)
-     always triggers a fresh run. */
+     .brand-tagline-zone (a plain, non-transforming wrapper around the
+     .animate-brand-pop span — see BrandTitle.tsx) is what owns :hover
+     here, not .animate-brand-pop itself. That split matters: if the
+     scaling element were also the hover trigger, its own edges would
+     shift as it grew/shrank, which could push the cursor outside the
+     element mid-bounce and re-trigger the animation in a jittery
+     loop. The wrapper's box never changes size, so hovering it stays
+     stable through the whole animation regardless of how much the
+     inner span visually scales. Iteration count defaults to 1 (no
+     `infinite`), so each hover plays the bounce exactly once. */
   .animate-brand-pop {
     transform-origin: left center;
     animation: brand-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
   }
-  .animate-brand-pop:hover {
+  .brand-tagline-zone:hover .animate-brand-pop {
     animation: brand-pop-hover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
