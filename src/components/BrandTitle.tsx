@@ -31,15 +31,17 @@ export function BrandTitle({
         </span>
       </span>
       {!nameOnly && (
-        <span className="animate-brand-pop text-sm sm:text-base">
-          <span
-            className={light ? "text-white/90 md:text-primary" : "text-primary"}
-            style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}
-          >
-            Bringing You Home,{" "}
-          </span>
-          <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>
-            the Higala Way.
+        <span className="brand-tagline-zone">
+          <span className="animate-brand-pop text-sm sm:text-base">
+            <span
+              className={light ? "text-white/90 md:text-primary" : "text-primary"}
+              style={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}
+            >
+              Bringing You Home,{" "}
+            </span>
+            <span className="text-gold" style={{ fontFamily: "var(--font-signature)", fontSize: "1.4em", lineHeight: 1 }}>
+              the Higala Way.
+            </span>
           </span>
         </span>
       )}
