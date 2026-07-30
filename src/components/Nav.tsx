@@ -160,13 +160,6 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
         {/* Left — hamburger (mobile) / nav links (desktop) */}
         <div className="flex items-center">
-          {/* Invisible spacer — pushes "Browse / Sell / Find an agent" away
-              from the true left edge instead of sitting flush against it.
-              Desktop only (matches where the nav links themselves become
-              visible); on mobile the hamburger button already provides its
-              own natural inset, so no spacer is needed there. */}
-          <div aria-hidden className="hidden w-12 shrink-0 md:block" />
-
           {/* Only render the hamburger + mobile sheet when not on the dashboard */}
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
