@@ -3,13 +3,24 @@ import { loadLeaflet, geocodeAddress } from "@/lib/leaflet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, MapPin, Loader2, X } from "lucide-react";
+import { Search, MapPin, Loader2, X, Layers, Box } from "lucide-react";
 
 // Cagayan de Oro City — the default center when no coordinates are set yet
 // and the agent hasn't searched for an address.
 const DEFAULT_CENTER: [number, number] = [8.4822, 124.6472];
 const DEFAULT_ZOOM = 13;
 const PINPOINT_ZOOM = 17;
+
+const STREET_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+// Esri's free World Imagery service — no API key required. Aerial/satellite
+// photography rather than true extruded 3D geometry (that needs a paid
+// tile provider like Google's Photorealistic 3D Tiles or Mapbox GL's
+// building-extrusion styles), but it's what "3D view" means in practice for
+// most real-estate map pickers: an oblique/aerial look at the actual site
+// instead of a flat vector street map.
+const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+type ViewMode = "map" | "satellite";
 
 /**
  * Interactive map letting a commissioner/agent pinpoint a listing's exact
@@ -29,10 +40,13 @@ export function LocationPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const streetLayerRef = useRef<any>(null);
+  const satelliteLayerRef = useRef<any>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   const [ready, setReady] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -51,11 +65,17 @@ export function LocationPicker({
         latitude != null && longitude != null ? [latitude, longitude] : DEFAULT_CENTER;
       const startZoom = latitude != null && longitude != null ? PINPOINT_ZOOM : DEFAULT_ZOOM;
 
-      const map = L.map(containerRef.current).setView(startCenter, startZoom);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
+      // attributionControl: false — deliberately omits Leaflet's default
+      // bottom-corner "Leaflet | © OpenStreetMap contributors" watermark
+      // overlay from the map UI. Both tile layers below are still created
+      // with an empty `attribution` string to match (rather than leaving
+      // OSM's/Esri's default text sitting unused in memory), so there's no
+      // attribution control fighting to render text nobody asked to see.
+      const map = L.map(containerRef.current, { attributionControl: false }).setView(startCenter, startZoom);
+
+      streetLayerRef.current = L.tileLayer(STREET_TILE_URL, { attribution: "", maxZoom: 19 });
+      satelliteLayerRef.current = L.tileLayer(SATELLITE_TILE_URL, { attribution: "", maxZoom: 19 });
+      streetLayerRef.current.addTo(map);
 
       function placeMarker(lat: number, lng: number) {
         if (markerRef.current) {
@@ -83,9 +103,25 @@ export function LocationPicker({
       mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
+      streetLayerRef.current = null;
+      satelliteLayerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Swaps the active tile layer when the Map/3D toggle changes. Both
+  // layers stay created (see the mount effect above) so switching back
+  // and forth doesn't re-fetch/re-create anything — just add the wanted
+  // one and remove the other from the same map instance.
+  function switchView(mode: ViewMode) {
+    setViewMode(mode);
+    const map = mapRef.current;
+    if (!map) return;
+    const wanted = mode === "satellite" ? satelliteLayerRef.current : streetLayerRef.current;
+    const other = mode === "satellite" ? streetLayerRef.current : satelliteLayerRef.current;
+    if (other && map.hasLayer(other)) map.removeLayer(other);
+    if (wanted && !map.hasLayer(wanted)) wanted.addTo(map);
+  }
 
   async function performSearch() {
     if (!searchQuery.trim()) return;
@@ -167,6 +203,33 @@ export function LocationPicker({
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
+
+        {/* Map / 3D (satellite) toggle — a small pill sitting over the
+            top-right corner of the map, in the same spot Leaflet's
+            zoom control occupies on the opposite side, so it reads as
+            part of the map chrome rather than a floating stray button. */}
+        {ready && (
+          <div className="absolute right-2 top-2 z-[500] flex overflow-hidden rounded-full border border-border bg-card/95 shadow-sm backdrop-blur">
+            <button
+              type="button"
+              onClick={() => switchView("map")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition ${
+                viewMode === "map" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5" />Map
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView("satellite")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition ${
+                viewMode === "satellite" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
+              }`}
+            >
+              <Box className="h-3.5 w-3.5" />3D
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -194,6 +257,34 @@ export function LocationPicker({
           </button>
         )}
       </div>
+
+      {/* Live preview of the exact pinned spot — only appears once a pin
+          exists, so the agent can visually double-check they dropped the
+          pin on the right building/street before saving, instead of only
+          trusting the raw lat/lng numbers above. Uses Google's legacy
+          Street View embed URL (`output=svembed`), the same no-API-key
+          trick already used for the read-only map on the property detail
+          page (see PropertyMap in properties.$id.tsx) — no Maps API key
+          needed. Some locations (rural lots, undeveloped land) may not
+          have Street View coverage; the iframe just shows Google's own
+          "no imagery available" placeholder in that case rather than
+          erroring, so it's safe to always render once a pin is placed. */}
+      {hasPin && (
+        <div className="mt-3 overflow-hidden rounded-xl border border-border">
+          <div className="flex items-center gap-1.5 border-b border-border bg-surface px-3 py-2 text-xs font-medium text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" />Preview at this pin
+          </div>
+          <div className="aspect-video w-full bg-muted">
+            <iframe
+              title="Street-level preview of the pinned location"
+              src={`https://maps.google.com/maps?layer=c&cbll=${latitude},${longitude}&cbp=11,0,0,0,0&output=svembed`}
+              className="h-full w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
