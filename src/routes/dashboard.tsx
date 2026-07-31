@@ -33,10 +33,6 @@ const ADMIN_TABS: AdminTab[] = ["admin-users", "admin-requests", "admin-tracking
 const SCROLL_SECTIONS: ScrollSection[] = ["overview", "listings", "sales", "forecast"];
 const ALL_TABS: ActiveView[] = [...SCROLL_SECTIONS, ...ADMIN_TABS];
 
-// Nav header height: py-4 (32px) + h-12 avatar (48px) = 80px.
-const LOGO_ROW_PX = 80;
-const BRAND_ICON_URL = "/brand-icon.png";
-
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: (ALL_TABS.includes(search.tab as ActiveView) ? search.tab : "overview") as ActiveView,
@@ -157,8 +153,13 @@ function SectionCard({ title, subtitle, action, children }: {
 // width is shared between the rail and the content — no compensating
 // padding-left needed on the content column.
 //
-// The logo row height matches the Nav header exactly so the brand icon
-// lines up with the header strip on first paint.
+// This sidebar has NO logo row of its own — the icon-only brand mark
+// lives in the Nav header's left column instead (see Nav.tsx's isDashboard
+// block). Giving the sidebar its own separate logo row used to create a
+// second stacked ~80px band directly below the header instead of one
+// unified band, which is what made the sidebar visually start well below
+// the header's own bottom border. Nav items here now start immediately at
+// the top of the sidebar, flush with that line.
 
 function DashSidebar({
   canManageListings, isAdmin, activeSection, onAdminTab, adminTab, onExitAdmin, expanded, onToggleExpanded,
@@ -173,7 +174,6 @@ function DashSidebar({
   onToggleExpanded: () => void;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [iconOk, setIconOk] = useState(true);
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
@@ -306,24 +306,6 @@ function DashSidebar({
           expanded ? "w-56" : "w-16",
         ].join(" ")}
       >
-        {/* Logo row — aligns with the Nav header height */}
-        <Link
-          to="/"
-          className="flex shrink-0 items-center justify-center border-b border-border transition hover:scale-105 hover:opacity-80 animate-fade-in"
-          style={{ height: LOGO_ROW_PX }}
-        >
-          {iconOk ? (
-            <img
-              src={BRAND_ICON_URL}
-              alt="One Higala Properties Inc."
-              className="h-9 w-9 object-contain"
-              onError={() => setIconOk(false)}
-            />
-          ) : (
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-bold text-primary-foreground shadow-sm">H</span>
-          )}
-        </Link>
-
         <div className="flex flex-col items-center gap-1 py-3">
           {desktopContent}
         </div>
