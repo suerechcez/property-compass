@@ -158,7 +158,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
-        {/* Left — hamburger (mobile) / nav links (desktop) */}
+        {/* Left — hamburger + nav links (marketing pages) / brand lockup (dashboard) */}
         <div className="flex items-center">
           {/* Only render the hamburger + mobile sheet when not on the dashboard */}
           {!isDashboard && (
@@ -195,13 +195,39 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <NavLink to="/agents">Find an agent</NavLink>
             </nav>
           )}
+
+          {/* Dashboard-only brand lockup — the logo + "ONE HIGALA
+              PROPERTIES INC. / Bringing You Home, the Higala Way." tagline
+              also render here now, left-aligned instead of centered like
+              the marketing pages' own brand block (see the middle grid
+              column further down, which stays hidden on the dashboard).
+              A hidden square spacer — the same h-12 w-12 footprint as the
+              logo itself — sits before it so the lockup doesn't start
+              flush against the browser's true left edge; marketing pages
+              get an equivalent left inset for free from their own nav
+              links sitting there instead, so this reproduces that same
+              breathing room for the dashboard, which has no nav links of
+              its own in this slot. Desktop-only (`md:flex`) — on mobile,
+              DashSidebar renders its own compact trigger/brand elsewhere
+              on the page instead. */}
+          {isDashboard && (
+            <div className="hidden items-center gap-3 md:flex">
+              <div aria-hidden className="h-12 w-12 shrink-0" />
+              <Link to="/" className="flex items-center gap-3">
+                {iconOk ? (
+                  <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-10 w-10 object-contain" onError={() => setIconOk(false)} />
+                ) : (
+                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-lg font-bold text-primary-foreground shadow-sm">H</span>
+                )}
+                <BrandTitle light={false} className="items-start text-left" />
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* Brand — full logo + title on every page EXCEPT the dashboard.
-            On the dashboard the brand lives inside the fixed sidebar
-            itself (see DashSidebar in dashboard.tsx) — that sidebar
-            renders above this header (higher z-index) and physically
-            covers this slot, so nothing needs to render here at all. */}
+        {/* Brand — full logo + title, centered, on every page EXCEPT the
+            dashboard (which now shows its own left-aligned version above
+            instead — see the dashboard-only block in the left column). */}
         {!isDashboard && (
           <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
             {iconOk ? (
