@@ -368,8 +368,26 @@ function Dashboard() {
     return () => timers.forEach(clearTimeout);
   }, [urlTab, loading, user]);
 
+  // Tracks which scroll-section (Overview / Listings / Sales / Forecast) is
+  // currently in view and mirrors it onto the sidebar's active highlight.
+  //
+  // IMPORTANT: this runs BEFORE the `if (loading || !user) return <Loading/>`
+  // guard further down — like every hook, it can't be skipped conditionally,
+  // so it fires on every render including the very first one, while `loading`
+  // is still true and only the "Loading…" placeholder (with none of the
+  // `id="section-*"` elements) has been rendered. `loading` and `user` are
+  // included in the dependency array specifically so this effect re-runs
+  // once auth finishes and the REAL dashboard content — the one that
+  // actually contains those elements — has been committed to the DOM.
+  // Without them, this effect's only dependency was `adminTab`, which never
+  // changes away from its initial `null` during normal browsing, so
+  // `document.getElementById(...)` kept finding nothing and no observers
+  // were ever created — none of the sidebar icons (Overview/Sales/etc.)
+  // would ever highlight while scrolling. `canManageListings` is included
+  // too since it's what conditionally renders the listings/sales/forecast
+  // sections at all.
   useEffect(() => {
-    if (adminTab) return;
+    if (adminTab || loading || !user) return;
     const observers: IntersectionObserver[] = [];
     SCROLL_SECTIONS.forEach((id) => {
       const el = document.getElementById(`section-${id}`);
@@ -382,7 +400,7 @@ function Dashboard() {
       observers.push(obs);
     });
     return () => observers.forEach((o) => o.disconnect());
-  }, [adminTab]);
+  }, [adminTab, loading, user, canManageListings]);
 
   if (loading || !user) {
     return (
