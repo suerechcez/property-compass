@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { typeLabel, formatPrice, type ImageSection } from "@/lib/property-types";
+import { loadLeaflet } from "@/lib/leaflet";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check, Layers, Box } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
@@ -263,11 +264,13 @@ function PropertyDetail() {
               as the visitor scrolls, instead of only appearing once
               they've scrolled all the way past everything on the left. */}
           <div className="space-y-6 md:sticky md:top-24 md:self-start">
-            {/* Map embed — driven off the free-text `location` field (no
-                lat/lng columns exist yet), so it's a Maps *search* embed
-                rather than a pinpoint marker. Good enough to orient a
-                buyer to the neighborhood at a glance. */}
-            <PropertyMap location={data.location} />
+            {/* Map — uses the precise pinned lat/lng from the listing form
+                (see LocationPicker in listings.new.tsx) when the agent set
+                one, with the same Map/3D satellite toggle and Street View
+                preview as the picker itself. Falls back to a Google Maps
+                text-search embed for older listings that predate the pin
+                feature and only have a free-text `location`. */}
+            <PropertyMap location={data.location} latitude={data.latitude} longitude={data.longitude} />
 
             <aside className="rounded-2xl border border-border bg-card p-6">
               <h3 className={ASIDE_TITLE_CLASS}>Listed by</h3>
@@ -285,7 +288,7 @@ function PropertyDetail() {
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 truncate font-medium">
                     <span className="truncate">{data.agent?.full_name ?? "One Higala commissioner"}</span>
-                    <VerifiedBadge verified={data.agent?.is_verified} size="sm" />
+                    <VerifiedBadge verified={data.agent?.is_verified} size="icon" />
                   </p>
                   {data.agent?.title && <p className="truncate text-xs text-muted-foreground">{data.agent.title}</p>}
                 </div>
@@ -748,39 +751,198 @@ function FactsAndFeatures({ data }: {
   );
 }
 
+const PROPERTY_MAP_ZOOM = 16;
+const STREET_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+// Same free, no-API-key Esri World Imagery service used by the listing
+// form's LocationPicker — aerial/satellite photography, the practical
+// equivalent of "3D view" for a map picker without a paid 3D tile provider.
+const SATELLITE_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+type MapViewMode = "map" | "satellite";
+
 /**
- * Map embed driven off the free-text `location` field. There's no lat/lng
- * stored for properties yet, so this uses Google Maps' query-based embed
- * (a location *search*, not a precise pinpoint) — enough to orient a buyer
- * to the neighborhood without needing a Maps API key or a geocoding step.
+ * Map for the property detail page. When the listing has a precise pin
+ * (latitude/longitude — set via LocationPicker while creating/editing the
+ * listing, see listings.new.tsx), this renders the same kind of map buyers
+ * see there: a read-only Leaflet map centered exactly on the pin, with the
+ * same Map/3D satellite toggle, plus a "Street-level preview" panel below
+ * it showing Google Street View at those exact coordinates — so a buyer
+ * can see precisely where the property sits and get a photographic sense
+ * of the actual street, not just a neighborhood-level search result.
+ *
+ * Falls back to the previous Google Maps text-search embed when no pin
+ * exists yet (older listings created before this feature, or a listing
+ * whose agent hasn't set one) — still useful, just less precise.
  */
-function PropertyMap({ location }: { location: string | null }) {
-  const query = encodeURIComponent(
-    location ? `${location}, Cagayan de Oro City, Philippines` : "Cagayan de Oro City, Philippines"
-  );
+function PropertyMap({ location, latitude, longitude }: { location: string | null; latitude: number | null; longitude: number | null }) {
+  const hasPin = latitude != null && longitude != null && !Number.isNaN(latitude) && !Number.isNaN(longitude);
+
+  if (!hasPin) {
+    const query = encodeURIComponent(
+      location ? `${location}, Cagayan de Oro City, Philippines` : "Cagayan de Oro City, Philippines"
+    );
+    return (
+      <aside className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="aspect-video w-full bg-muted">
+          <iframe
+            title="Property location map"
+            src={`https://www.google.com/maps?q=${query}&output=embed`}
+            className="h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+        <div className="flex items-start gap-2 p-4">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${query}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-primary hover:underline"
+            >
+              View on Google Maps →
+            </a>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  return <PinnedPropertyMap location={location} latitude={latitude!} longitude={longitude!} />;
+}
+
+/** The precise-pin branch of PropertyMap — split out so the plain-embed
+ *  fallback above never pays for loading Leaflet at all when there's no
+ *  pin to show. */
+function PinnedPropertyMap({ location, latitude, longitude }: { location: string | null; latitude: number; longitude: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const streetLayerRef = useRef<any>(null);
+  const satelliteLayerRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+  const [viewMode, setViewMode] = useState<MapViewMode>("map");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadLeaflet().then((L) => {
+      if (cancelled || !containerRef.current || mapRef.current) return;
+
+      const map = L.map(containerRef.current, {
+        attributionControl: false,
+        // Read-only: no scroll-zoom or drag-to-pan-away needed for a
+        // small embedded card like this. Buyers can still pinch-zoom on
+        // touch devices and use the +/- control; this just stops an
+        // accidental mouse-wheel-while-scrolling-the-page from hijacking
+        // the scroll, which is the standard fix for small embedded maps.
+        scrollWheelZoom: false,
+      }).setView([latitude, longitude], PROPERTY_MAP_ZOOM);
+
+      streetLayerRef.current = L.tileLayer(STREET_TILE_URL, { attribution: "", maxZoom: 19 });
+      satelliteLayerRef.current = L.tileLayer(SATELLITE_TILE_URL, { attribution: "", maxZoom: 19 });
+      streetLayerRef.current.addTo(map);
+
+      // Fixed, non-draggable marker — this map is for viewing the listing's
+      // location, not editing it (that's LocationPicker's job on the
+      // create/edit form).
+      L.marker([latitude, longitude]).addTo(map);
+
+      mapRef.current = map;
+      setReady(true);
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      streetLayerRef.current = null;
+      satelliteLayerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latitude, longitude]);
+
+  function switchView(mode: MapViewMode) {
+    setViewMode(mode);
+    const map = mapRef.current;
+    if (!map) return;
+    const wanted = mode === "satellite" ? satelliteLayerRef.current : streetLayerRef.current;
+    const other = mode === "satellite" ? streetLayerRef.current : satelliteLayerRef.current;
+    if (other && map.hasLayer(other)) map.removeLayer(other);
+    if (wanted && !map.hasLayer(wanted)) wanted.addTo(map);
+  }
+
   return (
     <aside className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="aspect-video w-full bg-muted">
-        <iframe
-          title="Property location map"
-          src={`https://www.google.com/maps?q=${query}&output=embed`}
-          className="h-full w-full border-0"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+      <div className="relative aspect-video w-full bg-muted">
+        <div ref={containerRef} className="h-full w-full" />
+        {!ready && (
+          <div className="absolute inset-0 grid place-items-center bg-muted">
+            <MapPin className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Same Map/3D pill used in LocationPicker, so switching between
+            street and satellite/aerial imagery feels identical whether an
+            agent is placing the pin or a buyer is viewing it. */}
+        {ready && (
+          <div className="absolute right-2 top-2 z-[500] flex overflow-hidden rounded-full border border-border bg-card/95 shadow-sm backdrop-blur">
+            <button
+              type="button"
+              onClick={() => switchView("map")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition ${
+                viewMode === "map" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5" />Map
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView("satellite")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition ${
+                viewMode === "satellite" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-accent"
+              }`}
+            >
+              <Box className="h-3.5 w-3.5" />3D
+            </button>
+          </div>
+        )}
       </div>
+
       <div className="flex items-start gap-2 p-4">
         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
           <a
-            href={`https://www.google.com/maps/search/?api=1&query=${query}`}
+            href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
             target="_blank"
             rel="noreferrer"
             className="text-xs text-primary hover:underline"
           >
             View on Google Maps →
           </a>
+        </div>
+      </div>
+
+      {/* Street-level preview at the exact pin — same no-API-key Google
+          Street View embed trick used in LocationPicker, so a buyer gets a
+          photographic sense of the actual street/frontage, not just the
+          map icon. Some locations (rural lots, undeveloped land) may not
+          have Street View coverage; the iframe just shows Google's own
+          "no imagery available" placeholder in that case. */}
+      <div className="border-t border-border">
+        <div className="flex items-center gap-1.5 bg-surface px-4 py-2 text-xs font-medium text-muted-foreground">
+          <MapPin className="h-3.5 w-3.5" />Street-level preview
+        </div>
+        <div className="aspect-video w-full bg-muted">
+          <iframe
+            title="Street-level preview of the property location"
+            src={`https://maps.google.com/maps?layer=c&cbll=${latitude},${longitude}&cbp=11,0,0,0,0&output=svembed`}
+            className="h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         </div>
       </div>
     </aside>
