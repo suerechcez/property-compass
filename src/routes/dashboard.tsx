@@ -177,13 +177,25 @@ function DashSidebar({
 
   function scrollTo(id: ScrollSection) {
     setMobileOpen(false);
+    const doScroll = () => {
+      if (id === "overview") {
+        // "Overview" takes the user all the way to the very top of the
+        // page, not just to the top edge of the Overview section (which
+        // would leave the greeting/header above it out of view).
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        // Other sections center themselves in the viewport rather than
+        // snapping their top edge flush with the top of the screen — so
+        // a clicked section lands squarely in view instead of tucked
+        // right under the sticky header.
+        document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
     if (adminTab) {
       onExitAdmin();
-      setTimeout(() => {
-        document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
+      setTimeout(doScroll, 50);
     } else {
-      document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      doScroll();
     }
   }
 
@@ -343,11 +355,14 @@ function Dashboard() {
       ? (urlTab as ScrollSection)
       : "overview";
     setActiveSection(section);
-    if (section === "overview") return;
+    if (section === "overview") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     const timers = [50, 250, 600].map((delay) =>
       setTimeout(() => {
-        document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, delay)
     );
     return () => timers.forEach(clearTimeout);
