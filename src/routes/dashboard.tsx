@@ -434,8 +434,16 @@ function Dashboard() {
         in-flow column.
       */}
       <div className="flex flex-1 items-start">
-        {/* Desktop sidebar — hidden below lg, rendered as first flex child */}
-        <DashSidebar {...sidebarProps} />
+        {/* Desktop sidebar — hidden below lg, rendered as first flex child.
+            Wrapped in `hidden lg:block` because DashSidebar's own Fragment
+            always includes BOTH its mobile trigger button (lg:hidden) AND
+            its desktop aside (hidden lg:flex) — without this wrapper, this
+            call's copy of the mobile trigger button would render on phone
+            alongside the second DashSidebar call below, showing two
+            "Overview" buttons stacked on top of each other. */}
+        <div className="hidden lg:block">
+          <DashSidebar {...sidebarProps} />
+        </div>
 
         {/* Main content — grows to fill remaining width */}
         <div className="min-w-0 flex-1">
