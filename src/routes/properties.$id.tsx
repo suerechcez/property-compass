@@ -9,7 +9,7 @@ import { loadLeaflet } from "@/lib/leaflet";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check, Layers, Box } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check, Layers, Box, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
@@ -783,7 +783,7 @@ function PropertyMap({ location, latitude, longitude }: { location: string | nul
     );
     return (
       <aside className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="aspect-video w-full bg-muted">
+        <div className="aspect-[4/3] w-full bg-muted sm:aspect-video">
           <iframe
             title="Property location map"
             src={`https://www.google.com/maps?q=${query}&output=embed`}
@@ -823,6 +823,15 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
   const satelliteLayerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [viewMode, setViewMode] = useState<MapViewMode>("map");
+  // Maximize the map (and the street-view preview below it) into a
+  // full-screen overlay for a bigger look at the streets — the small
+  // embedded card in the sidebar is necessarily narrow, which cramped
+  // both panels. This reuses the SAME Leaflet instance rather than
+  // creating a second map: only the surrounding layout classes change,
+  // and `containerRef`'s div stays mounted continuously throughout (see
+  // the JSX below — it's never conditionally unmounted), so the map
+  // never has to reinitialize when toggling in or out of fullscreen.
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -873,9 +882,63 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
     if (wanted && !map.hasLayer(wanted)) wanted.addTo(map);
   }
 
+  // Leaflet caches its container's pixel size and won't notice it changed
+  // just because a CSS class did — after toggling fullscreen (which resizes
+  // the container from a small sidebar card to most of the viewport, or
+  // back), it has to be told explicitly to re-measure and redraw tiles at
+  // the new size, or the map looks frozen/cropped at its old dimensions.
+  // Two calls, one shortly after the CSS change and one a bit later, cover
+  // both the instant class-swap and any slower layout/transition settling.
+  useEffect(() => {
+    if (!ready) return;
+    const t1 = setTimeout(() => mapRef.current?.invalidateSize(), 50);
+    const t2 = setTimeout(() => mapRef.current?.invalidateSize(), 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [isFullscreen, ready]);
+
+  // Escape closes the fullscreen overlay, and page scroll is locked while
+  // it's open — same pattern as PhotoLightbox above.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsFullscreen(false);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
   return (
-    <aside className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="relative aspect-video w-full bg-muted">
+    <aside
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[200] flex flex-col overflow-y-auto bg-background"
+          : "overflow-hidden rounded-2xl border border-border bg-card"
+      }
+    >
+      {isFullscreen && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
+          <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Close fullscreen map"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Map — a bit taller by default than before (aspect-[4/3] instead of
+          aspect-video on small screens), and a large viewport-relative
+          height instead of an aspect ratio at all once maximized, since a
+          fixed ratio would badly under-use a full screen's height. */}
+      <div className={isFullscreen ? "relative h-[55vh] w-full shrink-0 bg-muted sm:h-[65vh]" : "relative aspect-[4/3] w-full bg-muted sm:aspect-video"}>
         <div ref={containerRef} className="h-full w-full" />
         {!ready && (
           <div className="absolute inset-0 grid place-items-center bg-muted">
@@ -885,7 +948,9 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
 
         {/* Same Map/3D pill used in LocationPicker, so switching between
             street and satellite/aerial imagery feels identical whether an
-            agent is placing the pin or a buyer is viewing it. */}
+            agent is placing the pin or a buyer is viewing it. The Maximize
+            button joins the same pill (not shown once already fullscreen,
+            since the header's X above already closes it). */}
         {ready && (
           <div className="absolute right-2 top-2 z-[500] flex overflow-hidden rounded-full border border-border bg-card/95 shadow-sm backdrop-blur">
             <button
@@ -906,11 +971,22 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
             >
               <Box className="h-3.5 w-3.5" />3D
             </button>
+            {!isFullscreen && (
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                aria-label="Maximize map"
+                title="Maximize"
+                className="flex items-center gap-1 border-l border-border px-2.5 py-1.5 text-xs font-medium text-foreground/70 transition hover:bg-accent"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      <div className="flex items-start gap-2 p-4">
+      <div className="flex shrink-0 items-start gap-2 p-4">
         <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
@@ -930,12 +1006,14 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
           photographic sense of the actual street/frontage, not just the
           map icon. Some locations (rural lots, undeveloped land) may not
           have Street View coverage; the iframe just shows Google's own
-          "no imagery available" placeholder in that case. */}
-      <div className="border-t border-border">
+          "no imagery available" placeholder in that case. Also bigger —
+          and bigger still once maximized — for the same "see the streets"
+          reason as the map above. */}
+      <div className="shrink-0 border-t border-border">
         <div className="flex items-center gap-1.5 bg-surface px-4 py-2 text-xs font-medium text-muted-foreground">
           <MapPin className="h-3.5 w-3.5" />Street-level preview
         </div>
-        <div className="aspect-video w-full bg-muted">
+        <div className={isFullscreen ? "h-[45vh] w-full bg-muted sm:h-[55vh]" : "aspect-[4/3] w-full bg-muted sm:aspect-video"}>
           <iframe
             title="Street-level preview of the property location"
             src={`https://maps.google.com/maps?layer=c&cbll=${latitude},${longitude}&cbp=11,0,0,0,0&output=svembed`}
