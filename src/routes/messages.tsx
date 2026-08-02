@@ -159,6 +159,18 @@ function MessagesPage() {
     : conversations;
 
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
+  // Mobile show/hide (list vs. thread) is driven ONLY by whether the user
+  // has actually tapped a conversation (`selectedId` truthy AND it still
+  // matches a real conversation) — deliberately NOT by `selected` above.
+  // `selected` auto-falls-back to the first conversation so desktop can
+  // show something in the always-visible thread pane by default (Gmail/
+  // WhatsApp Web-style), but on mobile that same fallback was the bug:
+  // as soon as any conversation existed, `selected` was truthy even with
+  // no tap having happened, so the list (with every user's name/avatar)
+  // hid itself immediately and permanently — "Back" set selectedId to
+  // null, but `selected` just fell back to conversations[0] again, so
+  // the thread never actually let go and the list never came back.
+  const mobileThreadActive = !!selectedId && conversations.some((c) => c.id === selectedId);
 
   function selectConversation(id: string) {
     setSelectedId(id);
@@ -177,7 +189,7 @@ function MessagesPage() {
             height, never compressed), and the conversation list itself is
             flex-1 so it fills whatever space is left — no hardcoded pixel
             subtraction needed to size the scroll area. */}
-        <div className={`w-full shrink-0 flex-col border-r border-border sm:w-80 sm:flex ${selected ? "hidden" : "flex"}`}>
+        <div className={`w-full shrink-0 flex-col border-r border-border sm:w-80 sm:flex ${mobileThreadActive ? "hidden" : "flex"}`}>
           <div
             className="flex shrink-0 items-center justify-between border-b border-border px-5"
             style={{ height: HEADER_HEIGHT_PX }}
@@ -267,7 +279,7 @@ function MessagesPage() {
         </div>
 
         {/* ── Thread panel — flex-1 fills all remaining width ── */}
-        <div className={`min-w-0 flex-1 flex-col sm:flex ${selected ? "flex" : "hidden"}`}>
+        <div className={`min-w-0 flex-1 flex-col sm:flex ${mobileThreadActive ? "flex" : "hidden"}`}>
           {selected ? (
             <ConversationThread
               key={selected.id}
