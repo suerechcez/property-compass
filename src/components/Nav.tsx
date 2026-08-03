@@ -62,6 +62,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     routerState.location.pathname.startsWith(r)
   );
 
+  // True only while `overlay` is requested (the homepage passes it) AND
+  // the page hasn't been scrolled yet — i.e. still sitting over the hero
+  // image. Only takes visual effect on mobile (via md: overrides below),
+  // since desktop always stays solid.
+  const overlayActive = overlay && !scrolled;
+
   useEffect(() => {
     if (!overlay) return;
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -152,8 +158,25 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       // "make room" for it. It renders full-width, exactly like every
       // other page's header, with the sidebar sitting naturally below and
       // beside it as a flex sibling.
-      className={`z-40 w-full border-b border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15 backdrop-blur transition-all duration-300 ${
-        isDashboard ? "relative" : "sticky top-0"
+      //
+      // Homepage-only transparent overlay: on mobile, while `overlay` is
+      // requested and the page hasn't scrolled yet, the header is fully
+      // transparent and `fixed` (removed from flow) so the hero photo
+      // shows through completely from the very top of the viewport,
+      // instead of being pushed down by an opaque bar. It reverts to the
+      // same solid, more-opaque gradient desktop always uses once
+      // scrolled. Desktop (md+) never goes transparent — it's solid at
+      // all times via the `md:` overrides below.
+      className={`z-40 w-full border-b backdrop-blur transition-all duration-300 ${
+        isDashboard
+          ? "relative border-border/60 bg-gradient-to-r from-primary/12 via-background/90 to-gold/15"
+          : overlay
+          ? `fixed inset-x-0 top-0 md:sticky md:top-0 ${
+              overlayActive
+                ? "border-transparent bg-transparent backdrop-blur-none md:border-border/60 md:bg-gradient-to-r md:from-primary/24 md:via-background/78 md:to-gold/28 md:backdrop-blur"
+                : "border-border/60 bg-gradient-to-r from-primary/24 via-background/78 to-gold/28"
+            }`
+          : "sticky top-0 border-border/60 bg-gradient-to-r from-primary/24 via-background/78 to-gold/28"
       }`}
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
@@ -164,7 +187,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {!isDashboard && (
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <button aria-label="Open menu" className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden">
+                <button
+                  aria-label="Open menu"
+                  className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${
+                    overlayActive ? "text-white md:text-foreground" : "text-foreground"
+                  }`}
+                >
                   <Menu className="h-6 w-6" />
                 </button>
               </SheetTrigger>
@@ -236,7 +264,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
             )}
             <div className="hidden items-center sm:flex">
-              <BrandTitle light={false} className="items-center text-center" />
+              <BrandTitle light={overlayActive} className="items-center text-center" />
             </div>
           </Link>
         )}
@@ -315,7 +343,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={bellBadgeCount > 0 ? `${bellBadgeCount} unread notifications` : "Notifications"}
-                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${
+                    overlayActive
+                      ? "text-white/90 hover:text-white md:text-foreground/80 md:hover:text-foreground"
+                      : "text-foreground/80 hover:text-foreground"
+                  }`}
                 >
                   <Bell className="h-5 w-5" />
                   {bellBadgeCount > 0 && (
