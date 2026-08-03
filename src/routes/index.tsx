@@ -29,7 +29,7 @@ function Home() {
 
   return (
     <div className="site-page">
-      <Nav />
+      <Nav overlay />
 
       <section className="relative h-[560px] overflow-hidden bg-gradient-to-br from-primary/30 via-primary/10 to-background md:h-[640px]">
         {heroImageOk && (
