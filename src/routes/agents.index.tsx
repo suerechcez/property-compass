@@ -97,19 +97,24 @@ function AgentsList() {
         </div>
       </section>
 
+      {/* Tabs + results — kept to a fixed 2-column grid (never 3), so the
+          container is narrowed back down to max-w-5xl and centered instead
+          of stretching to the homepage's full 1600px width. At that width,
+          a 3rd grid track would sit empty whenever there are only 1-2
+          results, leaving a lopsided gap on the right. */}
       <section className="border-b border-border bg-surface">
-        <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-12 xl:px-20">
+        <div className="mx-auto max-w-5xl px-6 py-6 lg:px-12">
           <RoleTabNav tab={tab} onChange={setTab} counts={counts} />
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1600px] px-6 py-12 lg:px-12 xl:px-20">
+      <section className="mx-auto max-w-5xl px-6 py-12 lg:px-12">
         {isLoading ? (
           <p className="text-muted-foreground">Loading agents…</p>
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {filtered.map((a, i) => (
               <Link
                 key={a.id}
