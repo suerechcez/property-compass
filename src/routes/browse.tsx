@@ -107,9 +107,9 @@ function Browse() {
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Light, photo-free header — a plain white band that keeps focus
-              on the search bar and filters instead of a hero photo. */}
-          <section className="border-b border-border bg-background">
+          {/* Header — soft navy/gold gradient wash restored behind the
+              search bar, replacing the flat white version. */}
+          <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
             <div className="px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
