@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
-import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
 import { CheckCircle2, Handshake, TrendingUp, LogIn } from "lucide-react";
 
@@ -29,13 +28,14 @@ function Sell() {
   const { user, loading, isCommissioner, isAgent } = useAuth();
   const alreadyRegistered = isCommissioner || isAgent;
 
+  // Nav is rendered once by the parent /sell layout route (sell.tsx) — do
+  // NOT render it again here, or it duplicates the top bar.
   return (
     <div className="site-page bg-background">
-      <Nav />
 
-      {/* Light header — no color-block panel, just a plain white section
-          with the two entry-point cards laid out with hairline borders. */}
-      <section className="border-b border-border">
+      {/* Header — soft navy/gold gradient wash restored behind the two
+          entry-point cards, replacing the flat white version. */}
+      <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
         <div className="mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Sell with confidence</span>
           <h1 className="mt-4 font-display text-3xl font-semibold text-foreground md:text-5xl">
