@@ -104,12 +104,17 @@ function Browse() {
     <div className="min-h-screen site-page bg-background">
       <Nav />
       <div className="flex flex-1">
+        {/* SideBar renders its own right-hand border, separating "Listing
+            updates" from the listings grid — that's the one divider line
+            on this page that stays. Every other section border below has
+            been removed so the gradient hero flows straight into the
+            filter row and the grid with no hairlines between them. */}
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — soft navy/gold gradient wash restored behind the
-              search bar, replacing the flat white version. */}
-          <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
+          {/* Header — no bottom border now, so the gradient bleeds straight
+              into the filter row below it. */}
+          <section className="bg-gradient-to-br from-primary/8 via-background to-gold/10">
             <div className="px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
@@ -122,8 +127,8 @@ function Browse() {
             </div>
           </section>
 
-          {/* Filter chips */}
-          <section className="border-b border-border animate-fade-in" style={{ animationDelay: "80ms" }}>
+          {/* Filter chips — no border-b, sits flush against the header above. */}
+          <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 py-4 sm:py-5">
               <div className="flex flex-wrap items-center gap-2">
                 <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
@@ -140,7 +145,7 @@ function Browse() {
           </section>
 
           {user && (
-            <div className="flex justify-center border-b border-border bg-surface/50 py-3 lg:hidden animate-fade-in">
+            <div className="flex justify-center bg-surface/50 py-3 lg:hidden animate-fade-in">
               <SideBarMobileTrigger />
             </div>
           )}
