@@ -71,7 +71,10 @@ function Home() {
               </button>
             </form>
 
-            <div className="mt-10 flex flex-wrap justify-center gap-8 border-t border-border pt-8 sm:justify-start">
+            {/* Stats row — centered within the left column at every
+                breakpoint (previously reverted to left-aligned from `sm`
+                up, which is what made it look off-center on desktop). */}
+            <div className="mt-10 flex w-full max-w-md flex-wrap justify-center gap-8 border-t border-border pt-8">
               <Stat value="500+" label="Properties" />
               <Stat value="12" label="Neighborhoods" />
               <Stat value="98%" label="Client satisfaction" />
@@ -129,7 +132,7 @@ function Home() {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="text-center sm:text-left">
+    <div className="text-center">
       <p className="font-display text-2xl font-semibold text-foreground">{value}</p>
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
