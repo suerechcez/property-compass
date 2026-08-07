@@ -9,7 +9,7 @@ export function ExploreOptions() {
   return (
     <section className="border-b border-border bg-background">
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
-        <div className="mb-10 flex items-end justify-between">
+        <div className="mb-10 text-center">
           <h2 className="font-display text-2xl font-semibold text-foreground md:text-3xl">What are you looking for?</h2>
         </div>
         <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
