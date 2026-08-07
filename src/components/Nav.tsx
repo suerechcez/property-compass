@@ -29,7 +29,7 @@ const DASHBOARD_ROUTES = ["/dashboard"];
 
 function NavLink({ to, children }: { to: string; children: string }) {
   return (
-    <Link to={to} className="group relative py-1 text-sm font-medium tracking-wide text-foreground/80 transition-colors hover:text-foreground">
+    <Link to={to} className="group relative py-1 text-base font-semibold tracking-wide text-foreground/80 transition-colors hover:text-foreground">
       {children}
       <span className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out group-hover:scale-x-100" />
     </Link>
