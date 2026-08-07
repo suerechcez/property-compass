@@ -75,10 +75,11 @@ function AgentsList() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Header — soft navy/gold gradient wash restored behind the
-          headline + search, replacing the flat white version. */}
+      {/* Header — soft navy/gold gradient wash, widened (max-w-4xl, up from
+          3xl) with more side padding at large breakpoints, matching the
+          homepage's wider treatment. */}
       <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
-        <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
+        <div className="mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
           <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
             Where trusted agents meet committed <span className="text-primary">commissioners</span>
@@ -97,18 +98,18 @@ function AgentsList() {
       </section>
 
       <section className="border-b border-border bg-surface">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-12 xl:px-20">
           <RoleTabNav tab={tab} onChange={setTab} counts={counts} />
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
+      <section className="mx-auto max-w-[1600px] px-6 py-12 lg:px-12 xl:px-20">
         {isLoading ? (
           <p className="text-muted-foreground">Loading agents…</p>
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((a, i) => (
               <Link
                 key={a.id}
