@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
+import { Nav } from "@/components/Nav";
 import { useAuth } from "@/lib/auth";
 import { CheckCircle2, Handshake, TrendingUp, LogIn } from "lucide-react";
 
@@ -24,69 +25,69 @@ const FIND_AGENT_PNG = "/sell-find-agent.png";
 const LIST_YOURSELF_JPG = "/sell-list-yourself.jpg";
 const LIST_YOURSELF_PNG = "/sell-list-yourself.png";
 
-// Shared blue → gold gradient for the big panels on this page, lighter than
-// solid bg-primary so the panels feel airier while keeping enough contrast
-// for white text and the gold accents/icons to still read clearly.
-const PANEL_GRADIENT_CLASS = "bg-gradient-to-br from-primary/80 via-primary/70 to-gold/60";
-
 function Sell() {
   const { user, loading, isCommissioner, isAgent } = useAuth();
   const alreadyRegistered = isCommissioner || isAgent;
 
   return (
-    <div className="site-page">
-      <section className={PANEL_GRADIENT_CLASS}>
+    <div className="site-page bg-background">
+      <Nav />
+
+      {/* Light header — no color-block panel, just a plain white section
+          with the two entry-point cards laid out with hairline borders. */}
+      <section className="border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
-          <h1 className="font-display text-3xl font-bold text-white md:text-5xl">
-            Sell with a <span className="text-gold">One Higala</span> professional
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Sell with confidence</span>
+          <h1 className="mt-4 font-display text-3xl font-semibold text-foreground md:text-5xl">
+            Sell with a <span className="text-primary">One Higala</span> professional
           </h1>
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
+          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
+            <div className="flex flex-col items-center bg-card p-8 text-center">
               <CardIcon png={CARD_COMMISSIONER_PNG} jpg={CARD_COMMISSIONER_JPG} alt="Sell with a commissioner or agent" fallback={Handshake} />
               <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">Sell with a commissioner or agent</h2>
               <p className="mt-3 max-w-xs text-sm text-muted-foreground">Work with a trusted One Higala commissioner or agent who handles pricing, marketing, and negotiations for you — from listing to turnover.</p>
             </div>
-            <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
+            <div className="flex flex-col items-center bg-card p-8 text-center">
               <CardIcon png={CARD_VISIBILITY_PNG} jpg={CARD_VISIBILITY_JPG} alt="Maximize your home's visibility" fallback={TrendingUp} />
               <h2 className="mt-6 font-montserrat text-xl font-medium text-foreground">Maximize your home's visibility</h2>
               <p className="mt-3 max-w-xs text-sm text-muted-foreground">Reach buyers actively browsing Cagayan de Oro City listings on One Higala Properties, whether you list with a pro or list it yourself.</p>
             </div>
           </div>
-          <Button asChild size="lg" className="mt-10 rounded-full bg-white text-primary hover:bg-white/90">
+          <Button asChild size="lg" className="mt-10 rounded-full">
             <a href="#sell-options">Get started</a>
           </Button>
         </div>
       </section>
 
-      <section id="sell-options" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-        <div className={`grid min-h-[420px] overflow-hidden rounded-2xl md:grid-cols-2 ${PANEL_GRADIENT_CLASS}`}>
+      <section id="sell-options" className="mx-auto max-w-6xl space-y-16 px-6 py-16 md:py-20">
+        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
           <PanelImage jpg={FIND_AGENT_JPG} png={FIND_AGENT_PNG} alt="Find your own agent" />
-          <div className="flex flex-col justify-center p-10 md:p-14">
-            <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Find your own <span className="text-gold">agent</span></h2>
-            <ul className="mt-6 space-y-4 text-base text-white/90">
-              <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" /><span><strong className="text-white">Ready to work with a pro?</strong> Search commissioners and agents by specialties and service areas to find the right match.</span></li>
-              <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" /><span><strong className="text-white">Already have someone in mind?</strong> Browse their profile, credentials, and track record before you commit.</span></li>
+          <div>
+            <h2 className="font-display text-3xl font-semibold text-foreground md:text-4xl">Find your own <span className="text-primary">agent</span></h2>
+            <ul className="mt-6 space-y-4 text-base text-muted-foreground">
+              <li className="flex gap-2.5"><CheckCircle2 className="h-5 w-5 shrink-0 text-primary" /><span><strong className="text-foreground">Ready to work with a pro?</strong> Search commissioners and agents by specialties and service areas to find the right match.</span></li>
+              <li className="flex gap-2.5"><CheckCircle2 className="h-5 w-5 shrink-0 text-primary" /><span><strong className="text-foreground">Already have someone in mind?</strong> Browse their profile, credentials, and track record before you commit.</span></li>
             </ul>
-            <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
+            <Button asChild size="lg" className="mt-8 w-fit rounded-full">
               <Link to="/agents">Find agents near you</Link>
             </Button>
           </div>
         </div>
 
-        <div className={`grid min-h-[420px] overflow-hidden rounded-2xl md:grid-cols-2 ${PANEL_GRADIENT_CLASS}`}>
-          <div className="order-2 flex flex-col justify-center p-10 md:order-1 md:p-14">
-            <h2 className="font-display text-3xl font-bold text-white md:text-4xl">Sell your home <span className="text-gold">yourself</span></h2>
-            <ul className="mt-6 space-y-4 text-base text-white/90">
-              <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />Reach more potential buyers with a For Sale By Owner listing.</li>
-              <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />Manage everything yourself — photos, pricing, and inquiries.</li>
-              <li className="flex gap-2.5"><CheckCircle2 className="h-6 w-6 shrink-0 text-gold" />No commissioner or agent role required to get listed.</li>
+        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+          <div className="order-2 md:order-1">
+            <h2 className="font-display text-3xl font-semibold text-foreground md:text-4xl">Sell your home <span className="text-primary">yourself</span></h2>
+            <ul className="mt-6 space-y-4 text-base text-muted-foreground">
+              <li className="flex gap-2.5"><CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />Reach more potential buyers with a For Sale By Owner listing.</li>
+              <li className="flex gap-2.5"><CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />Manage everything yourself — photos, pricing, and inquiries.</li>
+              <li className="flex gap-2.5"><CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />No commissioner or agent role required to get listed.</li>
             </ul>
             {loading ? null : user ? (
-              <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
+              <Button asChild size="lg" className="mt-8 w-fit rounded-full">
                 <Link to="/sell/list-your-own">List your home on One Higala Properties</Link>
               </Button>
             ) : (
-              <Button asChild size="lg" className="mt-8 w-fit rounded-full bg-white text-primary hover:bg-white/90">
+              <Button asChild size="lg" className="mt-8 w-fit rounded-full">
                 <Link to="/auth"><LogIn className="h-4 w-4" />Sign in to get started</Link>
               </Button>
             )}
@@ -101,7 +102,7 @@ function Sell() {
         <section className="border-t border-border bg-surface">
           <div className="mx-auto max-w-3xl px-6 py-12 text-center">
             <p className="text-muted-foreground">You're already registered as a {isCommissioner && isAgent ? "Commissioner and Agent" : isCommissioner ? "Commissioner" : "Agent"}.</p>
-            <Button asChild className="mt-4"><Link to="/listings/new">Post a property listing</Link></Button>
+            <Button asChild className="mt-4 rounded-full"><Link to="/listings/new">Post a property listing</Link></Button>
           </div>
         </section>
       )}
@@ -121,6 +122,10 @@ function CardIcon({ png, jpg, alt, fallback: Fallback }: { png: string; jpg: str
 function PanelImage({ jpg, png, alt }: { jpg: string; png: string; alt: string }) {
   const [src, setSrc] = useState(jpg);
   const [hidden, setHidden] = useState(false);
-  if (hidden) return <div className="aspect-video bg-primary/50 md:aspect-auto md:h-full" />;
-  return <img src={src} alt={alt} className="aspect-video w-full object-cover md:aspect-auto md:h-full" onError={() => { if (src === jpg) setSrc(png); else setHidden(true); }} />;
+  if (hidden) return <div className="aspect-[4/3] rounded-3xl border border-border bg-surface" />;
+  return (
+    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
+      <img src={src} alt={alt} className="aspect-[4/3] w-full object-cover" onError={() => { if (src === jpg) setSrc(png); else setHidden(true); }} />
+    </div>
+  );
 }

@@ -20,25 +20,12 @@ export const Route = createFileRoute("/agents/")({
   component: AgentsList,
 });
 
-const HERO_IMAGE_URL = "/hero-agents.png";
-
-// Plain CSS Grid, two equal columns on desktop (grid-cols-2), one on
-// mobile. Grid tracks are ALWAYS equal width by spec — the browser
-// computes this directly with no calc(), no arbitrary values, no JS
-// measurement, and therefore no room for the kind of bug that broke
-// this earlier (an invalid calc() with no spaces around the minus sign
-// silently got dropped, and the card collapsed to just its own content
-// width). Every card is a direct grid item and uses w-full/h-64 to fill
-// its track completely, so it's identical to its neighbor whether the
-// row has 1 result or 20, and whether a profile is fully filled out or
-// has no info at all yet.
 const CARD_CLASS =
-  "group flex h-64 w-full gap-5 border border-border bg-card p-7 shadow-md transition hover:-translate-y-1 hover:border-primary hover:shadow-xl";
+  "group flex h-64 w-full gap-5 border border-border bg-card p-7 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg hover:shadow-black/5";
 
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
   const [q, setQ] = useState("");
-  const [heroImageOk, setHeroImageOk] = useState(true);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["agents-directory"],
@@ -85,25 +72,18 @@ function AgentsList() {
   );
 
   return (
-    <div className="site-page">
+    <div className="site-page bg-background">
       <Nav />
-      <section className="relative h-[420px] overflow-hidden bg-gradient-to-br from-primary/85 via-primary to-primary/70 md:h-[460px]">
-        {heroImageOk && (
-          <img
-            src={HERO_IMAGE_URL}
-            alt="One Higala Properties agents and commissioners"
-            className="absolute inset-0 h-full w-full object-cover object-center"
-            loading="eager"
-            onError={() => setHeroImageOk(false)}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/30" />
-        <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
-          <h1 className="max-w-3xl font-display text-3xl font-bold leading-tight text-white drop-shadow-lg md:text-5xl">
-            Where trusted <span className="text-[hsl(210,90%,70%)]">agents</span> meet committed{" "}
-            <span className="text-gold">commissioners</span>
+
+      {/* Light header — plain white section, headline + search, no photo
+          or color-block background. */}
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
+          <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
+            Where trusted agents meet committed <span className="text-primary">commissioners</span>
           </h1>
-          <div className="mt-8 flex w-full max-w-xl items-center gap-3 rounded-full bg-white px-5 py-3 shadow-2xl shadow-black/30">
+          <div className="mt-8 flex w-full items-center gap-3 rounded-full border border-border bg-card px-5 py-3 shadow-sm">
             <User className="h-5 w-5 shrink-0 text-muted-foreground" />
             <input
               value={q}
@@ -113,7 +93,6 @@ function AgentsList() {
             />
             <Search className="h-5 w-5 shrink-0 text-primary" />
           </div>
-          <p className="mt-3 text-sm text-white/80">Find a real estate agent / commissioner</p>
         </div>
       </section>
 
@@ -129,9 +108,7 @@ function AgentsList() {
         ) : filtered.length === 0 ? (
           <p className="text-muted-foreground">No matching agents or commissioners.</p>
         ) : (
-          // Plain grid, 1 column mobile / 2 equal columns desktop.
-          // Grid tracks are spec-guaranteed equal width — no calc needed.
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {filtered.map((a, i) => (
               <Link
                 key={a.id}
@@ -140,14 +117,12 @@ function AgentsList() {
                 className={`${CARD_CLASS} animate-reveal`}
                 style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
               >
-                {/* Fixed-size avatar */}
                 <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-display text-3xl font-bold">
                   {a.avatar_url
                     ? <img src={a.avatar_url} alt={a.full_name ?? "Agent"} className="h-full w-full object-cover" />
                     : (a.full_name ?? "A").slice(0, 1).toUpperCase()}
                 </div>
 
-                {/* Content — overflow-hidden prevents it from stretching the card */}
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <div className="flex flex-wrap items-center gap-1">
                     {a.roles.includes("commissioner") && (

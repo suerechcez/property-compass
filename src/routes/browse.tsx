@@ -17,9 +17,6 @@ import { toast } from "sonner";
 
 type ListingFilter = "all" | "sale" | "rent";
 
-const HERO_BROWSE_JPG = "/hero-browse.jpg";
-const HERO_BROWSE_PNG = "/hero-browse.png";
-
 export const Route = createFileRoute("/browse")({
   validateSearch: (search: Record<string, unknown>) => ({
     filter: (search.filter === "sale" || search.filter === "rent" ? search.filter : "all") as ListingFilter,
@@ -42,8 +39,6 @@ function Browse() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
-  const [heroSrc, setHeroSrc] = useState(HERO_BROWSE_JPG);
-  const [heroHidden, setHeroHidden] = useState(false);
 
   useEffect(() => { setListingFilter(urlFilter); }, [urlFilter]);
   useEffect(() => { setQ(urlQ); }, [urlQ]);
@@ -106,29 +101,21 @@ function Browse() {
   const heading = listingFilter === "rent" ? "For rent" : listingFilter === "sale" ? "For sale" : "Browse listings";
 
   return (
-    <div className="min-h-screen site-page">
+    <div className="min-h-screen site-page bg-background">
       <Nav />
       <div className="flex flex-1">
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Hero banner */}
-          <section className="relative overflow-hidden border-b border-border bg-surface">
-            {!heroHidden && (
-              <img
-                src={heroSrc}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover animate-hero-image"
-                onError={() => { if (heroSrc === HERO_BROWSE_JPG) setHeroSrc(HERO_BROWSE_PNG); else setHeroHidden(true); }}
-              />
-            )}
-            {!heroHidden && <div className="absolute inset-0 bg-black/40" />}
-            <div className="relative px-6 py-6 sm:py-8">
-              <h1 className="font-display text-2xl font-semibold text-white drop-shadow sm:text-3xl animate-reveal">{heading}</h1>
-              <p className="mt-1 text-sm text-white/90 drop-shadow sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
+          {/* Light, photo-free header — a plain white band that keeps focus
+              on the search bar and filters instead of a hero photo. */}
+          <section className="border-b border-border bg-background">
+            <div className="px-6 py-8 sm:py-10">
+              <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
-              <div className="mt-4 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm sm:mt-5 animate-reveal" style={{ animationDelay: "160ms" }}>
+              <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal" style={{ animationDelay: "160ms" }}>
                 <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
               </div>
@@ -171,11 +158,11 @@ function Browse() {
                 <h3 className="font-display text-xl font-semibold sm:text-2xl">No listings for now</h3>
                 <p className="mt-2 text-muted-foreground">When commissioners and agents post properties, they'll appear here.</p>
                 {user ? (
-                  <Button asChild className="mt-6 transition hover:scale-105 active:scale-95"><Link to="/apply">Become a Commissioner / Agent</Link></Button>
+                  <Button asChild className="mt-6 rounded-full transition hover:scale-105 active:scale-95"><Link to="/apply">Become a Commissioner / Agent</Link></Button>
                 ) : (
                   <div className="mx-auto mt-6 max-w-sm">
                     <p className="font-display italic text-foreground/85">"Every home sold starts with someone brave enough to take the first step."</p>
-                    <Button asChild className="mt-4 transition hover:scale-105 active:scale-95"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in to get started</Link></Button>
+                    <Button asChild className="mt-4 rounded-full transition hover:scale-105 active:scale-95"><Link to="/auth"><LogIn className="h-4 w-4" />Sign in to get started</Link></Button>
                   </div>
                 )}
               </div>

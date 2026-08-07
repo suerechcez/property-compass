@@ -19,20 +19,25 @@ function AboutPage() {
   const { user, loading } = useAuth();
 
   return (
-    <div className="min-h-screen site-page">
+    <div className="min-h-screen site-page bg-background">
       <Nav />
 
-      <section className="bg-primary">
+      <section className="border-b border-border">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <span
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-primary animate-reveal"
+          >
+            About us
+          </span>
           <h1
-            className="font-display text-3xl font-bold leading-tight text-white md:text-5xl animate-reveal"
+            className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl animate-reveal"
             style={{ animationDelay: "80ms" }}
           >
             Your dream property starts with{" "}
-            <span className="text-gold">One Higala Properties</span>
+            <span className="text-primary">One Higala Properties</span>
           </h1>
 
-          <div className="mx-auto mt-8 max-w-2xl space-y-5 text-sm leading-relaxed text-white/85 md:text-base">
+          <div className="mx-auto mt-8 max-w-2xl space-y-5 text-sm leading-relaxed text-muted-foreground md:text-base">
             {[
               "Welcome to One Higala Properties, your trusted partner in finding the perfect property in Cagayan de Oro and nearby areas. We specialize in helping individuals, families, and investors discover quality real estate opportunities—from condominium units and residential lots to investment properties that fit every lifestyle and budget.",
               "At One Higala Properties, we believe that owning a property is more than just making a purchase—it's building a future. Our team is committed to providing honest advice, personalized service, and a smooth buying experience from property inquiry to turnover. Whether you're looking for your dream home, a rental investment, or your first property, we're here to guide you every step of the way.",
@@ -40,7 +45,7 @@ function AboutPage() {
             ].map((text, i) => (
               <p key={i} className="animate-reveal" style={{ animationDelay: `${200 + i * 120}ms` }}>{text}</p>
             ))}
-            <p className="font-semibold text-white animate-reveal" style={{ animationDelay: "560ms" }}>
+            <p className="font-semibold text-foreground animate-reveal" style={{ animationDelay: "560ms" }}>
               Your dream property starts with One Higala Properties.
             </p>
           </div>
@@ -49,7 +54,7 @@ function AboutPage() {
             <Button
               asChild
               size="lg"
-              className="mt-8 rounded-full bg-white text-primary hover:bg-white/90 transition hover:scale-105 active:scale-95 animate-reveal"
+              className="mt-8 rounded-full transition hover:scale-105 active:scale-95 animate-reveal"
               style={{ animationDelay: "680ms" }}
             >
               <Link to="/auth">
