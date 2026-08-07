@@ -33,10 +33,11 @@ function Sell() {
   return (
     <div className="site-page bg-background">
 
-      {/* Header — soft navy/gold gradient wash restored behind the two
-          entry-point cards, replacing the flat white version. */}
+      {/* Header — soft navy/gold gradient wash, widened (max-w-6xl, up from
+          5xl) with more side padding at large breakpoints so it uses more
+          of the screen on wide monitors, matching the homepage. */}
       <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
-        <div className="mx-auto max-w-5xl px-6 py-16 text-center md:py-20">
+        <div className="mx-auto max-w-6xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Sell with confidence</span>
           <h1 className="mt-4 font-display text-3xl font-semibold text-foreground md:text-5xl">
             Sell with a <span className="text-primary">One Higala</span> professional
@@ -59,7 +60,7 @@ function Sell() {
         </div>
       </section>
 
-      <section id="sell-options" className="mx-auto max-w-6xl space-y-16 px-6 py-16 md:py-20">
+      <section id="sell-options" className="mx-auto max-w-6xl space-y-16 px-6 py-16 lg:px-12 md:py-20 xl:px-20">
         <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
           <PanelImage jpg={FIND_AGENT_JPG} png={FIND_AGENT_PNG} alt="Find your own agent" />
           <div>
