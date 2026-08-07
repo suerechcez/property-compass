@@ -41,7 +41,9 @@ function Home() {
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
-              <span className="text-primary">the higala</span> way.
+              <span className="text-primary">the </span>
+              <span className="bg-gradient-to-r from-primary via-primary to-gold bg-clip-text text-transparent">higala</span>
+              <span className="text-primary"> way.</span>
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground md:text-lg">
               Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City — with clear pricing and no surprises.
@@ -69,7 +71,7 @@ function Home() {
               </button>
             </form>
 
-            <div className="mt-10 flex flex-wrap gap-8 border-t border-border pt-8">
+            <div className="mt-10 flex flex-wrap justify-center gap-8 border-t border-border pt-8 sm:justify-start">
               <Stat value="500+" label="Properties" />
               <Stat value="12" label="Neighborhoods" />
               <Stat value="98%" label="Client satisfaction" />
@@ -127,7 +129,7 @@ function Home() {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div>
+    <div className="text-center sm:text-left">
       <p className="font-display text-2xl font-semibold text-foreground">{value}</p>
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
