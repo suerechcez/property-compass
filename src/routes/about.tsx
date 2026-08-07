@@ -22,7 +22,9 @@ function AboutPage() {
     <div className="min-h-screen site-page bg-background">
       <Nav />
 
-      <section className="border-b border-border">
+      {/* Stronger navy/gold gradient wash restored behind the intro copy,
+          matching the Sell page's hero treatment. */}
+      <section className="border-b border-border bg-gradient-to-br from-primary/30 via-background/70 to-gold/20">
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
           <span
             className="text-xs font-semibold uppercase tracking-[0.2em] text-primary animate-reveal"
