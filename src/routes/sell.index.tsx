@@ -33,10 +33,10 @@ function Sell() {
   return (
     <div className="site-page bg-background">
 
-      {/* Header — soft navy/gold gradient wash, widened (max-w-6xl, up from
-          5xl) with more side padding at large breakpoints so it uses more
-          of the screen on wide monitors, matching the homepage. */}
-      <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
+      {/* Header — stronger navy/gold gradient wash (up from the soft
+          version) so the blue reads clearly again, without going back to
+          a flat solid-navy block. */}
+      <section className="border-b border-border bg-gradient-to-br from-primary/30 via-background/70 to-gold/20">
         <div className="mx-auto max-w-6xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Sell with confidence</span>
           <h1 className="mt-4 font-display text-3xl font-semibold text-foreground md:text-5xl">
