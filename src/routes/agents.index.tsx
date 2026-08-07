@@ -75,9 +75,9 @@ function AgentsList() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Light header — plain white section, headline + search, no photo
-          or color-block background. */}
-      <section className="border-b border-border">
+      {/* Header — soft navy/gold gradient wash restored behind the
+          headline + search, replacing the flat white version. */}
+      <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
           <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
