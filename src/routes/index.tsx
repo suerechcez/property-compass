@@ -31,8 +31,13 @@ function Home() {
     <div className="site-page bg-background">
       <Nav />
 
+      {/* Split, light hero — headline + search on the left, a single
+          framed property photo on the right. Widened to max-w-[1600px]
+          (up from max-w-7xl/1280px) with more generous side padding at
+          large breakpoints so the page fills wide monitors instead of
+          leaving a big empty gutter on either side. */}
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-16 md:grid-cols-2 md:py-24 lg:px-10">
+        <div className="mx-auto grid max-w-[1600px] items-center gap-12 px-6 py-16 md:grid-cols-2 md:py-24 lg:px-12 xl:px-20 2xl:gap-20">
           <div className="animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
