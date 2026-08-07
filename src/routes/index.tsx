@@ -31,14 +31,13 @@ function Home() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Split, light hero — headline + search on the left, a single
-          framed property photo on the right. Widened to max-w-[1600px]
-          (up from max-w-7xl/1280px) with more generous side padding at
-          large breakpoints so the page fills wide monitors instead of
-          leaving a big empty gutter on either side. */}
+      {/* Split hero — headline + search in a padded left column, photo in
+          a full-bleed right column that runs edge-to-edge to the browser's
+          right side (no max-width, no rounded corners) instead of sitting
+          in a framed box inside the centered container. */}
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-[1600px] items-center gap-12 px-6 py-16 md:grid-cols-2 md:py-24 lg:px-12 xl:px-20 2xl:gap-20">
-          <div className="animate-reveal">
+        <div className="flex flex-col md:flex-row">
+          <div className="flex flex-col justify-center px-6 py-16 md:w-1/2 md:py-24 lg:px-12 xl:pl-20 xl:pr-12 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
@@ -77,21 +76,23 @@ function Home() {
             </div>
           </div>
 
-          <div className="relative animate-reveal" style={{ animationDelay: "120ms" }}>
-            <div className="aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-surface md:aspect-square">
-              {heroImageOk && (
-                <img
-                  src={HERO_IMAGE_URL}
-                  alt="A featured One Higala Properties home"
-                  className="h-full w-full object-cover"
-                  loading="eager"
-                  onError={() => setHeroImageOk(false)}
-                />
-              )}
-            </div>
+          {/* Full-bleed photo column — stretches to match the text column's
+              height on desktop (default flex align-items: stretch) and
+              runs flush to the right edge of the browser, with square
+              corners instead of the previous rounded frame. */}
+          <div className="relative h-72 w-full animate-reveal bg-surface sm:h-96 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
+            {heroImageOk && (
+              <img
+                src={HERO_IMAGE_URL}
+                alt="A featured One Higala Properties home"
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="eager"
+                onError={() => setHeroImageOk(false)}
+              />
+            )}
             <Link
               to="/browse"
-              className="group absolute -bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/5 md:left-8"
+              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10 md:left-10"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
                 <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
