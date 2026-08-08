@@ -115,9 +115,10 @@ function Browse() {
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — hero-browse.png as a plain photo backdrop, no color
-              gradient overlay (no bottom border, so it bleeds straight
-              into the filter row below it). */}
+          {/* Header — hero-browse.png as the backdrop, with a plain
+              (non-colored) translucent white scrim over it so the title
+              and search bar stay readable, instead of the navy/gold
+              gradient wash. */}
           <section className="relative overflow-hidden">
             {heroImageOk && (
               <img
@@ -128,6 +129,7 @@ function Browse() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
+            <div className="absolute inset-0 bg-background/80" />
             <div className="relative px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
