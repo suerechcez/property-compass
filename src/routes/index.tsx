@@ -34,15 +34,17 @@ function Home() {
       {/* Split hero — headline + search in a padded left column, photo in
           a full-bleed right column that runs edge-to-edge to the browser's
           right side (no max-width, no rounded corners) instead of sitting
-          in a framed box inside the centered container. */}
+          in a framed box inside the centered container. Extra vertical
+          padding (py-20/py-36, up from py-16/py-24) fills the space left
+          behind after removing the stats row below. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
-          <div className="flex flex-col justify-center px-6 py-16 md:w-1/2 md:py-24 lg:px-12 xl:pl-20 xl:pr-12 animate-reveal">
+          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-20 xl:pr-12 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
               <span className="text-primary">the </span>
-              <span className="bg-gradient-to-r from-primary via-primary to-gold bg-clip-text text-transparent">higala</span>
+              <span className="text-gold">higala</span>
               <span className="text-primary"> way.</span>
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground md:text-lg">
@@ -52,7 +54,7 @@ function Home() {
             <form
               action="/browse"
               method="get"
-              className="mt-8 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
+              className="mt-10 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
             >
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
@@ -70,15 +72,6 @@ function Home() {
                 Search
               </button>
             </form>
-
-            {/* Stats row — centered within the left column at every
-                breakpoint (previously reverted to left-aligned from `sm`
-                up, which is what made it look off-center on desktop). */}
-            <div className="mt-10 flex w-full max-w-md flex-wrap justify-center gap-8 border-t border-border pt-8">
-              <Stat value="500+" label="Properties" />
-              <Stat value="12" label="Neighborhoods" />
-              <Stat value="98%" label="Client satisfaction" />
-            </div>
           </div>
 
           {/* Full-bleed photo column — stretches to match the text column's
@@ -126,15 +119,6 @@ function Home() {
       )}
 
       <Footer />
-    </div>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center">
-      <p className="font-display text-2xl font-semibold text-foreground">{value}</p>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }
