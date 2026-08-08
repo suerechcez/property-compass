@@ -44,17 +44,70 @@ function Home() {
 
   return (
     <div className="site-page bg-background">
-      {/* `overlay` makes the bar transparent and floats it over the hero
-          photo below (mobile/tablet-portrait only — see Nav.tsx). That
-          requires the photo to be the first thing on the page on mobile,
-          which is why the two hero columns below are reordered with
-          order-1/order-2 (photo first on mobile, text first on desktop,
-          matching the original left-text/right-photo layout at md+). */}
+      {/* `overlay` makes the bar transparent and floats it over the mobile
+          hero photo below (mobile/tablet-portrait only — see Nav.tsx). */}
       <Nav overlay />
 
       <section className="border-b border-border">
-        <div className="flex flex-col md:flex-row">
-          <div className="order-2 flex flex-col justify-center px-6 py-20 md:order-1 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
+        {/* ── Mobile hero (below md) — a single tall photo with the
+            headline, subtext, and search bar overlaid directly on top of
+            it (inside a dark scrim for legibility), instead of a separate
+            text block below/beside the photo. No "Browse listings" card
+            here — that shortcut is desktop-only (see the md+ block below). */}
+        <div className="relative h-[560px] w-full overflow-hidden bg-surface sm:h-[640px] md:hidden">
+          {heroImageOk && (
+            <img
+              src={HERO_IMAGE_URL}
+              alt="A featured One Higala Properties home"
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="eager"
+              onError={() => setHeroImageOk(false)}
+            />
+          )}
+          {/* Scrim graduates from faint at the very top (where the
+              floating Nav icons need just enough contrast) to strong at
+              the bottom (where the headline/search sit). */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75" />
+          <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-10 pt-24 animate-reveal">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Cagayan de Oro City</span>
+            <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.1] text-white">
+              Bringing you home,<br />
+              <span className="text-white">the </span>
+              <span className="text-gold">higala</span>
+              <span className="text-white"> way.</span>
+            </h1>
+            <p className="mt-4 text-base text-white/85">
+              Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
+            </p>
+
+            <form
+              onSubmit={handleHeroSearch}
+              className="mt-6 flex w-full items-center gap-2 rounded-full border border-white/20 bg-card px-5 py-2.5 shadow-lg"
+            >
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                name="q"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by neighborhood, subdivision, or title…"
+                className="h-8 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0"
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
+              >
+                Search
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* ── Desktop hero (md and up) — unchanged split layout: headline
+            + search in a left column, full-bleed photo (with the "Browse
+            listings" card) in a right column. */}
+        <div className="hidden md:flex">
+          <div className="flex flex-col justify-center px-6 py-36 md:w-1/2 lg:px-12 xl:pl-16 xl:pr-10">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
@@ -88,16 +141,7 @@ function Home() {
             </form>
           </div>
 
-          {/* Photo column — ordered first on mobile (order-1) so the
-              floating transparent Nav has an actual photo to sit over;
-              back to second/right on desktop (md:order-2), matching the
-              original layout. Still full-bleed to the browser's right
-              edge at md+. A short dark scrim only at the very top, only
-              below md, keeps the burger/messages/bell/avatar icons
-              readable regardless of how bright the photo is up there —
-              it fades to nothing by the time the "Browse listings" card
-              or the rest of the photo is reached. */}
-          <div className="relative order-1 h-72 w-full animate-reveal bg-surface sm:h-96 md:order-2 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
+          <div className="relative h-auto w-full bg-surface md:w-1/2">
             {heroImageOk && (
               <img
                 src={HERO_IMAGE_URL}
@@ -107,10 +151,9 @@ function Home() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent md:hidden" />
             <Link
               to="/browse"
-              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10 md:left-10"
+              className="group absolute bottom-6 left-10 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
                 <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
