@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Rss, Heart, MessageSquare, GripHorizontal } from "lucide-react";
+import { Rss, Heart, GripHorizontal } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { fetchUnreadCount } from "@/lib/messages";
 
 const SIDEBAR_RIGHT_ICON_CLASS =
   "relative flex flex-col items-center gap-1 py-3 px-2 w-full rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground cursor-pointer select-none";
@@ -14,7 +12,6 @@ type SidebarItem = {
   to: string;
   authRequired: boolean;
   guestTo?: string;
-  badge?: number;
 };
 
 // Routes where the floating sidebar should never appear
@@ -43,15 +40,6 @@ export function RightSideBar() {
   // it could end up stuck overlapping the topbar in the first place).
   const [position, setPosition] = useState<Position | null>(null);
   const [dragging, setDragging] = useState(false);
-
-  // Unread message count — refreshed periodically so the badge stays live
-  // without needing a websocket just for the sidebar itself.
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ["unread-count", user?.id],
-    queryFn: () => fetchUnreadCount(user!.id),
-    enabled: !!user,
-    refetchInterval: 15000,
-  });
 
   const hiddenHere = HIDDEN_ON.some((prefix) => path.startsWith(prefix));
 
@@ -114,11 +102,12 @@ export function RightSideBar() {
     setPosition(null);
   }
 
-  // "Updates" uses Rss (a listings feed), distinct from the notification
-  // Bell icon used for messages elsewhere in the app.
+  // Search and Messages moved out of this rail — Search lived at "/browse"
+  // (now reachable via the topbar's own Browse link/mega-dropdown) and
+  // Messages moved into the topbar beside the notification bell. Updates
+  // and Favorites stay here AND are now also reachable from the Browse
+  // mega-dropdown in the topbar.
   const items: SidebarItem[] = [
-    { icon: <Search className="h-5 w-5" />, label: "Search", to: "/browse", authRequired: false },
-    { icon: <MessageSquare className="h-5 w-5" />, label: "Messages", to: "/messages", authRequired: true, guestTo: "/auth", badge: unreadCount },
     { icon: <Rss className="h-5 w-5" />, label: "Updates", to: "/updates", authRequired: true, guestTo: "/updates" },
     { icon: <Heart className="h-5 w-5" />, label: "Favorites", to: "/favorites", authRequired: true, guestTo: "/favorites" },
   ];
@@ -167,11 +156,6 @@ export function RightSideBar() {
               onClick={() => navigate({ to: dest })}
               aria-label={item.label}
             >
-              {!!item.badge && item.badge > 0 && (
-                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground">
-                  {item.badge > 9 ? "9+" : item.badge}
-                </span>
-              )}
               {item.icon}
               <span className="text-[10px] font-medium leading-none">{item.label}</span>
             </button>
@@ -179,7 +163,7 @@ export function RightSideBar() {
         })}
       </aside>
 
-      {/* Mobile / tablet-portrait — the same four destinations as a fixed
+      {/* Mobile / tablet-portrait — the same destinations as a fixed
           bottom tab bar instead, since the floating draggable rail above
           is desktop-only (lg:flex). Reachable via thumb, safe-area aware
           for phones with a home-indicator, and reserves its own space via
@@ -201,11 +185,6 @@ export function RightSideBar() {
                 isActive ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              {!!item.badge && item.badge > 0 && (
-                <span className="absolute right-1/2 top-1 translate-x-3 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground">
-                  {item.badge > 9 ? "9+" : item.badge}
-                </span>
-              )}
               {item.icon}
               <span>{item.label}</span>
             </button>
