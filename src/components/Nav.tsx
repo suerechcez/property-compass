@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
   LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare, Megaphone,
+  Home, KeyRound, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -45,6 +46,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [announceOpen, setAnnounceOpen] = useState(false);
   const canManageListings = isCommissioner || isAgent;
+
+  // "Browse" mega-dropdown — hover-triggered, shows Buy/Rent below the
+  // full-width header. A short close delay (via ref'd timeout, not state,
+  // so it survives re-renders without re-triggering effects) keeps the
+  // panel open while the cursor travels from the trigger down into the
+  // panel itself; without it, the small vertical gap between them would
+  // register as a mouseleave and the panel would flicker shut.
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const browseCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function openBrowseMenu() {
+    if (browseCloseTimer.current) clearTimeout(browseCloseTimer.current);
+    setBrowseOpen(true);
+  }
+  function closeBrowseMenuSoon() {
+    browseCloseTimer.current = setTimeout(() => setBrowseOpen(false), 150);
+  }
 
   const isDashboard = DASHBOARD_ROUTES.some((r) =>
     routerState.location.pathname.startsWith(r)
@@ -141,7 +158,25 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
           {!isDashboard && (
             <nav className="hidden items-center gap-7 md:flex">
-              <NavLink to="/browse">Browse</NavLink>
+              {/* Browse trigger — hover opens the full-width Buy/Rent
+                  mega-dropdown rendered below, right before </header>.
+                  It's a plain span (not NavLink) since it's a hover
+                  target rather than a direct link itself; the chevron
+                  rotates to signal the open state. */}
+              <div
+                className="relative"
+                onMouseEnter={openBrowseMenu}
+                onMouseLeave={closeBrowseMenuSoon}
+              >
+                <Link
+                  to="/browse"
+                  className="group relative flex items-center gap-1 py-1 text-base font-semibold tracking-wide text-foreground/80 transition-colors hover:text-foreground"
+                >
+                  Browse
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${browseOpen ? "rotate-180" : ""}`} />
+                  <span className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                </Link>
+              </div>
               <NavLink to="/sell">Sell</NavLink>
               <NavLink to="/agents">Find an agent</NavLink>
             </nav>
@@ -399,6 +434,58 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           )}
         </div>
       </div>
+
+      {/*
+        Browse mega-dropdown — full-bleed edge-to-edge panel. Positioned
+        `absolute inset-x-0 top-full` against <header> itself (which is
+        always `sticky` or `relative` here, both valid containing blocks
+        for absolutely-positioned descendants), so it spans the ENTIRE
+        header width left-to-right regardless of how narrow the "Browse"
+        trigger text is — not just the width of its own immediate parent.
+        Kept mounted (hidden via opacity/pointer-events, not conditionally
+        rendered) so the open/close transition animates instead of
+        popping instantly.
+      */}
+      {!isDashboard && (
+        <div
+          onMouseEnter={openBrowseMenu}
+          onMouseLeave={closeBrowseMenuSoon}
+          className={`absolute inset-x-0 top-full z-30 border-b border-border bg-gradient-to-r from-primary/22 via-background/98 to-gold/24 shadow-lg backdrop-blur transition-all duration-200 ${
+            browseOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
+          }`}
+        >
+          <div className="mx-auto grid max-w-screen-2xl grid-cols-1 gap-4 px-4 py-6 sm:grid-cols-2 sm:px-10">
+            <Link
+              to="/browse"
+              search={{ filter: "sale", q: "" }}
+              onClick={() => setBrowseOpen(false)}
+              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
+            >
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <Home className="h-6 w-6" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-semibold">Buy</span>
+                <span className="block text-sm text-muted-foreground">Condos, hotels, land, and resell properties for sale.</span>
+              </span>
+            </Link>
+            <Link
+              to="/browse"
+              search={{ filter: "rent", q: "" }}
+              onClick={() => setBrowseOpen(false)}
+              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
+            >
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                <KeyRound className="h-6 w-6" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-semibold">Rent</span>
+                <span className="block text-sm text-muted-foreground">Find your next place to rent in Cagayan de Oro.</span>
+              </span>
+            </Link>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
