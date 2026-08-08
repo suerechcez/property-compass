@@ -478,12 +478,25 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         bg-card, no shadow) — just a small icon chip, so they read as
         plain rows sitting transparently on the panel rather than boxed
         buttons.
+
+        Background is fully opaque (was a low-alpha gradient +
+        backdrop-blur, which let page content show through underneath).
+        Tailwind's per-stop opacity modifiers (e.g. from-primary/40) are
+        literal alpha — even pairing a transparent edge stop with an
+        opaque middle stop still lets content bleed through right at the
+        edges — so the tint is mixed into fully solid colors via
+        color-mix() in an inline style instead of relying on alpha
+        anywhere in the gradient.
       */}
       {!isDashboard && (
         <div
           onMouseEnter={openBrowseMenu}
           onMouseLeave={closeBrowseMenuSoon}
-          className={`absolute inset-x-0 top-full z-30 border-b border-border bg-gradient-to-r from-primary/22 via-background/98 to-gold/24 shadow-lg backdrop-blur transition-all duration-200 ${
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, var(--background)), var(--background), color-mix(in srgb, var(--gold) 12%, var(--background)))",
+          }}
+          className={`absolute inset-x-0 top-full z-30 border-b border-border shadow-lg transition-all duration-200 ${
             browseOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
           }`}
         >
