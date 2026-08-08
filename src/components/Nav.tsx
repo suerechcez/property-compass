@@ -28,11 +28,20 @@ import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/s
 const BRAND_ICON_URL = "/brand-icon.png";
 const DASHBOARD_ROUTES = ["/dashboard"];
 
-function NavLink({ to, children }: { to: string; children: string }) {
+function NavLink({ to, children, overlay }: { to: string; children: string; overlay?: boolean }) {
   return (
-    <Link to={to} className="group relative py-1 text-base font-semibold tracking-wide text-foreground/80 transition-colors hover:text-foreground">
+    <Link
+      to={to}
+      className={`group relative py-1 text-base font-semibold tracking-wide transition-colors ${
+        overlay ? "text-white/90 hover:text-white" : "text-foreground/80 hover:text-foreground"
+      }`}
+    >
       {children}
-      <span className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out group-hover:scale-x-100" />
+      <span
+        className={`pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full transition-transform duration-300 ease-out group-hover:scale-x-100 ${
+          overlay ? "bg-white" : "bg-primary"
+        }`}
+      />
     </Link>
   );
 }
@@ -71,12 +80,14 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   );
 
   // `overlay` (passed only by the homepage hero) makes the bar transparent
-  // and floats it over the hero photo — but ONLY below the `md` breakpoint.
-  // At `md` and up the homepage hero switches to the side-by-side desktop
-  // layout (see routes/index.tsx), so the bar reverts to the normal solid
-  // sticky treatment there, same as every other page.
+  // and floats it over the hero photo — at EVERY breakpoint now, since the
+  // homepage hero itself is a single full-bleed photo at every breakpoint
+  // (see routes/index.tsx). Icons/links/avatar switch to white for
+  // contrast; the bar is `absolute` rather than `sticky`, so like the rest
+  // of the hero content it scrolls away with the page instead of staying
+  // pinned once you scroll past the photo.
   const isOverlay = overlay && !isDashboard;
-  const mobileIconColor = isOverlay ? "text-white md:text-foreground/80" : "text-foreground/80";
+  const iconColor = isOverlay ? "text-white" : "text-foreground/80";
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -127,13 +138,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   return (
     <header
       // Two modes: normal (every page) is the solid brand-gradient wash,
-      // always sticky. Overlay mode (homepage only, mobile/tablet-portrait
-      // only) removes the background and border and floats the bar via
-      // `absolute` over the hero photo instead — reverting back to the
-      // exact normal treatment at `md` and up.
+      // always sticky. Overlay mode (homepage only) removes the
+      // background/border entirely and floats the bar via `absolute` over
+      // the hero photo instead, at every breakpoint.
       className={
         isOverlay
-          ? "absolute inset-x-0 top-0 z-40 w-full bg-transparent md:sticky md:border-b md:border-border md:bg-gradient-to-r md:from-primary/22 md:via-background/80 md:to-gold/24 md:backdrop-blur"
+          ? "absolute inset-x-0 top-0 z-40 w-full bg-transparent"
           : `z-40 w-full border-b border-border bg-gradient-to-r from-primary/22 via-background/80 to-gold/24 backdrop-blur ${
               isDashboard ? "relative" : "sticky top-0"
             }`
@@ -147,7 +157,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <SheetTrigger asChild>
                 <button
                   aria-label="Open menu"
-                  className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${mobileIconColor}`}
+                  className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${iconColor}`}
                 >
                   <Menu className="h-6 w-6" />
                 </button>
@@ -187,15 +197,21 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               >
                 <Link
                   to="/browse"
-                  className="group relative flex items-center gap-1 py-1 text-base font-semibold tracking-wide text-foreground/80 transition-colors hover:text-foreground"
+                  className={`group relative flex items-center gap-1 py-1 text-base font-semibold tracking-wide transition-colors ${
+                    isOverlay ? "text-white/90 hover:text-white" : "text-foreground/80 hover:text-foreground"
+                  }`}
                 >
                   Browse
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${browseOpen ? "rotate-180" : ""}`} />
-                  <span className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                  <span
+                    className={`pointer-events-none absolute inset-x-0 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full transition-transform duration-300 ease-out group-hover:scale-x-100 ${
+                      isOverlay ? "bg-white" : "bg-primary"
+                    }`}
+                  />
                 </Link>
               </div>
-              <NavLink to="/sell">Sell</NavLink>
-              <NavLink to="/agents">Find an agent</NavLink>
+              <NavLink to="/sell" overlay={isOverlay}>Sell</NavLink>
+              <NavLink to="/agents" overlay={isOverlay}>Find an agent</NavLink>
             </nav>
           )}
 
@@ -221,13 +237,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             ) : (
               <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
             )}
-            {/* The text lockup only ever shows from `md` up now (was `sm`)
-                — `md` is also exactly where overlay mode's background
-                switches from transparent to solid, so there's no in-between
-                width where dark lockup text could end up sitting directly
-                on a transparent hero photo with no contrast guarantee. */}
+            {/* Light (white) text lockup while overlay is active, since the
+                bar stays transparent over the photo at every breakpoint
+                now — dark navy text would have no contrast guarantee. */}
             <div className="hidden items-center md:flex">
-              <BrandTitle light={false} className="items-center text-center" />
+              <BrandTitle light={isOverlay} className="items-center text-center" />
             </div>
           </Link>
         )}
@@ -239,7 +253,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           <Link
             to={user ? "/messages" : "/auth"}
             aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
-            className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${mobileIconColor}`}
+            className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${iconColor}`}
           >
             <MessageSquare className="h-5 w-5" />
             {unreadCount > 0 && (
@@ -309,7 +323,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={bellBadgeCount > 0 ? `${bellBadgeCount} unread notifications` : "Notifications"}
-                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${mobileIconColor}`}
+                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${iconColor}`}
                 >
                   <Bell className="h-5 w-5" />
                   {bellBadgeCount > 0 && (
@@ -387,7 +401,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className={`h-12 w-12 border ${isOverlay ? "border-white/70 md:border-border" : "border-border"}`}>
+                  <Avatar className={`h-12 w-12 border ${isOverlay ? "border-white/70" : "border-border"}`}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
                   </Avatar>
@@ -476,15 +490,15 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
       {/*
         Browse mega-dropdown — full-bleed edge-to-edge panel. Positioned
         `absolute inset-x-0 top-full` against <header> itself (which is
-        always `sticky` or `relative` here, both valid containing blocks
-        for absolutely-positioned descendants), so it spans the ENTIRE
-        header width left-to-right regardless of how narrow the "Browse"
-        trigger text is — not just the width of its own immediate parent.
-        Kept mounted (hidden via opacity/pointer-events, not conditionally
-        rendered) so the open/close transition animates instead of
-        popping instantly. Four destinations (Buy/Rent/Updates/Favorites)
-        — Updates and Favorites moved in from the floating RightSideBar
-        rail.
+        always a valid containing block for absolutely-positioned
+        descendants — `sticky`/`relative` normally, `absolute` in overlay
+        mode), so it spans the ENTIRE header width left-to-right regardless
+        of how narrow the "Browse" trigger text is — not just the width of
+        its own immediate parent. Kept mounted (hidden via
+        opacity/pointer-events, not conditionally rendered) so the
+        open/close transition animates instead of popping instantly. Four
+        destinations (Buy/Rent/Updates/Favorites) — Updates and Favorites
+        moved in from the floating RightSideBar rail.
 
         The 2x2 item grid is deliberately confined to `sm:w-1/2` (roughly
         the left half of this full-bleed panel) rather than stretching
@@ -497,14 +511,15 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         buttons.
 
         Background is fully opaque (was a low-alpha gradient +
-        backdrop-blur, which let page content show through underneath).
-        Tailwind's per-stop opacity modifiers (e.g. from-primary/40) are
-        literal alpha — even pairing a transparent edge stop with an
-        opaque middle stop still lets content bleed through right at the
-        edges — so the tint is mixed into fully solid colors via
-        color-mix() in an inline style instead of relying on alpha
-        anywhere in the gradient. Desktop-only concern — hidden on mobile
-        along with the "Browse" trigger link that opens it.
+        backdrop-blur, which let page content show through underneath —
+        including, in overlay mode, the hero photo itself). Tailwind's
+        per-stop opacity modifiers (e.g. from-primary/40) are literal
+        alpha — even pairing a transparent edge stop with an opaque middle
+        stop still lets content bleed through right at the edges — so the
+        tint is mixed into fully solid colors via color-mix() in an inline
+        style instead of relying on alpha anywhere in the gradient.
+        Desktop-only concern — hidden on mobile along with the "Browse"
+        trigger link that opens it.
       */}
       {!isDashboard && (
         <div
