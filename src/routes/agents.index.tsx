@@ -23,9 +23,12 @@ export const Route = createFileRoute("/agents/")({
 const CARD_CLASS =
   "group flex h-64 w-full gap-5 border border-border bg-card p-7 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg hover:shadow-black/5";
 
+const HERO_AGENTS_URL = "/hero-agents.png";
+
 function AgentsList() {
   const [tab, setTab] = useState<RoleTab>("all");
   const [q, setQ] = useState("");
+  const [heroImageOk, setHeroImageOk] = useState(true);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["agents-directory"],
@@ -75,11 +78,21 @@ function AgentsList() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Header — soft navy/gold gradient wash, widened (max-w-4xl, up from
-          3xl) with more side padding at large breakpoints, matching the
-          homepage's wider treatment. */}
-      <section className="border-b border-border bg-gradient-to-br from-primary/8 via-background to-gold/10">
-        <div className="mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
+      {/* Header — hero-agents.png as a photo backdrop, with the same
+          navy/gold gradient wash layered on top for readability, widened
+          (max-w-4xl) with more side padding at large breakpoints. */}
+      <section className="relative overflow-hidden border-b border-border">
+        {heroImageOk && (
+          <img
+            src={HERO_AGENTS_URL}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setHeroImageOk(false)}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background/85 to-gold/25" />
+        <div className="relative mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
           <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
             Where trusted agents meet committed <span className="text-primary">commissioners</span>
