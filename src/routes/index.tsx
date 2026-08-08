@@ -49,14 +49,14 @@ function Home() {
       {/* Split hero — headline + search in a left column, photo in a
           full-bleed right column that runs edge-to-edge to the browser's
           right side (no max-width, no rounded corners) instead of sitting
-          in a framed box inside the centered container. The text content
-          is now a centered block (mx-auto + text-center/items-center)
-          inside its half, so it sits equidistant from the browser's left
-          edge and the photo's left edge, rather than hugging the padding. */}
+          in a framed box inside the centered container. The text block
+          is positioned centered as a whole (mx-auto) within its half, but
+          the text itself stays left-aligned — it's the block's position
+          that's centered, not each line of type. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
           <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 animate-reveal">
-            <div className="mx-auto flex w-full max-w-md flex-col items-center text-center">
+            <div className="mx-auto w-full max-w-md">
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
               <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
                 Bringing you home,<br />
