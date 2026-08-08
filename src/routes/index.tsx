@@ -49,46 +49,44 @@ function Home() {
       {/* Split hero — headline + search in a left column, photo in a
           full-bleed right column that runs edge-to-edge to the browser's
           right side (no max-width, no rounded corners) instead of sitting
-          in a framed box inside the centered container. The text block
-          is positioned centered as a whole (mx-auto) within its half, but
-          the text itself stays left-aligned — it's the block's position
-          that's centered, not each line of type. */}
+          in a framed box inside the centered container. Text sits directly
+          against left padding (no mx-auto centering block) so it reads as
+          anchored to the page edge rather than floating in the middle of
+          empty space. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
-          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 animate-reveal">
-            <div className="mx-auto w-full max-w-md">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
-              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
-                Bringing you home,<br />
-                <span className="text-primary">the </span>
-                <span className="text-gold">higala</span>
-                <span className="text-primary"> way.</span>
-              </h1>
-              <p className="mt-6 text-base text-muted-foreground md:text-lg">
-                Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
-              </p>
+          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
+            <h1 className="mt-4 max-w-lg font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
+              Bringing you home,<br />
+              <span className="text-primary">the </span>
+              <span className="text-gold">higala</span>
+              <span className="text-primary"> way.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-base text-muted-foreground md:text-lg">
+              Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
+            </p>
 
-              <form
-                onSubmit={handleHeroSearch}
-                className="mt-10 flex w-full items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
+            <form
+              onSubmit={handleHeroSearch}
+              className="mt-10 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
+            >
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                name="q"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search by neighborhood, subdivision, or title…"
+                className="h-8 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0"
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
               >
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <Input
-                  name="q"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search by neighborhood, subdivision, or title…"
-                  className="h-8 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0"
-                />
-                <button
-                  type="submit"
-                  aria-label="Search"
-                  className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
-                >
-                  Search
-                </button>
-              </form>
-            </div>
+                Search
+              </button>
+            </form>
           </div>
 
           {/* Full-bleed photo column — stretches to match the text column's
