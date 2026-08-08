@@ -31,6 +31,8 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
+const HERO_BROWSE_URL = "/hero-browse.png";
+
 function Browse() {
   const { filter: urlFilter, q: urlQ } = Route.useSearch();
   const { user } = useAuth();
@@ -39,6 +41,7 @@ function Browse() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
+  const [heroImageOk, setHeroImageOk] = useState(true);
 
   useEffect(() => { setListingFilter(urlFilter); }, [urlFilter]);
   useEffect(() => { setQ(urlQ); }, [urlQ]);
@@ -112,10 +115,22 @@ function Browse() {
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — no bottom border now, so the gradient bleeds straight
-              into the filter row below it. */}
-          <section className="bg-gradient-to-br from-primary/8 via-background to-gold/10">
-            <div className="px-6 py-8 sm:py-10">
+          {/* Header — hero-browse.png as a photo backdrop, with the same
+              navy/gold gradient wash layered on top so text stays
+              readable (no bottom border, so it bleeds straight into the
+              filter row below it). */}
+          <section className="relative overflow-hidden">
+            {heroImageOk && (
+              <img
+                src={HERO_BROWSE_URL}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={() => setHeroImageOk(false)}
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background/85 to-gold/25" />
+            <div className="relative px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
