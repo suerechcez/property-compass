@@ -14,8 +14,12 @@ type SidebarItem = {
   guestTo?: string;
 };
 
-// Routes where the floating sidebar should never appear
+// Routes where the floating sidebar should never appear. Prefix-matched
+// below, EXCEPT "/" itself — every pathname starts with "/", so that one
+// entry is checked for an exact match instead (see hiddenHere) or it would
+// hide the sidebar on every single route in the app.
 const HIDDEN_ON = ["/dashboard", "/auth"];
+const HIDDEN_EXACT = ["/"];
 
 // Height of the sticky Nav bar (matches the constant used in dashboard.tsx /
 // messages.tsx) — the sidebar is never allowed to drag above this line, so
@@ -41,7 +45,8 @@ export function RightSideBar() {
   const [position, setPosition] = useState<Position | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const hiddenHere = HIDDEN_ON.some((prefix) => path.startsWith(prefix));
+  const hiddenHere =
+    HIDDEN_EXACT.includes(path) || HIDDEN_ON.some((prefix) => path.startsWith(prefix));
 
   // Reserves room at the bottom of the page for the fixed mobile tab bar
   // below (see styles.css) so it never overlaps page content or a page's
