@@ -47,15 +47,15 @@ function Home() {
       <Nav />
 
       {/* Split hero — headline + search in a left column, photo in a
-          full-bleed right column that runs edge-to-edge to the browser's
-          right side (no max-width, no rounded corners) instead of sitting
-          in a framed box inside the centered container. Text sits directly
-          against left padding (no mx-auto centering block) so it reads as
-          anchored to the page edge rather than floating in the middle of
-          empty space. The headline itself has no max-width, so "Bringing
-          you home," has the full column width to sit on one line before
-          the manual <br/> — otherwise a narrow max-width forces an extra
-          wrap before the intentional line break ever kicks in. */}
+          right column. Text sits directly against left padding (no
+          mx-auto centering block) so it reads as anchored to the page
+          edge rather than floating in the middle of empty space. The
+          headline itself has no max-width, so "Bringing you home," has
+          the full column width to sit on one line before the manual
+          <br/> — otherwise a narrow max-width forces an extra wrap
+          before the intentional line break ever kicks in. The text
+          column's own width/position is untouched by the photo changes
+          below — only the photo column moved. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
           <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
@@ -92,11 +92,19 @@ function Home() {
             </form>
           </div>
 
-          {/* Full-bleed photo column — stretches to match the text column's
-              height on desktop (default flex align-items: stretch) and
-              runs flush to the right edge of the browser, with square
-              corners instead of the previous rounded frame. */}
-          <div className="relative h-72 w-full animate-reveal bg-surface sm:h-96 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
+          {/* Photo column — previously ran full-bleed flush to the
+              browser's right edge. Pulled left instead by adding a right
+              margin (md:mr-10, growing at larger breakpoints) so the
+              photo now sits with breathing room before the edge rather
+              than pinned against it — moving it left on screen — while
+              the text column above is completely untouched (its own
+              width/position never changed). Since it's no longer
+              edge-to-edge, it now gets rounded corners + a shadow instead
+              of the previous square, flush-edge treatment. */}
+          <div
+            className="relative h-72 w-full animate-reveal overflow-hidden rounded-2xl bg-surface shadow-lg shadow-black/10 sm:h-96 md:h-auto md:w-1/2 md:mr-10 lg:mr-16 xl:mr-24"
+            style={{ animationDelay: "120ms" }}
+          >
             {heroImageOk && (
               <img
                 src={HERO_IMAGE_URL}
@@ -112,7 +120,7 @@ function Home() {
             )}
             <Link
               to="/browse"
-              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10 md:left-10"
+              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
                 <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
