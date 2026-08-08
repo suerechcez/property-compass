@@ -49,12 +49,13 @@ function Home() {
       {/* Split hero — headline + search in a padded left column, photo in
           a full-bleed right column that runs edge-to-edge to the browser's
           right side (no max-width, no rounded corners) instead of sitting
-          in a framed box inside the centered container. Extra vertical
-          padding (py-20/py-36, up from py-16/py-24) fills the space left
-          behind after removing the stats row below. */}
+          in a framed box inside the centered container. Left padding
+          trimmed (xl:pl-12, down from xl:pl-20) so the headline sits a
+          touch further left, reading as centered within its own half
+          instead of pushed toward the image side. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
-          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-20 xl:pr-12 animate-reveal">
+          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-10 xl:pl-12 xl:pr-10 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
@@ -63,7 +64,7 @@ function Home() {
               <span className="text-primary"> way.</span>
             </h1>
             <p className="mt-6 max-w-md text-base text-muted-foreground md:text-lg">
-              Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City — with clear pricing and no surprises.
+              Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
             </p>
 
             <form
