@@ -15,7 +15,7 @@ export function ExploreOptions() {
         {/* Separate cards with real gaps between them, each with its own
             border, rounded corners, and shadow — replacing the single
             hairline-divided container. */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
           <OptionCard
             image={BUY_IMAGE_URL}
             alt="Buy a home"
@@ -85,16 +85,20 @@ function OptionCard({
   children: React.ReactNode;
 }) {
   return (
+    // Cards and icons bumped up a size: padding p-8→p-10, icon boxes
+    // h-20/w-20→h-28/w-28 (sm:h-32/w-32), title/description text sizes
+    // stepped up to match so the bigger icon doesn't look out of
+    // proportion with everything below it.
     <div
-      className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-md shadow-black/5 animate-reveal transition hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
+      className="flex flex-col items-center rounded-2xl border border-border bg-card p-10 text-center shadow-md shadow-black/5 animate-reveal transition hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
       style={{ animationDelay: `${delay}ms` }}
     >
       {/* Icon floats up and down gently, same as before */}
-      <div className="grid h-20 w-20 place-items-center animate-float" style={{ animationDelay: `${delay * 0.4}ms` }}>
+      <div className="grid h-28 w-28 place-items-center animate-float sm:h-32 sm:w-32" style={{ animationDelay: `${delay * 0.4}ms` }}>
         <img src={image} alt={alt} className="h-full w-full object-contain" />
       </div>
-      <h3 className="mt-6 font-display text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{description}</p>
+      <h3 className="mt-6 font-display text-xl font-semibold text-foreground">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
       <div className="mt-6">{children}</div>
     </div>
   );
