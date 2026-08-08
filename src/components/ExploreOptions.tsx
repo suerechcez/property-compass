@@ -12,7 +12,10 @@ export function ExploreOptions() {
         <div className="mb-10 text-center">
           <h2 className="font-display text-2xl font-semibold text-foreground md:text-3xl">What are you looking for?</h2>
         </div>
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+        {/* Separate cards with real gaps between them, each with its own
+            border, rounded corners, and shadow — replacing the single
+            hairline-divided container. */}
+        <div className="grid gap-6 md:grid-cols-3">
           <OptionCard
             image={BUY_IMAGE_URL}
             alt="Buy a home"
@@ -83,7 +86,7 @@ function OptionCard({
 }) {
   return (
     <div
-      className="flex flex-col items-center bg-card p-8 text-center animate-reveal transition hover:bg-surface"
+      className="flex flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-md shadow-black/5 animate-reveal transition hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10"
       style={{ animationDelay: `${delay}ms` }}
     >
       {/* Icon floats up and down gently, same as before */}
