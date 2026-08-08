@@ -110,15 +110,14 @@ function Browse() {
         {/* SideBar renders its own right-hand border, separating "Listing
             updates" from the listings grid — that's the one divider line
             on this page that stays. Every other section border below has
-            been removed so the gradient hero flows straight into the
-            filter row and the grid with no hairlines between them. */}
+            been removed so the hero flows straight into the filter row
+            and the grid with no hairlines between them. */}
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — hero-browse.png as a photo backdrop, with the same
-              navy/gold gradient wash layered on top so text stays
-              readable (no bottom border, so it bleeds straight into the
-              filter row below it). */}
+          {/* Header — hero-browse.png as a plain photo backdrop, no color
+              gradient overlay (no bottom border, so it bleeds straight
+              into the filter row below it). */}
           <section className="relative overflow-hidden">
             {heroImageOk && (
               <img
@@ -129,7 +128,6 @@ function Browse() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background/85 to-gold/25" />
             <div className="relative px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
