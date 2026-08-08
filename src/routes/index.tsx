@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -26,6 +26,21 @@ function Home() {
   const [q, setQ] = useState("");
   const [heroImageOk, setHeroImageOk] = useState(true);
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Native `<form action="/browse" method="get">` did a full browser
+  // navigation to /browse?q=..., which works, but it's a hard page reload
+  // that bypasses the app's client-side router entirely — it felt like
+  // "just redirecting" rather than actually running the search inline.
+  // Intercepting submit and using `navigate` instead performs a proper
+  // in-app SPA transition straight into Browse's existing `q` search
+  // filter (see browse.tsx's `filtered` list, which already matches
+  // title/location against `q`), the same way every other Browse-bound
+  // button/link in the app already navigates.
+  function handleHeroSearch(e: React.FormEvent) {
+    e.preventDefault();
+    navigate({ to: "/browse", search: { filter: "all", q } });
+  }
 
   return (
     <div className="site-page bg-background">
@@ -52,8 +67,7 @@ function Home() {
             </p>
 
             <form
-              action="/browse"
-              method="get"
+              onSubmit={handleHeroSearch}
               className="mt-10 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
             >
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
