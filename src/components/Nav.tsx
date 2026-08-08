@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
   LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare, Megaphone,
-  Home, KeyRound, ChevronDown,
+  Home, KeyRound, ChevronDown, Rss, Heart,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -47,12 +47,15 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const [announceOpen, setAnnounceOpen] = useState(false);
   const canManageListings = isCommissioner || isAgent;
 
-  // "Browse" mega-dropdown — hover-triggered, shows Buy/Rent below the
-  // full-width header. A short close delay (via ref'd timeout, not state,
-  // so it survives re-renders without re-triggering effects) keeps the
-  // panel open while the cursor travels from the trigger down into the
-  // panel itself; without it, the small vertical gap between them would
-  // register as a mouseleave and the panel would flicker shut.
+  // "Browse" mega-dropdown — hover-triggered, shows Buy/Rent/Updates/
+  // Favorites below the full-width header (Updates and Favorites moved
+  // here from the floating RightSideBar rail, alongside its own Messages
+  // shortcut moving into the topbar next to the bell — see below). A
+  // short close delay (via ref'd timeout, not state, so it survives
+  // re-renders without re-triggering effects) keeps the panel open while
+  // the cursor travels from the trigger down into the panel itself;
+  // without it, the small vertical gap between them would register as a
+  // mouseleave and the panel would flicker shut.
   const [browseOpen, setBrowseOpen] = useState(false);
   const browseCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function openBrowseMenu() {
@@ -151,6 +154,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   <SheetClose asChild><Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Browse</Link></SheetClose>
                   <SheetClose asChild><Link to="/sell"   className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Sell</Link></SheetClose>
                   <SheetClose asChild><Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Find an agent</Link></SheetClose>
+                  <SheetClose asChild><Link to="/updates" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Updates</Link></SheetClose>
+                  <SheetClose asChild><Link to="/favorites" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Favorites</Link></SheetClose>
                 </nav>
               </SheetContent>
             </Sheet>
@@ -158,11 +163,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
           {!isDashboard && (
             <nav className="hidden items-center gap-7 md:flex">
-              {/* Browse trigger — hover opens the full-width Buy/Rent
-                  mega-dropdown rendered below, right before </header>.
-                  It's a plain span (not NavLink) since it's a hover
-                  target rather than a direct link itself; the chevron
-                  rotates to signal the open state. */}
+              {/* Browse trigger — hover opens the full-width mega-dropdown
+                  rendered below, right before </header>. It's a plain span
+                  (not NavLink) since it's a hover target rather than a
+                  direct link itself; the chevron rotates to signal the
+                  open state. */}
               <div
                 className="relative"
                 onMouseEnter={openBrowseMenu}
@@ -211,6 +216,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         )}
 
         <div className="col-start-3 flex items-center justify-end gap-2">
+          {/* Messages — moved here from the floating RightSideBar rail,
+              right beside the notification bell. Guests land on /auth,
+              same fallback the sidebar used to use for this shortcut. */}
+          <Link
+            to={user ? "/messages" : "/auth"}
+            aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
+            className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <MessageSquare className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Link>
+
           {showAnnouncements && (
             <DropdownMenu
               open={announceOpen}
@@ -444,7 +465,9 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         trigger text is — not just the width of its own immediate parent.
         Kept mounted (hidden via opacity/pointer-events, not conditionally
         rendered) so the open/close transition animates instead of
-        popping instantly.
+        popping instantly. Now four destinations (Buy/Rent/Updates/
+        Favorites) instead of two — Updates and Favorites moved in from
+        the floating RightSideBar rail.
       */}
       {!isDashboard && (
         <div
@@ -481,6 +504,32 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <span>
                 <span className="block font-display text-lg font-semibold">Rent</span>
                 <span className="block text-sm text-muted-foreground">Find your next place to rent in Cagayan de Oro.</span>
+              </span>
+            </Link>
+            <Link
+              to="/updates"
+              onClick={() => setBrowseOpen(false)}
+              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
+            >
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <Rss className="h-6 w-6" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-semibold">Updates</span>
+                <span className="block text-sm text-muted-foreground">New and recently changed listings.</span>
+              </span>
+            </Link>
+            <Link
+              to="/favorites"
+              onClick={() => setBrowseOpen(false)}
+              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
+            >
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                <Heart className="h-6 w-6" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-semibold">Favorites</span>
+                <span className="block text-sm text-muted-foreground">Properties you've saved.</span>
               </span>
             </Link>
           </div>
