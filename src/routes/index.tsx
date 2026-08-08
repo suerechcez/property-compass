@@ -53,9 +53,7 @@ function Home() {
           headline itself has no max-width, so "Bringing you home," has
           the full column width to sit on one line before the manual
           <br/> — otherwise a narrow max-width forces an extra wrap
-          before the intentional line break ever kicks in. The text
-          column's own width/position is untouched by the photo changes
-          below — only the photo column moved. */}
+          before the intentional line break ever kicks in. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
           <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
@@ -92,35 +90,24 @@ function Home() {
             </form>
           </div>
 
-          {/* Photo column — previously ran full-bleed flush to the
-              browser's right edge. Pulled left instead by adding a right
-              margin (md:mr-10, growing at larger breakpoints) so the
-              photo now sits with breathing room before the edge rather
-              than pinned against it — moving it left on screen — while
-              the text column above is completely untouched (its own
-              width/position never changed). Since it's no longer
-              edge-to-edge, it now gets rounded corners + a shadow instead
-              of the previous square, flush-edge treatment. */}
-          <div
-            className="relative h-72 w-full animate-reveal overflow-hidden rounded-2xl bg-surface shadow-lg shadow-black/10 sm:h-96 md:h-auto md:w-1/2 md:mr-10 lg:mr-16 xl:mr-24"
-            style={{ animationDelay: "120ms" }}
-          >
+          {/* Full-bleed photo column — runs flush to the browser's right
+              edge (no right margin, no rounded corners, no shadow) so it
+              reads as the page's own edge rather than a framed card
+              floating before it. Stretches to match the text column's
+              height on desktop via the default flex align-items: stretch. */}
+          <div className="relative h-72 w-full animate-reveal bg-surface sm:h-96 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
             {heroImageOk && (
               <img
                 src={HERO_IMAGE_URL}
                 alt="A featured One Higala Properties home"
-                // Shifted the visible crop a bit left of dead-center
-                // (default object-cover centers at 50%) so more of the
-                // left side of the photo shows instead of the framing
-                // feeling pushed toward the right edge.
-                className="absolute inset-0 h-full w-full object-cover object-[35%_center]"
+                className="absolute inset-0 h-full w-full object-cover"
                 loading="eager"
                 onError={() => setHeroImageOk(false)}
               />
             )}
             <Link
               to="/browse"
-              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10"
+              className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10 md:left-10"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
                 <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
