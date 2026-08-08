@@ -100,10 +100,10 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <header
-      // Soft brand-gradient wash (navy → white → gold) restored across the
-      // top bar, layered under the same flat hairline border — still reads
-      // as one continuous light bar, just with the brand hues back in it.
-      className={`z-40 w-full border-b border-border bg-gradient-to-r from-primary/12 via-background/95 to-gold/14 backdrop-blur ${
+      // Brand-gradient wash (navy → white → gold) — bumped stronger and
+      // less washed-out than before (from-primary/12→/22, via-background
+      // 95%→80%, to-gold/14→/24) so the color reads clearly at a glance.
+      className={`z-40 w-full border-b border-border bg-gradient-to-r from-primary/22 via-background/80 to-gold/24 backdrop-blur ${
         isDashboard ? "relative" : "sticky top-0"
       }`}
     >
