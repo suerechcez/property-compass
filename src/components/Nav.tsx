@@ -465,9 +465,19 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         trigger text is — not just the width of its own immediate parent.
         Kept mounted (hidden via opacity/pointer-events, not conditionally
         rendered) so the open/close transition animates instead of
-        popping instantly. Now four destinations (Buy/Rent/Updates/
-        Favorites) instead of two — Updates and Favorites moved in from
-        the floating RightSideBar rail.
+        popping instantly. Four destinations (Buy/Rent/Updates/Favorites)
+        — Updates and Favorites moved in from the floating RightSideBar
+        rail.
+
+        The 2x2 item grid is deliberately confined to `sm:w-1/2` (roughly
+        the left half of this full-bleed panel) rather than stretching
+        across the whole thing — it sits over the header's own left
+        padding, leaving the right half of the panel open over the
+        background image/gradient instead of the grid spanning edge to
+        edge. Items themselves have no card chrome (no border, no
+        bg-card, no shadow) — just a small icon chip, so they read as
+        plain rows sitting transparently on the panel rather than boxed
+        buttons.
       */}
       {!isDashboard && (
         <div
@@ -477,61 +487,63 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             browseOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
           }`}
         >
-          <div className="mx-auto grid max-w-screen-2xl grid-cols-1 gap-4 px-4 py-6 sm:grid-cols-2 sm:px-10">
-            <Link
-              to="/browse"
-              search={{ filter: "sale", q: "" }}
-              onClick={() => setBrowseOpen(false)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
-            >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                <Home className="h-6 w-6" />
-              </span>
-              <span>
-                <span className="block font-display text-lg font-semibold">Buy</span>
-                <span className="block text-sm text-muted-foreground">Condos, hotels, land, and resell properties for sale.</span>
-              </span>
-            </Link>
-            <Link
-              to="/browse"
-              search={{ filter: "rent", q: "" }}
-              onClick={() => setBrowseOpen(false)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
-            >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
-                <KeyRound className="h-6 w-6" />
-              </span>
-              <span>
-                <span className="block font-display text-lg font-semibold">Rent</span>
-                <span className="block text-sm text-muted-foreground">Find your next place to rent in Cagayan de Oro.</span>
-              </span>
-            </Link>
-            <Link
-              to="/updates"
-              onClick={() => setBrowseOpen(false)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
-            >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                <Rss className="h-6 w-6" />
-              </span>
-              <span>
-                <span className="block font-display text-lg font-semibold">Updates</span>
-                <span className="block text-sm text-muted-foreground">New and recently changed listings.</span>
-              </span>
-            </Link>
-            <Link
-              to="/favorites"
-              onClick={() => setBrowseOpen(false)}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 text-left transition hover:scale-[1.02] hover:shadow-soft active:scale-95"
-            >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
-                <Heart className="h-6 w-6" />
-              </span>
-              <span>
-                <span className="block font-display text-lg font-semibold">Favorites</span>
-                <span className="block text-sm text-muted-foreground">Properties you've saved.</span>
-              </span>
-            </Link>
+          <div className="px-4 py-5 sm:px-10">
+            <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1 sm:w-1/2 sm:max-w-md">
+              <Link
+                to="/browse"
+                search={{ filter: "sale", q: "" }}
+                onClick={() => setBrowseOpen(false)}
+                className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Home className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">Buy</span>
+                  <span className="block text-xs text-muted-foreground">Condos, hotels, land, and resell.</span>
+                </span>
+              </Link>
+              <Link
+                to="/browse"
+                search={{ filter: "rent", q: "" }}
+                onClick={() => setBrowseOpen(false)}
+                className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                  <KeyRound className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">Rent</span>
+                  <span className="block text-xs text-muted-foreground">Find a place to rent in CDO.</span>
+                </span>
+              </Link>
+              <Link
+                to="/updates"
+                onClick={() => setBrowseOpen(false)}
+                className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Rss className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">Updates</span>
+                  <span className="block text-xs text-muted-foreground">New and recently changed listings.</span>
+                </span>
+              </Link>
+              <Link
+                to="/favorites"
+                onClick={() => setBrowseOpen(false)}
+                className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                  <Heart className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold">Favorites</span>
+                  <span className="block text-xs text-muted-foreground">Properties you've saved.</span>
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
       )}
