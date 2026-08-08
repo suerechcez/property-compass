@@ -91,7 +91,7 @@ function AgentsList() {
             onError={() => setHeroImageOk(false)}
           />
         )}
-        <div className="absolute inset-0 bg-background/40" />
+        <div className="absolute inset-0 bg-background/25" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
           <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
