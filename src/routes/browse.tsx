@@ -129,7 +129,7 @@ function Browse() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
-            <div className="absolute inset-0 bg-background/80" />
+            <div className="absolute inset-0 bg-background/40" />
             <div className="relative px-6 py-8 sm:py-10">
               <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
               <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
