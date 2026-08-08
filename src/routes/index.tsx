@@ -101,7 +101,11 @@ function Home() {
               <img
                 src={HERO_IMAGE_URL}
                 alt="A featured One Higala Properties home"
-                className="absolute inset-0 h-full w-full object-cover"
+                // Shifted the visible crop a bit left of dead-center
+                // (default object-cover centers at 50%) so more of the
+                // left side of the photo shows instead of the framing
+                // feeling pushed toward the right edge.
+                className="absolute inset-0 h-full w-full object-cover object-[35%_center]"
                 loading="eager"
                 onError={() => setHeroImageOk(false)}
               />
