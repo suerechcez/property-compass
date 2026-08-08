@@ -44,19 +44,17 @@ function Home() {
 
   return (
     <div className="site-page bg-background">
-      <Nav />
+      {/* `overlay` makes the bar transparent and floats it over the hero
+          photo below (mobile/tablet-portrait only — see Nav.tsx). That
+          requires the photo to be the first thing on the page on mobile,
+          which is why the two hero columns below are reordered with
+          order-1/order-2 (photo first on mobile, text first on desktop,
+          matching the original left-text/right-photo layout at md+). */}
+      <Nav overlay />
 
-      {/* Split hero — headline + search in a left column, photo in a
-          right column. Text sits directly against left padding (no
-          mx-auto centering block) so it reads as anchored to the page
-          edge rather than floating in the middle of empty space. The
-          headline itself has no max-width, so "Bringing you home," has
-          the full column width to sit on one line before the manual
-          <br/> — otherwise a narrow max-width forces an extra wrap
-          before the intentional line break ever kicks in. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
-          <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
+          <div className="order-2 flex flex-col justify-center px-6 py-20 md:order-1 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
             <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
@@ -90,12 +88,16 @@ function Home() {
             </form>
           </div>
 
-          {/* Full-bleed photo column — runs flush to the browser's right
-              edge (no right margin, no rounded corners, no shadow) so it
-              reads as the page's own edge rather than a framed card
-              floating before it. Stretches to match the text column's
-              height on desktop via the default flex align-items: stretch. */}
-          <div className="relative h-72 w-full animate-reveal bg-surface sm:h-96 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
+          {/* Photo column — ordered first on mobile (order-1) so the
+              floating transparent Nav has an actual photo to sit over;
+              back to second/right on desktop (md:order-2), matching the
+              original layout. Still full-bleed to the browser's right
+              edge at md+. A short dark scrim only at the very top, only
+              below md, keeps the burger/messages/bell/avatar icons
+              readable regardless of how bright the photo is up there —
+              it fades to nothing by the time the "Browse listings" card
+              or the rest of the photo is reached. */}
+          <div className="relative order-1 h-72 w-full animate-reveal bg-surface sm:h-96 md:order-2 md:h-auto md:w-1/2" style={{ animationDelay: "120ms" }}>
             {heroImageOk && (
               <img
                 src={HERO_IMAGE_URL}
@@ -105,6 +107,7 @@ function Home() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent md:hidden" />
             <Link
               to="/browse"
               className="group absolute bottom-6 left-6 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/10 md:left-10"
