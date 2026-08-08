@@ -52,12 +52,15 @@ function Home() {
           in a framed box inside the centered container. Text sits directly
           against left padding (no mx-auto centering block) so it reads as
           anchored to the page edge rather than floating in the middle of
-          empty space. */}
+          empty space. The headline itself has no max-width, so "Bringing
+          you home," has the full column width to sit on one line before
+          the manual <br/> — otherwise a narrow max-width forces an extra
+          wrap before the intentional line break ever kicks in. */}
       <section className="border-b border-border">
         <div className="flex flex-col md:flex-row">
           <div className="flex flex-col justify-center px-6 py-20 md:w-1/2 md:py-36 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
-            <h1 className="mt-4 max-w-lg font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
+            <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
               Bringing you home,<br />
               <span className="text-primary">the </span>
               <span className="text-gold">higala</span>
