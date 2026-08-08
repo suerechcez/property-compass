@@ -78,9 +78,9 @@ function AgentsList() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Header — hero-agents.png as a photo backdrop, with the same
-          navy/gold gradient wash layered on top for readability, widened
-          (max-w-4xl) with more side padding at large breakpoints. */}
+      {/* Header — hero-agents.png as a plain photo backdrop, no color
+          gradient overlay, widened (max-w-4xl) with more side padding at
+          large breakpoints. */}
       <section className="relative overflow-hidden border-b border-border">
         {heroImageOk && (
           <img
@@ -91,7 +91,6 @@ function AgentsList() {
             onError={() => setHeroImageOk(false)}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-background/85 to-gold/25" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
           <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
