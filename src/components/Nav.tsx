@@ -70,7 +70,13 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
     routerState.location.pathname.startsWith(r)
   );
 
-  void overlay;
+  // `overlay` (passed only by the homepage hero) makes the bar transparent
+  // and floats it over the hero photo — but ONLY below the `md` breakpoint.
+  // At `md` and up the homepage hero switches to the side-by-side desktop
+  // layout (see routes/index.tsx), so the bar reverts to the normal solid
+  // sticky treatment there, same as every other page.
+  const isOverlay = overlay && !isDashboard;
+  const mobileIconColor = isOverlay ? "text-white md:text-foreground/80" : "text-foreground/80";
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -120,12 +126,18 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <header
-      // Brand-gradient wash (navy → white → gold) — bumped stronger and
-      // less washed-out than before (from-primary/12→/22, via-background
-      // 95%→80%, to-gold/14→/24) so the color reads clearly at a glance.
-      className={`z-40 w-full border-b border-border bg-gradient-to-r from-primary/22 via-background/80 to-gold/24 backdrop-blur ${
-        isDashboard ? "relative" : "sticky top-0"
-      }`}
+      // Two modes: normal (every page) is the solid brand-gradient wash,
+      // always sticky. Overlay mode (homepage only, mobile/tablet-portrait
+      // only) removes the background and border and floats the bar via
+      // `absolute` over the hero photo instead — reverting back to the
+      // exact normal treatment at `md` and up.
+      className={
+        isOverlay
+          ? "absolute inset-x-0 top-0 z-40 w-full bg-transparent md:sticky md:border-b md:border-border md:bg-gradient-to-r md:from-primary/22 md:via-background/80 md:to-gold/24 md:backdrop-blur"
+          : `z-40 w-full border-b border-border bg-gradient-to-r from-primary/22 via-background/80 to-gold/24 backdrop-blur ${
+              isDashboard ? "relative" : "sticky top-0"
+            }`
+      }
     >
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4 sm:px-10">
 
@@ -135,7 +147,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <SheetTrigger asChild>
                 <button
                   aria-label="Open menu"
-                  className="grid h-10 w-10 place-items-center rounded-full text-foreground transition md:hidden"
+                  className={`grid h-10 w-10 place-items-center rounded-full transition md:hidden ${mobileIconColor}`}
                 >
                   <Menu className="h-6 w-6" />
                 </button>
@@ -209,7 +221,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             ) : (
               <span className="grid h-12 w-12 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/70 font-display text-xl font-bold text-primary-foreground shadow-sm">H</span>
             )}
-            <div className="hidden items-center sm:flex">
+            {/* The text lockup only ever shows from `md` up now (was `sm`)
+                — `md` is also exactly where overlay mode's background
+                switches from transparent to solid, so there's no in-between
+                width where dark lockup text could end up sitting directly
+                on a transparent hero photo with no contrast guarantee. */}
+            <div className="hidden items-center md:flex">
               <BrandTitle light={false} className="items-center text-center" />
             </div>
           </Link>
@@ -222,7 +239,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           <Link
             to={user ? "/messages" : "/auth"}
             aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
-            className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${mobileIconColor}`}
           >
             <MessageSquare className="h-5 w-5" />
             {unreadCount > 0 && (
@@ -292,7 +309,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={bellBadgeCount > 0 ? `${bellBadgeCount} unread notifications` : "Notifications"}
-                  className="relative grid h-11 w-11 place-items-center rounded-full text-foreground/80 outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${mobileIconColor}`}
                 >
                   <Bell className="h-5 w-5" />
                   {bellBadgeCount > 0 && (
@@ -370,7 +387,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-12 w-12 border border-border">
+                  <Avatar className={`h-12 w-12 border ${isOverlay ? "border-white/70 md:border-border" : "border-border"}`}>
                     {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name ?? "Profile"} />}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display font-semibold text-primary-foreground">{initial}</AvatarFallback>
                   </Avatar>
@@ -486,7 +503,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         opaque middle stop still lets content bleed through right at the
         edges — so the tint is mixed into fully solid colors via
         color-mix() in an inline style instead of relying on alpha
-        anywhere in the gradient.
+        anywhere in the gradient. Desktop-only concern — hidden on mobile
+        along with the "Browse" trigger link that opens it.
       */}
       {!isDashboard && (
         <div
@@ -496,7 +514,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
             backgroundImage:
               "linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, var(--background)), var(--background), color-mix(in srgb, var(--gold) 12%, var(--background)))",
           }}
-          className={`absolute inset-x-0 top-full z-30 border-b border-border shadow-lg transition-all duration-200 ${
+          className={`absolute inset-x-0 top-full z-30 hidden border-b border-border shadow-lg transition-all duration-200 md:block ${
             browseOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
           }`}
         >
