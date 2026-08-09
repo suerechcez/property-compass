@@ -913,13 +913,28 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
   }, [isFullscreen]);
 
   return (
-    <aside
-      className={
-        isFullscreen
-          ? "fixed inset-0 z-[200] flex flex-col overflow-y-auto bg-background"
-          : "overflow-hidden rounded-2xl border border-border bg-card"
-      }
-    >
+    <>
+      {/* Backdrop — dims the rest of the page with a semi-transparent
+          black scrim instead of the map replacing the whole site GUI.
+          A SIBLING of <aside> below, not a wrapper around it — toggling
+          fullscreen must never change <aside>'s position in the tree,
+          or React would remount it (and the Leaflet container div
+          inside it), defeating the whole point of reusing one
+          continuous map instance across the toggle. Clicking the
+          backdrop closes the modal, same as the X button and Escape. */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 z-[199] bg-black/60"
+          onClick={() => setIsFullscreen(false)}
+        />
+      )}
+      <aside
+        className={
+          isFullscreen
+            ? "fixed left-1/2 top-1/2 z-[200] flex max-h-[90vh] w-[92vw] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl"
+            : "overflow-hidden rounded-2xl border border-border bg-card"
+        }
+      >
       {isFullscreen && (
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
           <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
@@ -1023,7 +1038,8 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
           />
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
