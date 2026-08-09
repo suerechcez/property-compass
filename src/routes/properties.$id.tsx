@@ -912,26 +912,43 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
     };
   }, [isFullscreen]);
 
+  // Wraps <aside> in the SAME element structure regardless of fullscreen
+  // state — only classNames toggle, the wrapper is never conditionally
+  // added or removed — so <aside>'s position in the render tree never
+  // changes and React never remounts it (or the Leaflet container div
+  // inside it) when fullscreen is toggled. `display: contents` while not
+  // fullscreen makes the wrapper itself invisible to layout, so <aside>
+  // still behaves exactly as if it were a direct child of its real
+  // parent in the sidebar.
+  //
+  // While fullscreen, this wrapper becomes the scrollable backdrop
+  // itself (`fixed inset-0 ... overflow-y-auto bg-black/60`), the same
+  // pattern ListingPreviewModal already uses elsewhere in the app. Three
+  // things fall out of this for free, versus the previous dead-centered
+  // `top-1/2 -translate-y-1/2` version:
+  //   1. `items-start` + `py-10` starts the card below the sticky
+  //      topbar instead of mathematically centering it (which could
+  //      place its top edge underneath/behind the header).
+  //   2. The backdrop can never "run out" partway down the page — it's
+  //      the actual scrolling container, not a separately-sized fixed
+  //      box, so it always covers exactly what's currently on screen.
+  //   3. Scrolling now moves the whole card within the viewport (same
+  //      as any normal page scroll), rather than being trapped with a
+  //      capped max-height and a second, nested internal scrollbar.
   return (
-    <>
-      {/* Backdrop — dims the rest of the page with a semi-transparent
-          black scrim instead of the map replacing the whole site GUI.
-          A SIBLING of <aside> below, not a wrapper around it — toggling
-          fullscreen must never change <aside>'s position in the tree,
-          or React would remount it (and the Leaflet container div
-          inside it), defeating the whole point of reusing one
-          continuous map instance across the toggle. Clicking the
-          backdrop closes the modal, same as the X button and Escape. */}
-      {isFullscreen && (
-        <div
-          className="fixed inset-0 z-[199] bg-black/60"
-          onClick={() => setIsFullscreen(false)}
-        />
-      )}
+    <div
+      onClick={isFullscreen ? () => setIsFullscreen(false) : undefined}
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[199] flex items-start justify-center overflow-y-auto bg-black/60 p-4 py-10"
+          : "contents"
+      }
+    >
       <aside
+        onClick={isFullscreen ? (e) => e.stopPropagation() : undefined}
         className={
           isFullscreen
-            ? "fixed left-1/2 top-1/2 z-[200] flex max-h-[90vh] w-[92vw] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl"
+            ? "flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
             : "overflow-hidden rounded-2xl border border-border bg-card"
         }
       >
@@ -1039,7 +1056,7 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
         </div>
       </div>
       </aside>
-    </>
+    </div>
   );
 }
 
