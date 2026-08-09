@@ -6,7 +6,7 @@ import { ExploreOptions } from "@/components/ExploreOptions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, Star } from "lucide-react";
+import { Search, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -96,25 +96,18 @@ function Home() {
           </div>
         </div>
 
-        {/* ── Desktop hero (md and up) — inspired by a SaaS-style split
-            hero: the whole thing is now one inset, rounded card (instead
-            of a full-bleed edge-to-edge section) — plain text column on
-            the left, photo filling the right side up to the card's own
-            rounded corner. A small trust badge sits above the headline
-            in place of the old plain uppercase eyebrow, and a floating,
-            non-interactive stat chip sits on the photo. Headline colors
-            (text-primary / text-gold) are untouched. The old "Browse
-            listings" floating card/button on the photo has been removed
-            entirely — no CTA button in the hero anymore, the search bar
-            is the only actionable element. */}
-        <div className="hidden px-6 py-10 md:block lg:px-12 lg:py-14 xl:px-16">
-          <div className="mx-auto flex max-w-[1600px] overflow-hidden rounded-3xl border border-border shadow-xl">
-            <div className="flex flex-col justify-center bg-background px-10 py-16 md:w-1/2 lg:px-14 lg:py-20 xl:px-16">
-              <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 shadow-sm">
-                <Star className="h-3.5 w-3.5 fill-gold text-gold" />
-                <span className="text-xs font-medium text-foreground">Trusted across Cagayan de Oro City</span>
-              </div>
-              <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl">
+        {/* ── Desktop hero (md and up) — one inset, rounded card (not
+            full-bleed). Plain "Cagayan de Oro City" eyebrow (badge pill
+            and stat chip removed per feedback). Widened to max-w-[1800px]
+            (was 1600px) with taller left-column padding (py-24, was
+            py-16/20) so the whole card reads noticeably bigger. Headline
+            colors untouched, no CTA button — search bar is the only
+            actionable element. */}
+        <div className="hidden px-6 py-10 md:block lg:px-10 lg:py-12 xl:px-14">
+          <div className="mx-auto flex max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
+            <div className="flex flex-col justify-center bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
+              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
                 Bringing you home,<br />
                 <span className="text-primary">the </span>
                 <span className="text-gold">higala</span>
@@ -156,20 +149,6 @@ function Home() {
                   onError={() => setHeroImageOk(false)}
                 />
               )}
-              {/* Floating stat chip — decorative only, not a link/button. */}
-              <div className="absolute right-6 top-6 w-56 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-lg backdrop-blur">
-                <p className="text-[11px] font-medium text-muted-foreground">Property highlights</p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-primary/10 p-3">
-                    <p className="font-display text-lg font-semibold text-primary">500+</p>
-                    <p className="text-[11px] text-muted-foreground">Properties</p>
-                  </div>
-                  <div className="rounded-xl bg-gold/15 p-3">
-                    <p className="font-display text-lg font-semibold text-gold-foreground">98%</p>
-                    <p className="text-[11px] text-muted-foreground">Satisfaction</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
