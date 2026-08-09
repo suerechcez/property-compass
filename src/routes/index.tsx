@@ -6,7 +6,7 @@ import { ExploreOptions } from "@/components/ExploreOptions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, ArrowUpRight } from "lucide-react";
+import { Search, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,16 +44,15 @@ function Home() {
 
   return (
     <div className="site-page bg-background">
-      {/* `overlay` makes the bar transparent and floats it over the mobile
-          hero photo below (mobile/tablet-portrait only — see Nav.tsx). */}
-      <Nav overlay />
+      {/* Back to the normal solid topbar (no more `overlay` transparency
+          floating it over the hero photo). */}
+      <Nav />
 
       <section className="border-b border-border">
         {/* ── Mobile hero (below md) — a single tall photo with the
             headline, subtext, and search bar overlaid directly on top of
             it (inside a dark scrim for legibility), instead of a separate
-            text block below/beside the photo. No "Browse listings" card
-            here — that shortcut is desktop-only (see the md+ block below). */}
+            text block below/beside the photo. */}
         <div className="relative h-[560px] w-full overflow-hidden bg-surface sm:h-[640px] md:hidden">
           {heroImageOk && (
             <img
@@ -64,9 +63,10 @@ function Home() {
               onError={() => setHeroImageOk(false)}
             />
           )}
-          {/* Scrim graduates from faint at the very top (where the
-              floating Nav icons need just enough contrast) to strong at
-              the bottom (where the headline/search sit). */}
+          {/* Scrim graduates from faint at the very top to strong at the
+              bottom (where the headline/search sit) — no boxed
+              background behind the text, just white/gold text directly
+              on the scrim for contrast. */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/75" />
           <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-10 pt-24 animate-reveal">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Cagayan de Oro City</span>
@@ -103,26 +103,13 @@ function Home() {
           </div>
         </div>
 
-        {/* ── Desktop hero (md and up) — the photo now covers the ENTIRE
-            hero section edge-to-edge (previously it only filled a right
-            half-column, with a plain white left column for the text).
-            The headline/search float directly on top of the photo,
-            matching the mobile treatment above.
-
-            Two layers handle legibility, for different reasons:
-              1. A left-to-right scrim (`from-black/35` fading to
-                 transparent) — adapts across whatever's in the photo at
-                 any given point, so nothing floating on top of it ever
-                 sits directly against a totally unpredictable
-                 background. This is the "colors adapting" layer.
-              2. The tag + headline + subtext additionally sit inside
-                 their OWN solid white card — a hard guarantee of
-                 contrast for the most important text, independent of
-                 the scrim or whatever the photo happens to look like
-                 underneath it. The search bar already had its own
-                 opaque white pill from the start, so it didn't need
-                 this treatment.
-        */}
+        {/* ── Desktop hero (md and up) — photo covers the entire hero
+            section edge-to-edge, with the headline/search floating
+            directly on top of it. No boxed white background behind the
+            tag/headline anymore — same approach as the mobile hero
+            above: a left-to-right scrim plus white/gold text sitting
+            straight on it for contrast, adapting across whatever's
+            underneath rather than a hard-edged card. */}
         <div className="relative hidden h-[34rem] w-full overflow-hidden bg-surface md:block lg:h-[40rem] xl:h-[46rem]">
           {heroImageOk && (
             <img
@@ -133,25 +120,23 @@ function Home() {
               onError={() => setHeroImageOk(false)}
             />
           )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/35 via-black/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
 
           <div className="relative z-10 flex h-full flex-col justify-center px-6 py-16 lg:px-12 xl:pl-16 xl:pr-10 animate-reveal">
-            <div className="max-w-xl rounded-2xl bg-white p-8 shadow-xl shadow-black/20 lg:p-10">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
-              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground lg:text-6xl">
-                Bringing you home,<br />
-                <span className="text-primary">the </span>
-                <span className="text-gold">higala</span>
-                <span className="text-primary"> way.</span>
-              </h1>
-              <p className="mt-6 text-base text-muted-foreground lg:text-lg">
-                Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
-              </p>
-            </div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Cagayan de Oro City</span>
+            <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-white lg:text-6xl">
+              Bringing you home,<br />
+              <span className="text-white">the </span>
+              <span className="text-gold">higala</span>
+              <span className="text-white"> way.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-base text-white/85 lg:text-lg">
+              Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
+            </p>
 
             <form
               onSubmit={handleHeroSearch}
-              className="mt-6 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-lg"
+              className="mt-8 flex w-full max-w-md items-center gap-2 rounded-full border border-white/20 bg-card px-5 py-2.5 shadow-lg"
             >
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
@@ -170,22 +155,6 @@ function Home() {
               </button>
             </form>
           </div>
-
-          {/* Moved to bottom-right (was bottom-left) — the left side is
-              now occupied by the text card above, so the pill would
-              otherwise overlap it on shorter viewports. */}
-          <Link
-            to="/browse"
-            className="group absolute bottom-6 right-6 z-10 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-lg shadow-black/20"
-          >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold/20 text-gold-foreground">
-              <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-foreground">Browse listings</span>
-              <span className="block text-xs text-muted-foreground">See what's available now</span>
-            </span>
-          </Link>
         </div>
       </section>
 
