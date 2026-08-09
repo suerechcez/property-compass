@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -826,18 +827,25 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
   // Maximize the map (and the street-view preview below it) into a
   // full-screen overlay for a bigger look at the streets — the small
   // embedded card in the sidebar is necessarily narrow, which cramped
-  // both panels. This reuses the SAME Leaflet instance rather than
-  // creating a second map: only the surrounding layout classes change,
-  // and `containerRef`'s div stays mounted continuously throughout (see
-  // the JSX below — it's never conditionally unmounted), so the map
-  // never has to reinitialize when toggling in or out of fullscreen.
+  // both panels. Rendered via a React portal straight into document.body
+  // (see the return statement below) rather than inline in the sidebar's
+  // own DOM subtree — an earlier inline version intermittently had the
+  // dimmed backdrop fail to cover the full page and the card start too
+  // close to (or behind) the sticky topbar, which pointed to some
+  // ancestor further up the page establishing its own containing block /
+  // stacking context for `position: fixed` descendants (a `transform`,
+  // `filter`, or `will-change` on something between this component and
+  // <body>). Portaling straight to <body> sidesteps that class of bug
+  // entirely, since the overlay is no longer a descendant of anything
+  // upstream that could interfere with it.
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setReady(false);
 
     loadLeaflet().then((L) => {
-      if (cancelled || !containerRef.current || mapRef.current) return;
+      if (cancelled || !containerRef.current) return;
 
       const map = L.map(containerRef.current, {
         attributionControl: false,
@@ -851,7 +859,7 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
 
       streetLayerRef.current = L.tileLayer(STREET_TILE_URL, { attribution: "", maxZoom: 19 });
       satelliteLayerRef.current = L.tileLayer(SATELLITE_TILE_URL, { attribution: "", maxZoom: 19 });
-      streetLayerRef.current.addTo(map);
+      (viewMode === "satellite" ? satelliteLayerRef.current : streetLayerRef.current).addTo(map);
 
       // Fixed, non-draggable marker — this map is for viewing the listing's
       // location, not editing it (that's LocationPicker's job on the
@@ -860,6 +868,7 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
 
       mapRef.current = map;
       setReady(true);
+      setTimeout(() => map.invalidateSize(), 50);
     }).catch(() => {});
 
     return () => {
@@ -869,8 +878,19 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
       streetLayerRef.current = null;
       satelliteLayerRef.current = null;
     };
+    // `isFullscreen` is a real dependency here, not just a lint
+    // suppression candidate: toggling it portals the map's container to
+    // a different DOM parent (document.body vs. the inline sidebar),
+    // which is a brand-new DOM node each time — the previous Leaflet
+    // instance can't just resize into it, it needs to be rebuilt against
+    // the new node. This costs a brief (sub-second) reload each time
+    // fullscreen opens or closes; the `!ready` spinner below covers it.
+    // `viewMode` deliberately isn't listed — switchView() already swaps
+    // layers on the existing map instance without needing a full
+    // rebuild, and including it here would rebuild the map on every
+    // Map/3D click too.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latitude, longitude]);
+  }, [latitude, longitude, isFullscreen]);
 
   function switchView(mode: MapViewMode) {
     setViewMode(mode);
@@ -881,20 +901,6 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
     if (other && map.hasLayer(other)) map.removeLayer(other);
     if (wanted && !map.hasLayer(wanted)) wanted.addTo(map);
   }
-
-  // Leaflet caches its container's pixel size and won't notice it changed
-  // just because a CSS class did — after toggling fullscreen (which resizes
-  // the container from a small sidebar card to most of the viewport, or
-  // back), it has to be told explicitly to re-measure and redraw tiles at
-  // the new size, or the map looks frozen/cropped at its old dimensions.
-  // Two calls, one shortly after the CSS change and one a bit later, cover
-  // both the instant class-swap and any slower layout/transition settling.
-  useEffect(() => {
-    if (!ready) return;
-    const t1 = setTimeout(() => mapRef.current?.invalidateSize(), 50);
-    const t2 = setTimeout(() => mapRef.current?.invalidateSize(), 300);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [isFullscreen, ready]);
 
   // Escape closes the fullscreen overlay, and page scroll is locked while
   // it's open — same pattern as PhotoLightbox above.
@@ -912,46 +918,18 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
     };
   }, [isFullscreen]);
 
-  // Wraps <aside> in the SAME element structure regardless of fullscreen
-  // state — only classNames toggle, the wrapper is never conditionally
-  // added or removed — so <aside>'s position in the render tree never
-  // changes and React never remounts it (or the Leaflet container div
-  // inside it) when fullscreen is toggled. `display: contents` while not
-  // fullscreen makes the wrapper itself invisible to layout, so <aside>
-  // still behaves exactly as if it were a direct child of its real
-  // parent in the sidebar.
-  //
-  // While fullscreen, this wrapper becomes the scrollable backdrop
-  // itself (`fixed inset-0 ... overflow-y-auto bg-black/60`), the same
-  // pattern ListingPreviewModal already uses elsewhere in the app. Three
-  // things fall out of this for free, versus the previous dead-centered
-  // `top-1/2 -translate-y-1/2` version:
-  //   1. `items-start` + `py-10` starts the card below the sticky
-  //      topbar instead of mathematically centering it (which could
-  //      place its top edge underneath/behind the header).
-  //   2. The backdrop can never "run out" partway down the page — it's
-  //      the actual scrolling container, not a separately-sized fixed
-  //      box, so it always covers exactly what's currently on screen.
-  //   3. Scrolling now moves the whole card within the viewport (same
-  //      as any normal page scroll), rather than being trapped with a
-  //      capped max-height and a second, nested internal scrollbar.
-  return (
-    <div
-      onClick={isFullscreen ? () => setIsFullscreen(false) : undefined}
+  // The card itself — identical markup whether inline or portaled, just
+  // built once here and rendered either directly (embedded in the
+  // sidebar) or via a portal into document.body (fullscreen, see below).
+  const card = (
+    <aside
+      onClick={isFullscreen ? (e) => e.stopPropagation() : undefined}
       className={
         isFullscreen
-          ? "fixed inset-0 z-[199] flex items-start justify-center overflow-y-auto bg-black/60 p-4 py-10"
-          : "contents"
+          ? "flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+          : "overflow-hidden rounded-2xl border border-border bg-card"
       }
     >
-      <aside
-        onClick={isFullscreen ? (e) => e.stopPropagation() : undefined}
-        className={
-          isFullscreen
-            ? "flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
-            : "overflow-hidden rounded-2xl border border-border bg-card"
-        }
-      >
       {isFullscreen && (
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
           <p className="truncate text-sm font-medium">{location ?? "Location not set"}</p>
@@ -1055,8 +1033,28 @@ function PinnedPropertyMap({ location, latitude, longitude }: { location: string
           />
         </div>
       </div>
-      </aside>
-    </div>
+    </aside>
+  );
+
+  if (!isFullscreen) return card;
+
+  // Portaled straight into document.body — see the comment above
+  // `isFullscreen`'s declaration for why. `items-start` + `py-24` (well
+  // over the ~73px sticky topbar's height) starts the card safely below
+  // the topbar instead of mathematically centering it, which could place
+  // its top edge underneath/behind the header. Being the actual
+  // viewport-covering scroll container (rather than a separately-sized
+  // fixed box) also means the dimmed backdrop can never "run out" partway
+  // down the page, and scrolling moves the whole card within the
+  // viewport like any normal page scroll.
+  return createPortal(
+    <div
+      onClick={() => setIsFullscreen(false)}
+      className="fixed inset-0 z-[199] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-10 pt-24"
+    >
+      {card}
+    </div>,
+    document.body
   );
 }
 
