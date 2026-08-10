@@ -248,20 +248,22 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
 
         <div className="col-start-3 flex items-center justify-end gap-2">
           {/* Messages — moved here from the floating RightSideBar rail,
-              right beside the notification bell. Guests land on /auth,
-              same fallback the sidebar used to use for this shortcut. */}
-          <Link
-            to={user ? "/messages" : "/auth"}
-            aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
-            className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${iconColor}`}
-          >
-            <MessageSquare className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Link>
+              right beside the notification bell. Signed-out only, since a
+              guest has no conversations/messages account to view. */}
+          {user && (
+            <Link
+              to="/messages"
+              aria-label={unreadCount > 0 ? `${unreadCount} unread messages` : "Messages"}
+              className={`relative grid h-11 w-11 place-items-center rounded-full outline-none transition hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${iconColor}`}
+            >
+              <MessageSquare className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           {showAnnouncements && (
             <DropdownMenu
