@@ -99,12 +99,25 @@ function Home() {
         {/* ── Desktop hero (md and up) — one inset, rounded card (not
             full-bleed). Plain "Cagayan de Oro City" eyebrow (badge pill
             and stat chip removed per feedback). Widened to max-w-[1800px]
-            (was 1600px) with taller left-column padding (py-24, was
-            py-16/20) so the whole card reads noticeably bigger. Headline
-            colors untouched, no CTA button — search bar is the only
-            actionable element. */}
-        <div className="hidden px-6 py-10 md:block lg:px-10 lg:py-12 xl:px-14">
-          <div className="mx-auto flex max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
+            (was 1600px). Headline colors untouched, no CTA button —
+            search bar is the only actionable element.
+
+            Fills the viewport below the topbar on every screen size:
+            `md:min-h-[max(600px,calc(100dvh-6rem))]` sizes the wrapper to
+            100dvh minus a ~96px allowance for the sticky Nav bar (dvh
+            rather than vh so mobile-browser chrome showing/hiding never
+            leaves a gap — moot on an md-only block, but it's still the
+            more correct unit regardless of device), with a 600px floor so
+            it never gets uncomfortably short on small or zoomed-in
+            windows. The wrapper is a flex container, so its default
+            cross-axis stretch carries that height straight through to the
+            card and then to both of the card's own children (text column
+            via flex-col justify-center, photo column via its absolute
+            inset-0 image) — no fixed pixel height hardcoded anywhere, so
+            it reflows correctly at any resolution or window size instead
+            of only working for one. */}
+        <div className="hidden px-6 py-10 md:flex md:min-h-[max(600px,calc(100dvh-6rem))] lg:px-10 lg:py-12 xl:px-14">
+          <div className="mx-auto flex w-full max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
             <div className="flex flex-col justify-center bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
               <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
