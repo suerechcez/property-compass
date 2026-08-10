@@ -104,52 +104,56 @@ function Home() {
 
             Fills the viewport below the topbar on every screen size:
             `md:min-h-[max(600px,calc(100dvh-6rem))]` sizes the wrapper to
-            100dvh minus a ~96px allowance for the sticky Nav bar (dvh
-            rather than vh so mobile-browser chrome showing/hiding never
-            leaves a gap — moot on an md-only block, but it's still the
-            more correct unit regardless of device), with a 600px floor so
-            it never gets uncomfortably short on small or zoomed-in
-            windows. The wrapper is a flex container, so its default
-            cross-axis stretch carries that height straight through to the
-            card and then to both of the card's own children (text column
-            via flex-col justify-center, photo column via its absolute
-            inset-0 image) — no fixed pixel height hardcoded anywhere, so
-            it reflows correctly at any resolution or window size instead
-            of only working for one. */}
+            100dvh minus a ~96px allowance for the sticky Nav bar, with a
+            600px floor so it never gets uncomfortably short. The wrapper
+            is a flex container, so its default cross-axis stretch carries
+            that height straight through to the card and then to the text
+            column.
+
+            Text column layout: `justify-between` (was `justify-center`)
+            spreads its three children — eyebrow, headline, and a
+            paragraph+search group — across the column's full height:
+            eyebrow pinned to the top, headline vertically centered in the
+            middle, and the paragraph sitting directly above the search
+            bar, both pinned together at the bottom. */}
         <div className="hidden px-6 py-10 md:flex md:min-h-[max(600px,calc(100dvh-6rem))] lg:px-10 lg:py-12 xl:px-14">
           <div className="mx-auto flex w-full max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
-            <div className="flex flex-col justify-center bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
+            <div className="flex h-full flex-col justify-between bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
-              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
+
+              <h1 className="font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
                 Bringing you home,<br />
                 <span className="text-primary">the </span>
                 <span className="text-gold">higala</span>
                 <span className="text-primary"> way.</span>
               </h1>
-              <p className="mt-6 max-w-md text-base text-muted-foreground md:text-lg">
-                Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
-              </p>
 
-              <form
-                onSubmit={handleHeroSearch}
-                className="mt-10 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
-              >
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <Input
-                  name="q"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search by neighborhood, subdivision, or title…"
-                  className="h-8 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0"
-                />
-                <button
-                  type="submit"
-                  aria-label="Search"
-                  className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
+              <div>
+                <p className="max-w-md text-base text-muted-foreground md:text-lg">
+                  Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
+                </p>
+
+                <form
+                  onSubmit={handleHeroSearch}
+                  className="mt-4 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
                 >
-                  Search
-                </button>
-              </form>
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Input
+                    name="q"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search by neighborhood, subdivision, or title…"
+                    className="h-8 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none focus-visible:ring-0"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Search"
+                    className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
+                  >
+                    Search
+                  </button>
+                </form>
+              </div>
             </div>
 
             <div className="relative w-full bg-surface md:w-1/2">
