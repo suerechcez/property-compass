@@ -97,10 +97,9 @@ function Home() {
         </div>
 
         {/* ── Desktop hero (md and up) — one inset, rounded card (not
-            full-bleed). Plain "Cagayan de Oro City" eyebrow (badge pill
-            and stat chip removed per feedback). Widened to max-w-[1800px]
-            (was 1600px). Headline colors untouched, no CTA button —
-            search bar is the only actionable element.
+            full-bleed). Widened to max-w-[1800px] (was 1600px). Headline
+            colors untouched, no CTA button — search bar is the only
+            actionable element.
 
             Fills the viewport below the topbar on every screen size:
             `md:min-h-[max(600px,calc(100dvh-6rem))]` sizes the wrapper to
@@ -110,16 +109,22 @@ function Home() {
             that height straight through to the card and then to the text
             column.
 
-            Text column layout: `justify-between` (was `justify-center`)
-            spreads its three children — eyebrow, headline, and a
-            paragraph+search group — across the column's full height:
-            eyebrow pinned to the top, headline vertically centered in the
-            middle, and the paragraph sitting directly above the search
-            bar, both pinned together at the bottom. */}
+            Text column layout: `justify-between` spreads its three
+            children — eyebrow, headline, and a paragraph+search group —
+            across the column's full height: eyebrow (now with a short
+            underline beneath it) pinned to the top, headline vertically
+            centered in the middle, and the paragraph sitting directly
+            above the search bar, both pinned together at the bottom. The
+            paragraph is nudged right (pl-4) relative to the eyebrow and
+            headline, and the search bar is a touch wider
+            (max-w-lg, up from max-w-md). */}
         <div className="hidden px-6 py-10 md:flex md:min-h-[max(600px,calc(100dvh-6rem))] lg:px-10 lg:py-12 xl:px-14">
           <div className="mx-auto flex w-full max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
             <div className="flex h-full flex-col justify-between bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
+                <div className="mt-3 h-px w-24 bg-border" />
+              </div>
 
               <h1 className="font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
                 Bringing you home,<br />
@@ -129,13 +134,13 @@ function Home() {
               </h1>
 
               <div>
-                <p className="max-w-md text-base text-muted-foreground md:text-lg">
+                <p className="max-w-md pl-4 text-base text-muted-foreground md:text-lg">
                   Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
                 </p>
 
                 <form
                   onSubmit={handleHeroSearch}
-                  className="mt-4 flex w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
+                  className="mt-4 flex w-full max-w-lg items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm"
                 >
                   <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <Input
