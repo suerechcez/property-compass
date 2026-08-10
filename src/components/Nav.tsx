@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -27,6 +27,15 @@ import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/s
 
 const BRAND_ICON_URL = "/brand-icon.png";
 const DASHBOARD_ROUTES = ["/dashboard"];
+
+// Module-scope (not component state) so it survives Nav fully unmounting
+// and remounting on every navigation — TanStack Router swaps the whole
+// route subtree, so Nav itself never persists across pages the way a
+// shared root layout element would. A plain module variable does,
+// though: it's tied to the JS module's lifetime (the whole SPA session),
+// not to any one component instance, so it acts as a lightweight "last
+// known position" handoff between the outgoing Nav and the incoming one.
+let prevBrandRect: DOMRect | null = null;
 
 function NavLink({ to, children, overlay }: { to: string; children: string; overlay?: boolean }) {
   return (
@@ -88,6 +97,41 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   // pinned once you scroll past the photo.
   const isOverlay = overlay && !isDashboard;
   const iconColor = isOverlay ? "text-white" : "text-foreground/80";
+
+  // Logo+tagline "FLIP" transition between pages — e.g. centered on the
+  // homepage, left-aligned on the dashboard. Same ref is attached to
+  // whichever of the two brand-lockup <Link>s below actually renders.
+  //
+  // On mount: if a previous page left a position behind in `prevBrandRect`,
+  // measure how far this page's version of the lockup sits from that old
+  // spot, snap it back there with a transform (no transition), force a
+  // reflow, then clear the transform WITH a transition on the next frame —
+  // the browser animates the difference, so the logo visibly slides from
+  // its old screen position to its new one instead of popping there.
+  // On unmount: record this page's position so the *next* Nav mount has
+  // something to animate from.
+  const brandRef = useRef<HTMLAnchorElement>(null);
+  useLayoutEffect(() => {
+    const el = brandRef.current;
+    if (el && prevBrandRect) {
+      const newRect = el.getBoundingClientRect();
+      const dx = prevBrandRect.left - newRect.left;
+      const dy = prevBrandRect.top - newRect.top;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        el.style.transition = "none";
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        void el.offsetWidth; // force layout so the transform above actually applies before we un-set it
+        requestAnimationFrame(() => {
+          el.style.transition = "transform 450ms cubic-bezier(0.22, 1, 0.36, 1)";
+          el.style.transform = "";
+        });
+      }
+    }
+    prevBrandRect = null;
+    return () => {
+      if (brandRef.current) prevBrandRect = brandRef.current.getBoundingClientRect();
+    };
+  }, []);
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -218,7 +262,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           {isDashboard && (
             <div className="hidden items-center gap-3 md:flex">
               <div aria-hidden className="h-12 w-12 shrink-0" />
-              <Link to="/" className="flex items-center gap-3">
+              <Link ref={brandRef} to="/" className="flex items-center gap-3">
                 {iconOk ? (
                   <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-10 w-10 object-contain" onError={() => setIconOk(false)} />
                 ) : (
@@ -231,7 +275,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         </div>
 
         {!isDashboard && (
-          <Link to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
+          <Link ref={brandRef} to="/" className="col-start-2 flex items-center gap-3 justify-self-center">
             {iconOk ? (
               <img src={BRAND_ICON_URL} alt="One Higala Properties Inc." className="h-12 w-12 object-contain" onError={() => setIconOk(false)} />
             ) : (
