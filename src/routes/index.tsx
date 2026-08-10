@@ -116,24 +116,34 @@ function Home() {
             centered in the middle, and the paragraph sitting directly
             above the search bar, both pinned together at the bottom. The
             paragraph is nudged right (pl-4) relative to the eyebrow and
-            headline, and the search bar is a touch wider
-            (max-w-lg, up from max-w-md). */}
+            headline, and the search bar is a touch wider (max-w-lg, up
+            from max-w-md).
+
+            Animations — this whole block previously had none (the mobile
+            hero above it already did via animate-reveal). Each of the
+            three text groups and the photo now fade/slide in with a
+            staggered delay via the same animate-reveal utility used
+            everywhere else in the app, so the desktop hero settles in
+            piece by piece on load instead of appearing instantly. */}
         <div className="hidden px-6 py-10 md:flex md:min-h-[max(600px,calc(100dvh-6rem))] lg:px-10 lg:py-12 xl:px-14">
           <div className="mx-auto flex w-full max-w-[1800px] overflow-hidden rounded-3xl border border-border shadow-xl">
             <div className="flex h-full flex-col justify-between bg-background px-10 py-20 md:w-1/2 lg:px-16 lg:py-24 xl:px-20">
-              <div>
+              <div className="animate-reveal">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Cagayan de Oro City</span>
                 <div className="mt-3 h-px w-24 bg-border" />
               </div>
 
-              <h1 className="font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl">
+              <h1
+                className="animate-reveal font-display text-4xl font-semibold leading-[1.1] text-foreground md:text-6xl lg:text-7xl"
+                style={{ animationDelay: "120ms" }}
+              >
                 Bringing you home,<br />
                 <span className="text-primary">the </span>
                 <span className="text-gold">higala</span>
                 <span className="text-primary"> way.</span>
               </h1>
 
-              <div>
+              <div className="animate-reveal" style={{ animationDelay: "240ms" }}>
                 <p className="max-w-md pl-4 text-base text-muted-foreground md:text-lg">
                   Explore condos, hotels, raw land, and resell properties across Cagayan de Oro City.
                 </p>
@@ -161,7 +171,7 @@ function Home() {
               </div>
             </div>
 
-            <div className="relative w-full bg-surface md:w-1/2">
+            <div className="relative w-full animate-reveal bg-surface md:w-1/2" style={{ animationDelay: "160ms" }}>
               {heroImageOk && (
                 <img
                   src={HERO_IMAGE_URL}
@@ -180,10 +190,15 @@ function Home() {
 
       {!loading && !user && (
         <section className="border-b border-border bg-surface">
-          <div className="mx-auto max-w-2xl px-6 py-16 text-center">
-            <h2 className="font-display text-2xl font-semibold md:text-3xl">Sign in for a better experience</h2>
-            <p className="mt-4 font-display text-lg italic text-foreground/80">"Every home sold starts with someone brave enough to take the first step."</p>
-            <Button asChild size="lg" className="mt-6 rounded-full">
+          {/* This whole "sign in" section had no animation before either —
+              now fades/slides in as a group, with the button trailing in
+              slightly after the text. */}
+          <div className="mx-auto max-w-2xl px-6 py-16 text-center animate-fade-in">
+            <h2 className="animate-reveal font-display text-2xl font-semibold md:text-3xl">Sign in for a better experience</h2>
+            <p className="animate-reveal mt-4 font-display text-lg italic text-foreground/80" style={{ animationDelay: "100ms" }}>
+              "Every home sold starts with someone brave enough to take the first step."
+            </p>
+            <Button asChild size="lg" className="animate-reveal mt-6 rounded-full transition hover:scale-105 active:scale-95" style={{ animationDelay: "200ms" }}>
               <Link to="/auth"><LogIn className="h-4 w-4" />Sign in</Link>
             </Button>
           </div>
