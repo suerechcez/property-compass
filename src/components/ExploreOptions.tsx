@@ -7,11 +7,8 @@ const SELL_IMAGE_URL = "/sell-icon.png";
 
 export function ExploreOptions() {
   return (
-    <section className="border-b border-border bg-background">
+    <section className="border-b border-border bg-surface">
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
-        <div className="mb-10 text-center">
-          <h2 className="font-display text-2xl font-semibold text-foreground md:text-3xl">What are you looking for?</h2>
-        </div>
         {/* Separate cards with real gaps between them, each with its own
             border, rounded corners, and shadow — replacing the single
             hairline-divided container. */}
