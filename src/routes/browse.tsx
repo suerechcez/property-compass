@@ -11,7 +11,7 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, Heart } from "lucide-react";
+import { Search, LogIn, Heart, ChevronDown } from "lucide-react";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
 
@@ -115,10 +115,10 @@ function Browse() {
         {user && <SideBar />}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — hero-browse.png as the backdrop, with a plain
-              (non-colored) translucent white scrim over it so the title
-              and search bar stay readable, instead of the navy/gold
-              gradient wash. */}
+          {/* Header — hero-browse.png as the backdrop, with a dark-to-light
+              gradient scrim (plus text-shadow on the heading/subtitle) so
+              white text stays legible over any part of the photo,
+              regardless of how light or dark that patch of image is. */}
           <section className="relative overflow-hidden">
             {heroImageOk && (
               <img
@@ -129,10 +129,18 @@ function Browse() {
                 onError={() => setHeroImageOk(false)}
               />
             )}
-            <div className="absolute inset-0 bg-background/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/35 to-black/10" />
             <div className="relative px-6 py-8 sm:py-10">
-              <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl animate-reveal">{heading}</h1>
-              <p className="mt-1 text-sm text-white/85 sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
+              <h1
+                className="font-display text-2xl font-semibold text-white sm:text-3xl animate-reveal"
+                style={{ textShadow: "0 1px 10px rgba(0,0,0,0.5)" }}
+              >
+                {heading}
+              </h1>
+              <p
+                className="mt-1 text-sm text-white/90 sm:text-base animate-reveal"
+                style={{ animationDelay: "80ms", textShadow: "0 1px 8px rgba(0,0,0,0.45)" }}
+              >
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
               <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal" style={{ animationDelay: "160ms" }}>
@@ -146,26 +154,32 @@ function Browse() {
           <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 py-4 sm:py-5">
               {/* Phone UI: dropdowns instead of scrollable chip rows */}
-              <div className="flex gap-2 sm:hidden">
-                <select
-                  value={listingFilter}
-                  onChange={(e) => setListingFilter(e.target.value as ListingFilter)}
-                  className="h-10 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground"
-                >
-                  <option value="all">All listings</option>
-                  <option value="sale">For Sale</option>
-                  <option value="rent">For Rent</option>
-                </select>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as PropertyTypeValue | "all")}
-                  className="h-10 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground"
-                >
-                  <option value="all">All types</option>
-                  {PROPERTY_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+              <div className="flex gap-3 sm:hidden">
+                <div className="relative flex-1">
+                  <select
+                    value={listingFilter}
+                    onChange={(e) => setListingFilter(e.target.value as ListingFilter)}
+                    className="h-11 w-full appearance-none truncate rounded-full border border-border bg-card pl-4 pr-9 text-sm font-medium text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="all">All listings</option>
+                    <option value="sale">For Sale</option>
+                    <option value="rent">For Rent</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+                <div className="relative flex-1">
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value as PropertyTypeValue | "all")}
+                    className="h-11 w-full appearance-none truncate rounded-full border border-border bg-card pl-4 pr-9 text-sm font-medium text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="all">All types</option>
+                    {PROPERTY_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
               </div>
 
               {/* Tablet/desktop: original chip rows */}
