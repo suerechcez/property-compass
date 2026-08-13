@@ -11,7 +11,7 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, Heart, ChevronDown } from "lucide-react";
+import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home } from "lucide-react";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
 
@@ -42,6 +42,8 @@ function Browse() {
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
   const [heroImageOk, setHeroImageOk] = useState(true);
+  const [listingSelectOpen, setListingSelectOpen] = useState(false);
+  const [typeSelectOpen, setTypeSelectOpen] = useState(false);
 
   useEffect(() => { setListingFilter(urlFilter); }, [urlFilter]);
   useEffect(() => { setQ(urlQ); }, [urlQ]);
@@ -155,30 +157,70 @@ function Browse() {
             <div className="px-6 py-4 sm:py-5">
               {/* Phone UI: dropdowns instead of scrollable chip rows */}
               <div className="flex gap-3 sm:hidden">
-                <div className="relative flex-1">
+                <div
+                  className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                    listingSelectOpen
+                      ? "border-primary shadow-md ring-2 ring-primary/15"
+                      : "border-border hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  <div
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 ${
+                      listingSelectOpen ? "scale-110" : "group-hover:scale-110"
+                    }`}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                  </div>
                   <select
                     value={listingFilter}
                     onChange={(e) => setListingFilter(e.target.value as ListingFilter)}
-                    className="h-11 w-full appearance-none truncate rounded-full border border-border bg-card pl-4 pr-9 text-sm font-medium text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    onFocus={() => setListingSelectOpen(true)}
+                    onBlur={() => setListingSelectOpen(false)}
+                    className="h-12 w-full appearance-none truncate bg-transparent pl-11 pr-9 text-sm font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">All listings</option>
                     <option value="sale">For Sale</option>
                     <option value="rent">For Rent</option>
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <ChevronDown
+                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                      listingSelectOpen ? "rotate-180 text-primary" : "text-muted-foreground"
+                    }`}
+                  />
                 </div>
-                <div className="relative flex-1">
+
+                <div
+                  className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                    typeSelectOpen
+                      ? "border-primary shadow-md ring-2 ring-primary/15"
+                      : "border-border hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                  style={{ animationDelay: "60ms" }}
+                >
+                  <div
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-gold/20 text-gold-foreground transition-transform duration-200 ${
+                      typeSelectOpen ? "scale-110" : "group-hover:scale-110"
+                    }`}
+                  >
+                    <Home className="h-3.5 w-3.5" />
+                  </div>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as PropertyTypeValue | "all")}
-                    className="h-11 w-full appearance-none truncate rounded-full border border-border bg-card pl-4 pr-9 text-sm font-medium text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    onFocus={() => setTypeSelectOpen(true)}
+                    onBlur={() => setTypeSelectOpen(false)}
+                    className="h-12 w-full appearance-none truncate bg-transparent pl-11 pr-9 text-sm font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">All types</option>
                     {PROPERTY_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <ChevronDown
+                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                      typeSelectOpen ? "rotate-180 text-primary" : "text-muted-foreground"
+                    }`}
+                  />
                 </div>
               </div>
 
