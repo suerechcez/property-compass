@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Footer } from "@/components/Footer";
-import { SideBar, SideBarMobileTrigger } from "@/components/SideBar";
+import { SideBar } from "@/components/SideBar";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
@@ -131,8 +131,8 @@ function Browse() {
             )}
             <div className="absolute inset-0 bg-background/25" />
             <div className="relative px-6 py-8 sm:py-10">
-              <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl animate-reveal">{heading}</h1>
-              <p className="mt-1 text-sm text-muted-foreground sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
+              <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl animate-reveal">{heading}</h1>
+              <p className="mt-1 text-sm text-white/85 sm:text-base animate-reveal" style={{ animationDelay: "80ms" }}>
                 Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
               </p>
               <div className="mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal" style={{ animationDelay: "160ms" }}>
@@ -145,12 +145,36 @@ function Browse() {
           {/* Filter chips — no border-b, sits flush against the header above. */}
           <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 py-4 sm:py-5">
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Phone UI: dropdowns instead of scrollable chip rows */}
+              <div className="flex gap-2 sm:hidden">
+                <select
+                  value={listingFilter}
+                  onChange={(e) => setListingFilter(e.target.value as ListingFilter)}
+                  className="h-10 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground"
+                >
+                  <option value="all">All listings</option>
+                  <option value="sale">For Sale</option>
+                  <option value="rent">For Rent</option>
+                </select>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as PropertyTypeValue | "all")}
+                  className="h-10 flex-1 rounded-full border border-border bg-card px-4 text-sm text-foreground"
+                >
+                  <option value="all">All types</option>
+                  {PROPERTY_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tablet/desktop: original chip rows */}
+              <div className="hidden flex-wrap items-center gap-2 sm:flex">
                 <FilterChip active={listingFilter === "all"} onClick={() => setListingFilter("all")}>All listings</FilterChip>
                 <FilterChip active={listingFilter === "sale"} onClick={() => setListingFilter("sale")}>For Sale</FilterChip>
                 <FilterChip active={listingFilter === "rent"} onClick={() => setListingFilter("rent")}>For Rent</FilterChip>
               </div>
-              <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="mt-3 hidden items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex [&::-webkit-scrollbar]:hidden">
                 <FilterChip active={type === "all"} onClick={() => setType("all")}>All types</FilterChip>
                 {PROPERTY_TYPES.map((t) => (
                   <FilterChip key={t.value} active={type === t.value} onClick={() => setType(t.value)}>{t.label}</FilterChip>
@@ -158,12 +182,6 @@ function Browse() {
               </div>
             </div>
           </section>
-
-          {user && (
-            <div className="flex justify-center bg-surface/50 py-3 lg:hidden animate-fade-in">
-              <SideBarMobileTrigger />
-            </div>
-          )}
 
           {/* Listings grid */}
           <section className="px-6 py-6 sm:py-12">
