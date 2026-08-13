@@ -78,9 +78,10 @@ function AgentsList() {
     <div className="site-page bg-background">
       <Nav />
 
-      {/* Header — hero-agents.png as the backdrop, with a plain
-          (non-colored) translucent white scrim over it so the title and
-          search bar stay readable, instead of the navy/gold gradient wash. */}
+      {/* Header — hero-agents.png as the backdrop, with a dark-to-light
+          gradient scrim (plus text-shadow on the eyebrow/heading) so
+          white text stays legible over any part of the photo, regardless
+          of how light or dark that patch of image is. */}
       <section className="relative overflow-hidden border-b border-border">
         {heroImageOk && (
           <img
@@ -91,11 +92,19 @@ function AgentsList() {
             onError={() => setHeroImageOk(false)}
           />
         )}
-        <div className="absolute inset-0 bg-background/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/35 to-black/10" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 text-center lg:px-12 md:py-20 xl:px-20">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Directory</span>
-          <h1 className="mt-4 font-display text-3xl font-semibold leading-tight text-foreground md:text-5xl">
-            Where trusted agents meet committed <span className="text-primary">commissioners</span>
+          <span
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-gold"
+            style={{ textShadow: "0 1px 8px rgba(0,0,0,0.45)" }}
+          >
+            Directory
+          </span>
+          <h1
+            className="mt-4 font-display text-3xl font-semibold leading-tight text-white md:text-5xl"
+            style={{ textShadow: "0 1px 10px rgba(0,0,0,0.5)" }}
+          >
+            Where trusted agents meet committed <span className="text-gold">commissioners</span>
           </h1>
           <div className="mt-8 flex w-full items-center gap-3 rounded-full border border-border bg-card px-5 py-3 shadow-sm">
             <User className="h-5 w-5 shrink-0 text-muted-foreground" />
