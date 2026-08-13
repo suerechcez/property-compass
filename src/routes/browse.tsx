@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Footer } from "@/components/Footer";
-import { SideBar } from "@/components/SideBar";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
@@ -109,13 +108,6 @@ function Browse() {
     <div className="min-h-screen site-page bg-background">
       <Nav />
       <div className="flex flex-1">
-        {/* SideBar renders its own right-hand border, separating "Listing
-            updates" from the listings grid — that's the one divider line
-            on this page that stays. Every other section border below has
-            been removed so the hero flows straight into the filter row
-            and the grid with no hairlines between them. */}
-        {user && <SideBar />}
-
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Header — hero-browse.png as the backdrop, with a dark-to-light
               gradient scrim (plus text-shadow on the heading/subtitle) so
