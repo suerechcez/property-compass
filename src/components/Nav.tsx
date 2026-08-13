@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LogOut, Settings, Users, ClipboardList, BarChart3,
   LayoutDashboard, Building2, Wallet, Plus, Menu, X, Bell, MessageSquare, Megaphone,
-  Home, KeyRound, ChevronDown, Rss, Heart,
+  Home, KeyRound, ChevronDown, Calculator, Percent,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -13,6 +13,7 @@ import { fetchActiveAnnouncements, getUnseenCount, markAnnouncementsSeen, announ
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BrandTitle } from "@/components/BrandTitle";
+import { CalculatorsDialog } from "@/components/CalculatorsDialog";
 import { formatDistanceToNow } from "date-fns";
 import {
   DropdownMenu,
@@ -64,16 +65,19 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [announceOpen, setAnnounceOpen] = useState(false);
   const canManageListings = isCommissioner || isAgent;
+  const [calcOpen, setCalcOpen] = useState<false | "mortgage" | "rent">(false);
 
-  // "Browse" mega-dropdown — hover-triggered, shows Buy/Rent/Updates/
-  // Favorites below the full-width header (Updates and Favorites moved
-  // here from the floating RightSideBar rail, alongside its own Messages
-  // shortcut moving into the topbar next to the bell — see below). A
-  // short close delay (via ref'd timeout, not state, so it survives
-  // re-renders without re-triggering effects) keeps the panel open while
-  // the cursor travels from the trigger down into the panel itself;
-  // without it, the small vertical gap between them would register as a
-  // mouseleave and the panel would flicker shut.
+  // "Browse" mega-dropdown — hover-triggered, shows Buy/Rent/Mortgage
+  // Calculator/Rent Calculator below the full-width header. The Updates
+  // and Favorites entries that used to live here (moved in from the
+  // floating RightSideBar rail) have been removed entirely, along with
+  // that rail itself on the Browse page — replaced with the two
+  // calculators, which open as a modal (CalculatorsDialog) instead of
+  // navigating to a route. A short close delay (via ref'd timeout, not
+  // state, so it survives re-renders without re-triggering effects) keeps
+  // the panel open while the cursor travels from the trigger down into
+  // the panel itself; without it, the small vertical gap between them
+  // would register as a mouseleave and the panel would flicker shut.
   const [browseOpen, setBrowseOpen] = useState(false);
   const browseCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function openBrowseMenu() {
@@ -220,8 +224,12 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   <SheetClose asChild><Link to="/browse" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Browse</Link></SheetClose>
                   <SheetClose asChild><Link to="/sell"   className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Sell</Link></SheetClose>
                   <SheetClose asChild><Link to="/agents" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Find an agent</Link></SheetClose>
-                  <SheetClose asChild><Link to="/updates" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Updates</Link></SheetClose>
-                  <SheetClose asChild><Link to="/favorites" className="flex items-center px-5 py-4 text-base font-medium text-foreground hover:bg-accent">Favorites</Link></SheetClose>
+                  <SheetClose asChild>
+                    <button type="button" onClick={() => setCalcOpen("mortgage")} className="flex items-center px-5 py-4 text-left text-base font-medium text-foreground hover:bg-accent">Mortgage calculator</button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <button type="button" onClick={() => setCalcOpen("rent")} className="flex items-center px-5 py-4 text-left text-base font-medium text-foreground hover:bg-accent">Rent calculator</button>
+                  </SheetClose>
                 </nav>
               </SheetContent>
             </Sheet>
@@ -543,8 +551,10 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         its own immediate parent. Kept mounted (hidden via
         opacity/pointer-events, not conditionally rendered) so the
         open/close transition animates instead of popping instantly. Four
-        destinations (Buy/Rent/Updates/Favorites) — Updates and Favorites
-        moved in from the floating RightSideBar rail.
+        destinations (Buy/Rent/Mortgage Calculator/Rent Calculator) — the
+        latter two open CalculatorsDialog as a modal instead of routing
+        anywhere; Updates and Favorites (and the floating sidebar rail
+        they used to live in on the Browse page) have been removed.
 
         The 2x2 item grid is deliberately confined to `sm:w-1/2` (roughly
         the left half of this full-bleed panel) rather than stretching
@@ -609,36 +619,41 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   <span className="block text-xs text-muted-foreground">Find a place to rent in CDO.</span>
                 </span>
               </Link>
-              <Link
-                to="/updates"
-                onClick={() => setBrowseOpen(false)}
+              <button
+                type="button"
+                onClick={() => { setCalcOpen("mortgage"); setBrowseOpen(false); }}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Rss className="h-4 w-4" />
+                  <Calculator className="h-4 w-4" />
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold">Updates</span>
-                  <span className="block text-xs text-muted-foreground">New and recently changed listings.</span>
+                  <span className="block text-sm font-semibold">Mortgage Calculator</span>
+                  <span className="block text-xs text-muted-foreground">Estimate your monthly payment.</span>
                 </span>
-              </Link>
-              <Link
-                to="/favorites"
-                onClick={() => setBrowseOpen(false)}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCalcOpen("rent"); setBrowseOpen(false); }}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
-                  <Heart className="h-4 w-4" />
+                  <Percent className="h-4 w-4" />
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold">Favorites</span>
-                  <span className="block text-xs text-muted-foreground">Properties you've saved.</span>
+                  <span className="block text-sm font-semibold">Rent Calculator</span>
+                  <span className="block text-xs text-muted-foreground">Find a rent budget that fits.</span>
                 </span>
-              </Link>
+              </button>
             </div>
           </div>
         </div>
       )}
+      <CalculatorsDialog
+        open={calcOpen !== false}
+        onOpenChange={(v) => { if (!v) setCalcOpen(false); }}
+        initialTab={calcOpen || "mortgage"}
+      />
     </header>
   );
 }
