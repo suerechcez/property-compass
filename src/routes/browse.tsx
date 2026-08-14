@@ -10,7 +10,7 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home, ArrowRight } from "lucide-react";
+import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home } from "lucide-react";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
 
@@ -337,8 +337,15 @@ function Browse() {
               </div>
 
               {!isLoading && filtered.length > 0 && (
-                <aside className="hidden shrink-0 lg:block lg:w-[360px]">
-                  <div className="lg:sticky lg:top-24">
+                <aside className="hidden shrink-0 lg:block lg:w-[400px] xl:w-[440px]">
+                  {/* Sticky below the header (top-24, matching the offset
+                      used elsewhere in the app) so it never covers the
+                      topbar, capped to the remaining viewport height
+                      (max-h) so it never runs past the bottom of the
+                      screen either — it fills the space between the two.
+                      Its own content scrolls internally past that point
+                      instead of pushing the page. */}
+                  <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
                     {previewProperty && (
                       <BrowsePreviewPanel
                         property={previewProperty}
@@ -369,9 +376,12 @@ function Browse() {
 /**
  * Right-rail preview card on the Browse page — shows whichever listing is
  * currently hovered in the grid (or the first result, before any hover has
- * happened yet). Deliberately richer than the compact grid card: bigger
- * photo, specs line (bd/ba/m²), a description excerpt, and a direct link
- * into the full listing.
+ * happened yet). Deliberately a fuller preview than the compact grid card
+ * (Zillow-style photo grid, a specs row, a description excerpt) but still
+ * a PREVIEW, not the full listing page — only the title is a link through
+ * to /properties/$id. Photos, specs, and the description are all plain
+ * (non-clickable), so hovering/reading around the panel never accidentally
+ * navigates away while someone's still comparing listings in the grid.
  */
 function BrowsePreviewPanel({
   property, isFav, verified, onHeart,
@@ -381,60 +391,85 @@ function BrowsePreviewPanel({
   verified: boolean;
   onHeart: (e: React.MouseEvent) => void;
 }) {
+  const images = (property.images ?? []).filter(Boolean);
   const specs = [
-    property.bedrooms != null && `${property.bedrooms} bd`,
-    property.bathrooms != null && `${property.bathrooms} ba`,
-    property.area_sqm != null && `${property.area_sqm} m²`,
-  ].filter(Boolean).join(" · ");
+    property.bedrooms != null && { label: "Beds", value: String(property.bedrooms) },
+    property.bathrooms != null && { label: "Baths", value: String(property.bathrooms) },
+    property.area_sqm != null && { label: "Sqm", value: String(property.area_sqm) },
+  ].filter(Boolean) as { label: string; value: string }[];
 
   return (
     <div key={property.id} className="animate-fade-in overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <Link to="/properties/$id" params={{ id: property.id }} className="group block">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {property.images?.[0]
-            ? <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover group-img-zoom" />
-            : <div className="grid h-full w-full place-items-center font-display text-3xl text-muted-foreground">H</div>
-          }
-          <button
-            onClick={onHeart}
-            className="btn-bounce absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
-            aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
-          >
-            <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
-          </button>
+      {/* Photo grid — one large image plus up to 4 small tiles,
+          Zillow-style. Deliberately NOT a link (unlike the grid cards on
+          the left): only the title below takes you to the full listing. */}
+      <div className="relative grid grid-cols-3 grid-rows-2 gap-0.5 bg-muted">
+        <div className="col-span-2 row-span-2 aspect-square overflow-hidden">
+          {images[0]
+            ? <img src={images[0]} alt="" className="h-full w-full object-cover" />
+            : <div className="grid h-full w-full place-items-center font-display text-3xl text-muted-foreground">H</div>}
+        </div>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="aspect-square overflow-hidden">
+            {images[i]
+              ? <img src={images[i]} alt="" className="h-full w-full object-cover" />
+              : <div className="h-full w-full bg-muted" />}
+          </div>
+        ))}
+        <button
+          onClick={onHeart}
+          className="btn-bounce absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
+          aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+        >
+          <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+        </button>
+      </div>
+
+      <div className="p-5">
+        <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
+          <span>{typeLabel(property.property_type)}</span>
+          <div className="flex gap-1.5">
+            {property.is_owner_listed && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>}
+            {property.status === "rented" && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>}
+            {property.for_rent && property.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
+          </div>
         </div>
 
-        <div className="p-5">
-          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
-            <span>{typeLabel(property.property_type)}</span>
-            <div className="flex gap-1.5">
-              {property.is_owner_listed && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>}
-              {property.status === "rented" && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>}
-              {property.for_rent && property.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
-            </div>
+        <p className="mt-2 font-display text-3xl font-semibold text-primary">
+          {formatPrice(property.price)}
+          {property.for_rent && <span className="text-base font-normal text-muted-foreground"> /mo</span>}
+        </p>
+
+        {/* The ONLY clickable path into the full listing from this panel. */}
+        <Link
+          to="/properties/$id"
+          params={{ id: property.id }}
+          className="mt-1 flex items-center gap-1.5 hover:text-primary hover:underline"
+        >
+          <h3 className="truncate font-display text-lg font-semibold leading-tight">{property.title}</h3>
+          <VerifiedBadge verified={verified} size="icon" />
+        </Link>
+        <p className="mt-0.5 text-sm text-muted-foreground">{property.location ?? "Location TBD"}</p>
+
+        {specs.length > 0 && (
+          <div className="mt-4 flex divide-x divide-border border-y border-border py-3">
+            {specs.map((s) => (
+              <div key={s.label} className="flex-1 text-center">
+                <p className="font-display text-lg font-bold">{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
           </div>
+        )}
 
-          <div className="mt-2 flex items-center gap-1.5">
-            <h3 className="truncate font-display text-lg font-semibold leading-tight">{property.title}</h3>
-            <VerifiedBadge verified={verified} size="icon" />
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{property.location ?? "Location TBD"}</p>
-          {specs && <p className="mt-1 text-xs text-muted-foreground">{specs}</p>}
+        {property.description && (
+          <p className="mt-4 line-clamp-4 text-sm text-foreground/80">{property.description}</p>
+        )}
 
-          <p className="mt-3 font-display text-2xl font-semibold text-primary">
-            {formatPrice(property.price)}
-            {property.for_rent && <span className="text-base text-muted-foreground"> /mo</span>}
-          </p>
-
-          {property.description && (
-            <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">{property.description}</p>
-          )}
-
-          <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-primary transition group-hover:gap-2.5">
-            View full listing <ArrowRight className="h-3.5 w-3.5" />
-          </div>
-        </div>
-      </Link>
+        <Button asChild className="mt-5 w-full rounded-full">
+          <Link to="/properties/$id" params={{ id: property.id }}>View full details</Link>
+        </Button>
+      </div>
     </div>
   );
 }
