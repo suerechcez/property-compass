@@ -562,21 +562,21 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         entirely and both destinations now live here instead, reachable on
         hover.
 
-        The item grid is stacked to the RIGHT of the panel (a `flex
-        sm:justify-end` wrapper) rather than confined to the left half —
-        it now sits over the background image/gradient's right side,
-        mirroring where the brand lockup/sign-in sit in the header above.
-        Row/column shape is `grid-rows-2 grid-flow-col auto-cols-max`
-        instead of a fixed `grid-cols-2`: this locks the grid at exactly
-        TWO rows no matter how many destinations exist, and lets the
-        number of columns grow or shrink automatically to fit them
-        (currently 3 columns of 2, pairing Buy/Rent, Updates/Favorites,
-        and the two calculators column-by-column) — adding or removing a
-        destination changes the column count on its own without needing
-        the grid's className touched. Items themselves have no card
-        chrome (no border, no bg-card, no shadow) — just a small icon
-        chip, so they read as plain rows sitting transparently on the
-        panel rather than boxed buttons.
+        The item grid is stacked to the LEFT of the panel (a `flex
+        sm:justify-start` wrapper) rather than the right — it sits under
+        the "Browse" trigger itself, roughly aligning with the left side
+        of the header instead of the right. Row/column shape is
+        `grid-rows-2 grid-flow-col auto-cols-max` instead of a fixed
+        `grid-cols-2`: this locks the grid at exactly TWO rows no matter
+        how many destinations exist, and lets the number of columns grow
+        or shrink automatically to fit them (currently 3 columns of 2,
+        pairing Buy/Rent, Updates/Favorites, and the two calculators
+        column-by-column) — adding or removing a destination changes the
+        column count on its own without needing the grid's className
+        touched. Items themselves have no card chrome (no border, no
+        bg-card, no shadow) — just a small icon chip, so they read as
+        plain rows sitting transparently on the panel rather than boxed
+        buttons.
 
         Background is fully opaque (was a low-alpha gradient +
         backdrop-blur, which let page content show through underneath —
@@ -603,7 +603,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           }`}
         >
           <div className="px-4 py-5 sm:px-10">
-            <div className="flex sm:justify-end">
+            <div className="flex sm:justify-start">
               <div className="grid auto-cols-max grid-flow-col grid-rows-2 gap-x-6 gap-y-1">
               <Link
                 to="/browse"
