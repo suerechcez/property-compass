@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
 
@@ -89,19 +90,21 @@ function Browse() {
   });
 
   const commissionerIds = Array.from(new Set(properties.map((p) => p.commissioner_id)));
-  const { data: verifiedCommissionerIds = new Set<string>() } = useQuery({
-    queryKey: ["verified-commissioners", commissionerIds],
+  const { data: commissionerProfiles = new Map<string, { full_name: string | null; avatar_url: string | null; is_verified: boolean }>() } = useQuery({
+    queryKey: ["browse-commissioner-profiles", commissionerIds],
     enabled: commissionerIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, is_verified")
-        .in("id", commissionerIds)
-        .eq("is_verified", true);
+        .select("id, full_name, avatar_url, is_verified")
+        .in("id", commissionerIds);
       if (error) throw error;
-      return new Set((data ?? []).map((d) => d.id));
+      return new Map((data ?? []).map((d) => [d.id, { full_name: d.full_name, avatar_url: d.avatar_url, is_verified: !!d.is_verified }]));
     },
   });
+  const verifiedCommissionerIds = new Set(
+    [...commissionerProfiles.entries()].filter(([, p]) => p.is_verified).map(([id]) => id)
+  );
 
   const favoriteMutation = useMutation({
     mutationFn: ({ id, isFav }: { id: string; isFav: boolean }) => toggleFavorite(id, isFav),
@@ -337,7 +340,7 @@ function Browse() {
               </div>
 
               {!isLoading && filtered.length > 0 && (
-                <aside className="hidden shrink-0 lg:block lg:w-[400px] xl:w-[440px]">
+                <aside className="hidden shrink-0 lg:block lg:w-[460px] xl:w-[560px]">
                   {/* Sticky below the header (top-24, matching the offset
                       used elsewhere in the app) so it never covers the
                       topbar, capped to the remaining viewport height
@@ -351,6 +354,7 @@ function Browse() {
                         property={previewProperty}
                         isFav={favoriteIds.has(previewProperty.id)}
                         verified={verifiedCommissionerIds.has(previewProperty.commissioner_id)}
+                        agent={commissionerProfiles.get(previewProperty.commissioner_id)}
                         onHeart={(e) => handleHeart(e, previewProperty.id)}
                       />
                     )}
@@ -470,11 +474,12 @@ function PreviewPhotoGrid({ images, isFav, onHeart }: { images: string[]; isFav:
  * navigates away while someone's still comparing listings in the grid.
  */
 function BrowsePreviewPanel({
-  property, isFav, verified, onHeart,
+  property, isFav, verified, agent, onHeart,
 }: {
   property: Property;
   isFav: boolean;
   verified: boolean;
+  agent?: { full_name: string | null; avatar_url: string | null };
   onHeart: (e: React.MouseEvent) => void;
 }) {
   const images = (property.images ?? []).filter(Boolean);
@@ -537,6 +542,33 @@ function BrowsePreviewPanel({
         {property.description && (
           <p className="mt-4 line-clamp-4 text-sm text-foreground/80">{property.description}</p>
         )}
+
+        {/* Listed by — links through to the agent's own profile page, a
+            separate destination from the title's /properties/$id link
+            above, so it doesn't conflict with "only the title navigates
+            to the full listing." */}
+        <div className="mt-5 border-t border-border pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Listed by</p>
+          <Link
+            to="/agents/$id"
+            params={{ id: property.commissioner_id }}
+            className="mt-2 flex items-center gap-3 rounded-lg -mx-2 p-2 transition hover:bg-accent"
+          >
+            <Avatar className="h-10 w-10 border border-border">
+              {agent?.avatar_url && <AvatarImage src={agent.avatar_url} alt={agent.full_name ?? "Agent"} />}
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-semibold text-primary-foreground">
+                {(agent?.full_name ?? "A").slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                <span className="truncate">{agent?.full_name ?? "One Higala commissioner"}</span>
+                <VerifiedBadge verified={verified} size="icon" />
+              </p>
+              <p className="text-xs text-muted-foreground">View agent profile →</p>
+            </div>
+          </Link>
+        </div>
 
         <Button asChild className="mt-5 w-full rounded-full">
           <Link to="/properties/$id" params={{ id: property.id }}>View full details</Link>
