@@ -16,13 +16,19 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * listing from its own "recently viewed" row (used on the property detail
  * page); Browse doesn't have a "current" listing, so it's omitted there.
  *
+ * `compact` shrinks the heading, scroll buttons, and card size — used on
+ * Browse, where this row now sits only under the listings column (beside
+ * the sticky preview rail) rather than spanning the full page width, so a
+ * smaller footprint keeps it from feeling cramped or competing with the
+ * rail for attention.
+ *
  * Only listings currently in a publicly-visible status (published or
  * rented) are shown here — a property that's since gone back to Pending
  * review, Draft, or Sold shouldn't keep appearing in this row just because
  * someone looked at it while it was live. This mirrors the same
  * .in("status", ["published", "rented"]) filter Browse itself uses.
  */
-export function RecentlyViewed({ excludeId }: { excludeId?: string }) {
+export function RecentlyViewed({ excludeId, compact = false }: { excludeId?: string; compact?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Read fresh on every render (cheap localStorage read) rather than
   // useState — naturally picks up any view recorded on a previous page
@@ -53,39 +59,41 @@ export function RecentlyViewed({ excludeId }: { excludeId?: string }) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-semibold">You recently viewed</h2>
+        <h2 className={compact ? "font-display text-base font-semibold" : "font-display text-xl font-semibold"}>
+          You recently viewed
+        </h2>
         <div className="flex gap-1.5">
           <button
             aria-label="Scroll left"
             onClick={() => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
-            className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"
+            className={`grid place-items-center rounded-full border border-border hover:bg-accent ${compact ? "h-7 w-7" : "h-8 w-8"}`}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
           </button>
           <button
             aria-label="Scroll right"
             onClick={() => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
-            className="grid h-8 w-8 place-items-center rounded-full border border-border hover:bg-accent"
+            className={`grid place-items-center rounded-full border border-border hover:bg-accent ${compact ? "h-7 w-7" : "h-8 w-8"}`}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
           </button>
         </div>
       </div>
-      <div ref={scrollRef} className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={scrollRef} className={`flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${compact ? "mt-3" : "mt-4"}`}>
         {properties.map((p) => (
           <Link
             key={p.id}
             to="/properties/$id"
             params={{ id: p.id }}
-            className="w-64 shrink-0 overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-md"
+            className={`shrink-0 overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-md ${compact ? "w-44" : "w-64"}`}
           >
             <div className="aspect-[4/3] overflow-hidden bg-muted">
               {p.images?.[0]
                 ? <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
                 : <div className="grid h-full w-full place-items-center font-display text-2xl text-muted-foreground">H</div>}
             </div>
-            <div className="p-3">
-              <p className="font-display text-lg font-bold">
+            <div className={compact ? "p-2.5" : "p-3"}>
+              <p className={compact ? "font-display text-sm font-bold" : "font-display text-lg font-bold"}>
                 {formatPrice(p.price)}
                 {p.for_rent && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
               </p>
