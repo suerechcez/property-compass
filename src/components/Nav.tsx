@@ -562,15 +562,21 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         entirely and both destinations now live here instead, reachable on
         hover.
 
-        The 2x3 item grid is deliberately confined to `sm:w-1/2` (roughly
-        the left half of this full-bleed panel) rather than stretching
-        across the whole thing — it sits over the header's own left
-        padding, leaving the right half of the panel open over the
-        background image/gradient instead of the grid spanning edge to
-        edge. Items themselves have no card chrome (no border, no
-        bg-card, no shadow) — just a small icon chip, so they read as
-        plain rows sitting transparently on the panel rather than boxed
-        buttons.
+        The item grid is stacked to the RIGHT of the panel (a `flex
+        sm:justify-end` wrapper) rather than confined to the left half —
+        it now sits over the background image/gradient's right side,
+        mirroring where the brand lockup/sign-in sit in the header above.
+        Row/column shape is `grid-rows-2 grid-flow-col auto-cols-max`
+        instead of a fixed `grid-cols-2`: this locks the grid at exactly
+        TWO rows no matter how many destinations exist, and lets the
+        number of columns grow or shrink automatically to fit them
+        (currently 3 columns of 2, pairing Buy/Rent, Updates/Favorites,
+        and the two calculators column-by-column) — adding or removing a
+        destination changes the column count on its own without needing
+        the grid's className touched. Items themselves have no card
+        chrome (no border, no bg-card, no shadow) — just a small icon
+        chip, so they read as plain rows sitting transparently on the
+        panel rather than boxed buttons.
 
         Background is fully opaque (was a low-alpha gradient +
         backdrop-blur, which let page content show through underneath —
@@ -597,7 +603,8 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
           }`}
         >
           <div className="px-4 py-5 sm:px-10">
-            <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1 sm:w-1/2 sm:max-w-md">
+            <div className="flex sm:justify-end">
+              <div className="grid auto-cols-max grid-flow-col grid-rows-2 gap-x-6 gap-y-1">
               <Link
                 to="/browse"
                 search={{ filter: "sale", q: "" }}
@@ -678,6 +685,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                   <span className="block text-xs text-muted-foreground">Find a rent budget that fits.</span>
                 </span>
               </button>
+              </div>
             </div>
           </div>
         </div>
