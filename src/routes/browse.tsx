@@ -374,6 +374,92 @@ function Browse() {
 }
 
 /**
+ * Photo layout for BrowsePreviewPanel, shaped to however many photos the
+ * listing actually has — 1 photo fills the whole box, 2 splits it evenly,
+ * 3 is one big + two small, and 4+ is a proper big-photo-plus-4-small
+ * grid (grid-cols-4, not grid-cols-3 — a 3-col/2-row grid with a 2x2
+ * spanning photo only has 2 cells left over, not 4, which is what
+ * silently swallowed 2 of the 4 small photos before and left mostly-gray
+ * space whenever a listing had fewer than ~6 photos). The heart/favorite
+ * button rides on top of whichever shape renders, positioned against this
+ * component's own `relative` wrapper rather than any one tile.
+ */
+function PreviewPhotoGrid({ images, isFav, onHeart }: { images: string[]; isFav: boolean; onHeart: (e: React.MouseEvent) => void }) {
+  const HeartButton = (
+    <button
+      onClick={onHeart}
+      className="btn-bounce absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
+      aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+    >
+      <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+    </button>
+  );
+
+  if (images.length === 0) {
+    return (
+      <div className="relative grid aspect-[16/10] place-items-center bg-muted font-display text-3xl text-muted-foreground">
+        H
+        {HeartButton}
+      </div>
+    );
+  }
+
+  if (images.length === 1) {
+    return (
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+        <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {HeartButton}
+      </div>
+    );
+  }
+
+  if (images.length === 2) {
+    return (
+      <div className="relative grid aspect-[16/10] grid-cols-2 gap-0.5 overflow-hidden bg-muted">
+        {images.map((src, i) => (
+          <div key={i} className="relative overflow-hidden">
+            <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          </div>
+        ))}
+        {HeartButton}
+      </div>
+    );
+  }
+
+  if (images.length === 3) {
+    return (
+      <div className="relative grid aspect-[16/10] grid-cols-3 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
+        <div className="relative col-span-2 row-span-2 overflow-hidden">
+          <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        </div>
+        {images.slice(1, 3).map((src, i) => (
+          <div key={i} className="relative overflow-hidden">
+            <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          </div>
+        ))}
+        {HeartButton}
+      </div>
+    );
+  }
+
+  // 4 or more — grid-cols-4 (not 3) so the 2x2 big photo leaves exactly 4
+  // cells for the small ones, filling the shape completely.
+  return (
+    <div className="relative grid aspect-[16/10] grid-cols-4 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
+      <div className="relative col-span-2 row-span-2 overflow-hidden">
+        <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+      {images.slice(1, 5).map((src, i) => (
+        <div key={i} className="relative overflow-hidden">
+          <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        </div>
+      ))}
+      {HeartButton}
+    </div>
+  );
+}
+
+/**
  * Right-rail preview card on the Browse page — shows whichever listing is
  * currently hovered in the grid (or the first result, before any hover has
  * happened yet). Deliberately a fuller preview than the compact grid card
@@ -400,30 +486,16 @@ function BrowsePreviewPanel({
 
   return (
     <div key={property.id} className="animate-fade-in overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      {/* Photo grid — one large image plus up to 4 small tiles,
-          Zillow-style. Deliberately NOT a link (unlike the grid cards on
-          the left): only the title below takes you to the full listing. */}
-      <div className="relative grid aspect-[16/10] grid-cols-3 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
-        <div className="relative col-span-2 row-span-2 overflow-hidden">
-          {images[0]
-            ? <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            : <div className="absolute inset-0 grid place-items-center font-display text-3xl text-muted-foreground">H</div>}
-        </div>
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="relative overflow-hidden">
-            {images[i]
-              ? <img src={images[i]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              : <div className="absolute inset-0 bg-muted" />}
-          </div>
-        ))}
-        <button
-          onClick={onHeart}
-          className="btn-bounce absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
-          aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
-        >
-          <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
-        </button>
-      </div>
+      {/* Photo layout adapts to how many photos actually exist, so the
+          panel is never left showing large blank/gray placeholder tiles
+          for photos that don't exist. Previously this was a fixed
+          grid-cols-3 grid-rows-2 with the big photo spanning 2x2 — but
+          that shape only has 2 REMAINING cells (col 3, both rows), not 4,
+          so with fewer than ~2 extra photos most of the right-hand column
+          rendered as solid gray. A single-photo listing (the common case
+          while testing) showed the photo filling only ~66% of the width
+          with an empty gray block beside it. */}
+      <PreviewPhotoGrid images={images} onHeart={onHeart} isFav={isFav} />
 
       <div className="p-5">
         <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
