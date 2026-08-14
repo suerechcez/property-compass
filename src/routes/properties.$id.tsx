@@ -10,7 +10,7 @@ import { loadLeaflet } from "@/lib/leaflet";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
-import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check, Layers, Box, Maximize2 } from "lucide-react";
+import { Phone, Mail, Star, Heart, MessageSquare, ChevronLeft, ChevronRight, X, MapPin, Check, Layers, Box, Maximize2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { startConversation } from "@/lib/messages";
@@ -160,7 +160,14 @@ function PropertyDetail() {
     <div className="min-h-screen site-page">
       <Nav />
       <div className="mx-auto max-w-6xl px-6 py-10">
-        <Link to="/browse" className="text-sm text-muted-foreground hover:text-foreground">← Back to listings</Link>
+        <Link
+          to="/browse"
+          aria-label="Back to listings"
+          title="Back to listings"
+          className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:-translate-x-0.5 hover:border-primary hover:text-primary hover:shadow-md active:scale-95"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
 
         <header className="mt-6 flex flex-wrap items-start justify-between gap-6">
           <div>
