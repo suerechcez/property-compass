@@ -185,7 +185,7 @@ function Browse() {
               layout on tablet/desktop, so the filter experience is
               identical everywhere. */}
           <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
-            <div className="px-6 py-4 sm:py-5">
+            <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
               <div className="flex max-w-xl gap-3">
                 <div
                   className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
@@ -262,7 +262,7 @@ function Browse() {
               (`hoveredId`) or — with nothing hovered yet — the first
               listing in the current results, so the panel is never
               empty. Only shown once results actually exist. */}
-          <section className="px-6 py-6 sm:py-12">
+          <section className="px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
             <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
               <div className="min-w-0 flex-1">
                 {isLoading ? (
@@ -403,17 +403,17 @@ function BrowsePreviewPanel({
       {/* Photo grid — one large image plus up to 4 small tiles,
           Zillow-style. Deliberately NOT a link (unlike the grid cards on
           the left): only the title below takes you to the full listing. */}
-      <div className="relative grid grid-cols-3 grid-rows-2 gap-0.5 bg-muted">
-        <div className="col-span-2 row-span-2 aspect-square overflow-hidden">
+      <div className="relative grid aspect-[16/10] grid-cols-3 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
+        <div className="relative col-span-2 row-span-2 overflow-hidden">
           {images[0]
-            ? <img src={images[0]} alt="" className="h-full w-full object-cover" />
-            : <div className="grid h-full w-full place-items-center font-display text-3xl text-muted-foreground">H</div>}
+            ? <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            : <div className="absolute inset-0 grid place-items-center font-display text-3xl text-muted-foreground">H</div>}
         </div>
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="aspect-square overflow-hidden">
+          <div key={i} className="relative overflow-hidden">
             {images[i]
-              ? <img src={images[i]} alt="" className="h-full w-full object-cover" />
-              : <div className="h-full w-full bg-muted" />}
+              ? <img src={images[i]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              : <div className="absolute inset-0 bg-muted" />}
           </div>
         ))}
         <button
