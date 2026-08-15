@@ -82,26 +82,61 @@ function MortgageCalculator() {
 
       <div>
         <div className="flex items-center justify-between">
-          <Label>Down payment</Label>
-          <span className="text-sm font-medium text-foreground">{downPct}% · {formatPrice(price * (downPct / 100))}</span>
+          <Label htmlFor="mc-down">Down payment</Label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              id="mc-down"
+              type="number"
+              min={0}
+              max={100}
+              value={downPct}
+              onChange={(e) => setDownPct(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+              className="h-7 w-16 px-2 text-right text-sm"
+            />
+            <span className="text-sm text-muted-foreground">%</span>
+          </div>
         </div>
-        <Slider className="mt-2.5" min={0} max={50} step={1} value={[downPct]} onValueChange={([v]) => setDownPct(v)} />
+        <Slider className="mt-2.5" min={0} max={100} step={1} value={[downPct]} onValueChange={([v]) => setDownPct(v)} />
+        <p className="mt-1 text-xs text-muted-foreground">{formatPrice(price * (downPct / 100))} down</p>
       </div>
 
       <div>
         <div className="flex items-center justify-between">
-          <Label>Loan term</Label>
-          <span className="text-sm font-medium text-foreground">{years} years</span>
+          <Label htmlFor="mc-years">Loan term</Label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              id="mc-years"
+              type="number"
+              min={1}
+              max={40}
+              value={years}
+              onChange={(e) => setYears(Math.min(40, Math.max(1, Number(e.target.value) || 0)))}
+              className="h-7 w-16 px-2 text-right text-sm"
+            />
+            <span className="text-sm text-muted-foreground">yrs</span>
+          </div>
         </div>
-        <Slider className="mt-2.5" min={5} max={30} step={5} value={[years]} onValueChange={([v]) => setYears(v)} />
+        <Slider className="mt-2.5" min={1} max={40} step={1} value={[years]} onValueChange={([v]) => setYears(v)} />
       </div>
 
       <div>
         <div className="flex items-center justify-between">
-          <Label>Interest rate</Label>
-          <span className="text-sm font-medium text-foreground">{rate.toFixed(1)}%</span>
+          <Label htmlFor="mc-rate">Interest rate</Label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              id="mc-rate"
+              type="number"
+              min={0}
+              max={30}
+              step={0.1}
+              value={rate}
+              onChange={(e) => setRate(Math.min(30, Math.max(0, Number(e.target.value) || 0)))}
+              className="h-7 w-16 px-2 text-right text-sm"
+            />
+            <span className="text-sm text-muted-foreground">%</span>
+          </div>
         </div>
-        <Slider className="mt-2.5" min={2} max={15} step={0.1} value={[rate]} onValueChange={([v]) => setRate(v)} />
+        <Slider className="mt-2.5" min={0} max={30} step={0.1} value={[rate]} onValueChange={([v]) => setRate(v)} />
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-4">
