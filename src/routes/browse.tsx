@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -10,7 +10,7 @@ import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home } from "lucide-react";
+import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home, Banknote } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
@@ -62,6 +62,23 @@ function Browse() {
   const [heroImageOk, setHeroImageOk] = useState(true);
   const [listingSelectOpen, setListingSelectOpen] = useState(false);
   const [typeSelectOpen, setTypeSelectOpen] = useState(false);
+  // Price range — free-form user input (not preset buckets), so visitors
+  // can type any min/max that fits their budget rather than picking from
+  // a fixed list of ranges. Strings (not numbers) so an empty field means
+  // "no bound" rather than defaulting to 0. Kept in a popover (not a
+  // native <select>, which can't hold two number inputs) that closes on
+  // outside click, same pattern as StatusDropdown in dashboard.tsx.
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const priceRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (priceRef.current && !priceRef.current.contains(e.target as Node)) setPriceOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
   // Which listing (if any) the visitor is currently hovering in the grid,
   // driving the preview panel on the right. `null` means "no active
   // hover" — NOT "no preview": the preview falls back to the first
@@ -123,10 +140,14 @@ function Browse() {
     favoriteMutation.mutate({ id, isFav: favoriteIds.has(id) });
   }
 
+  const minPriceNum = minPrice.trim() ? Number(minPrice) : null;
+  const maxPriceNum = maxPrice.trim() ? Number(maxPrice) : null;
   const filtered = properties.filter((p) => {
     const matchesQuery = q ? (p.title + " " + (p.location ?? "")).toLowerCase().includes(q.toLowerCase()) : true;
     const matchesListing = listingFilter === "rent" ? p.for_rent : listingFilter === "sale" ? !p.for_rent : true;
-    return matchesQuery && matchesListing;
+    const matchesMinPrice = minPriceNum == null || p.price >= minPriceNum;
+    const matchesMaxPrice = maxPriceNum == null || p.price <= maxPriceNum;
+    return matchesQuery && matchesListing && matchesMinPrice && matchesMaxPrice;
   });
 
   // The property shown in the right-hand preview panel. Prefers whatever
@@ -135,6 +156,15 @@ function Browse() {
   // falls back to the first listing in the current results so the panel
   // always has something to show rather than sitting empty.
   const previewProperty = filtered.find((p) => p.id === hoveredId) ?? filtered[0];
+
+  const priceLabel =
+    minPriceNum != null && maxPriceNum != null
+      ? `${formatPrice(minPriceNum)} – ${formatPrice(maxPriceNum)}`
+      : minPriceNum != null
+      ? `From ${formatPrice(minPriceNum)}`
+      : maxPriceNum != null
+      ? `Up to ${formatPrice(maxPriceNum)}`
+      : "Price range";
 
   const heading = listingFilter === "rent" ? "For rent" : listingFilter === "sale" ? "For sale" : "Browse listings";
 
@@ -182,14 +212,13 @@ function Browse() {
             </div>
           </section>
 
-          {/* Filter dropdowns — the same "All listings" / "All types"
-              dropdown pair used on the phone UI, now shown at every
-              breakpoint instead of switching to a separate chip-row
-              layout on tablet/desktop, so the filter experience is
-              identical everywhere. */}
+          {/* Filter dropdowns — "All listings" / "All types" (same
+              phone-UI-style dropdowns everywhere), plus a user-typed
+              price range popover (not a preset list of buckets, so any
+              budget fits). */}
           <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
-              <div className="flex max-w-xl gap-3">
+              <div className="flex max-w-3xl gap-3">
                 <div
                   className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     listingSelectOpen
@@ -254,6 +283,80 @@ function Browse() {
                       typeSelectOpen ? "rotate-180 text-primary" : "text-muted-foreground"
                     }`}
                   />
+                </div>
+
+                {/* Price range — a real popover (not a native <select>,
+                    which can't host two number inputs), styled to match
+                    the two dropdowns beside it. User types exact min/max
+                    values rather than picking from preset buckets. */}
+                <div
+                  ref={priceRef}
+                  className={`group relative flex-1 animate-reveal rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                    priceOpen
+                      ? "border-primary shadow-md ring-2 ring-primary/15"
+                      : "border-border hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                  style={{ animationDelay: "120ms" }}
+                >
+                  <div
+                    className={`pointer-events-none absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 ${
+                      priceOpen ? "scale-110" : "group-hover:scale-110"
+                    }`}
+                  >
+                    <Banknote className="h-3.5 w-3.5" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPriceOpen((o) => !o)}
+                    className="h-12 w-full truncate pl-11 pr-9 text-left text-sm font-medium text-foreground"
+                  >
+                    {priceLabel}
+                  </button>
+                  <ChevronDown
+                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                      priceOpen ? "rotate-180 text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+
+                  {priceOpen && (
+                    <div className="animate-scale-in absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-border bg-card p-4 shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-muted-foreground">Min</label>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="₱0"
+                            value={minPrice}
+                            onChange={(e) => setMinPrice(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <span className="mt-4 text-muted-foreground">–</span>
+                        <div className="flex-1">
+                          <label className="text-xs font-medium text-muted-foreground">Max</label>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="No max"
+                            value={maxPrice}
+                            onChange={(e) => setMaxPrice(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => { setMinPrice(""); setMaxPrice(""); }}
+                          className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </button>
+                        <Button size="sm" className="rounded-full" onClick={() => setPriceOpen(false)}>Apply</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
