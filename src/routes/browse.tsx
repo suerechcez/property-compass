@@ -215,8 +215,13 @@ function Browse() {
           {/* Filter dropdowns — "All listings" / "All types" (same
               phone-UI-style dropdowns everywhere), plus a user-typed
               price range popover (not a preset list of buckets, so any
-              budget fits). */}
-          <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
+              budget fits). relative + z-30 here so the whole filter bar
+              (including the price popover, which otherwise only gets an
+              implicit stacking context from its own entrance-animation
+              transform) stacks above the listings section below, whose
+              cards get their own transform-based stacking contexts from
+              animate-reveal and would otherwise paint over the popover. */}
+          <section className="relative z-30 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
               <div className="flex max-w-3xl gap-3">
                 <div
