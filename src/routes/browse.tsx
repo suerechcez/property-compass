@@ -220,7 +220,10 @@ function Browse() {
               implicit stacking context from its own entrance-animation
               transform) stacks above the listings section below, whose
               cards get their own transform-based stacking contexts from
-              animate-reveal and would otherwise paint over the popover. */}
+              animate-reveal and would otherwise paint over the popover.
+              Filter icons (SlidersHorizontal/Home/Banknote) are bare — no
+              colored circle behind them, matching the Browse mega-dropdown
+              — just the glyph in its accent color with a hover scale-up. */}
           <section className="relative z-30 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
               <div className="flex max-w-3xl gap-3">
@@ -232,7 +235,7 @@ function Browse() {
                   }`}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
                       listingSelectOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
@@ -265,7 +268,7 @@ function Browse() {
                   style={{ animationDelay: "60ms" }}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-gold/20 text-gold-foreground transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-gold transition-transform duration-200 ${
                       typeSelectOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
@@ -304,7 +307,7 @@ function Browse() {
                   style={{ animationDelay: "120ms" }}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
                       priceOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
