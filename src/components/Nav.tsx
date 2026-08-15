@@ -574,9 +574,11 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
         column-by-column) — adding or removing a destination changes the
         column count on its own without needing the grid's className
         touched. Items themselves have no card chrome (no border, no
-        bg-card, no shadow) — just a small icon chip, so they read as
+        bg-card, no shadow) — just an icon and label, so they read as
         plain rows sitting transparently on the panel rather than boxed
-        buttons.
+        buttons. Icons are bare (no colored circle/chip behind them) —
+        just the Lucide glyph in the section's accent color (primary or
+        gold), with a small hover scale-up instead of a background swap.
 
         Background is fully opaque (was a low-alpha gradient +
         backdrop-blur, which let page content show through underneath —
@@ -611,7 +613,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => setBrowseOpen(false)}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-primary transition-transform duration-200 group-hover:scale-110">
                   <Home className="h-4 w-4" />
                 </span>
                 <span>
@@ -625,7 +627,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => setBrowseOpen(false)}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-gold transition-transform duration-200 group-hover:scale-110">
                   <KeyRound className="h-4 w-4" />
                 </span>
                 <span>
@@ -638,7 +640,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => setBrowseOpen(false)}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-primary transition-transform duration-200 group-hover:scale-110">
                   <Rss className="h-4 w-4" />
                 </span>
                 <span>
@@ -651,7 +653,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => setBrowseOpen(false)}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-gold transition-transform duration-200 group-hover:scale-110">
                   <Heart className="h-4 w-4" />
                 </span>
                 <span>
@@ -664,7 +666,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => { setCalcOpen("mortgage"); setBrowseOpen(false); }}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-primary transition-transform duration-200 group-hover:scale-110">
                   <Calculator className="h-4 w-4" />
                 </span>
                 <span>
@@ -677,7 +679,7 @@ export function Nav({ overlay = false }: { overlay?: boolean }) {
                 onClick={() => { setCalcOpen("rent"); setBrowseOpen(false); }}
                 className="group flex items-center gap-2.5 rounded-lg p-2.5 text-left transition hover:bg-foreground/5 active:scale-95"
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold/15 text-gold-foreground transition group-hover:bg-gold group-hover:text-primary-foreground">
+                <span className="grid h-8 w-8 shrink-0 place-items-center text-gold transition-transform duration-200 group-hover:scale-110">
                   <Percent className="h-4 w-4" />
                 </span>
                 <span>
