@@ -6,12 +6,12 @@ import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Footer } from "@/components/Footer";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
+import { BrowseMap, type MapProperty } from "@/components/BrowseMap";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { Search, LogIn, Heart, ChevronDown, SlidersHorizontal, Home, Banknote } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/favorites";
 import { toast } from "sonner";
 
@@ -32,6 +32,8 @@ type Property = {
   bathrooms: number | null;
   area_sqm: number | string | null;
   description: string | null;
+  latitude: number | null;
+  longitude: number | null;
   [key: string]: unknown;
 };
 
@@ -79,11 +81,12 @@ function Browse() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
-  // Which listing (if any) the visitor is currently hovering in the grid,
-  // driving the preview panel on the right. `null` means "no active
-  // hover" — NOT "no preview": the preview falls back to the first
-  // listing in the current (filtered) results so the panel is never
-  // empty on first load, before the visitor has hovered anything yet.
+  // Which listing (if any) is currently "active" — set by hovering either
+  // a card in the list or a pin on the map, and read by both to highlight
+  // the matching counterpart (ring on the card, filled pin on the map).
+  // `null` just means nothing is currently hovered; there's no fallback
+  // needed here since — unlike the old hover-preview panel this replaced —
+  // nothing on screen depends on always having a "selected" listing.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   useEffect(() => { setListingFilter(urlFilter); }, [urlFilter]);
@@ -150,12 +153,12 @@ function Browse() {
     return matchesQuery && matchesListing && matchesMinPrice && matchesMaxPrice;
   });
 
-  // The property shown in the right-hand preview panel. Prefers whatever
-  // is currently hovered; if nothing is hovered (first load, or the
-  // previously-hovered listing dropped out of the filtered results),
-  // falls back to the first listing in the current results so the panel
-  // always has something to show rather than sitting empty.
-  const previewProperty = filtered.find((p) => p.id === hoveredId) ?? filtered[0];
+  // Only listings with a dropped pin get a marker — older listings posted
+  // before LocationPicker was required just don't show up on the map,
+  // but stay fully visible in the card list beside it.
+  const pinnedProperties: MapProperty[] = filtered
+    .filter((p): p is Property & { latitude: number; longitude: number } => p.latitude != null && p.longitude != null)
+    .map((p) => ({ id: p.id, title: p.title, price: p.price, for_rent: p.for_rent, latitude: p.latitude, longitude: p.longitude, images: p.images }));
 
   const priceLabel =
     minPriceNum != null && maxPriceNum != null
@@ -370,17 +373,20 @@ function Browse() {
             </div>
           </section>
 
-          {/* Listings grid + hover preview panel. The grid sits on the
-              left; a sticky preview panel sits on the right on large
-              screens, showing whichever card is currently hovered
-              (`hoveredId`) or — with nothing hovered yet — the first
-              listing in the current results, so the panel is never
-              empty. Only shown once results actually exist. */}
+          {/* Listings list + results map. The card list sits on the left
+              (capped to a comfortable reading width so cards don't stretch
+              full-bleed once the map takes the rest of the row); a sticky
+              map fills the remaining space on the right, showing a pin for
+              every filtered listing that has a location dropped via
+              LocationPicker. Hovering a card highlights its pin and
+              hovering/clicking a pin highlights its card — both driven by
+              the shared `hoveredId` state. Map is desktop-only (lg+); on
+              mobile the list alone fills the page, same as before. */}
           <section className="px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
-            <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
-              <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-6 lg:flex-row lg:gap-6">
+              <div className="min-w-0 flex-1 lg:max-w-2xl">
                 {isLoading ? (
-                  <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div key={i} className="h-72 rounded-2xl border border-border bg-muted animate-shimmer animate-reveal" style={{ animationDelay: `${i * 40}ms` }} />
                     ))}
@@ -399,14 +405,18 @@ function Browse() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {filtered.map((p, i) => {
                       const isFav = favoriteIds.has(p.id);
+                      const isActive = p.id === hoveredId;
                       return (
                         <div
                           key={p.id}
                           onMouseEnter={() => setHoveredId(p.id)}
-                          className="group relative animate-reveal overflow-hidden rounded-2xl border border-border bg-card card-hover"
+                          onMouseLeave={() => setHoveredId((cur) => (cur === p.id ? null : cur))}
+                          className={`group relative animate-reveal overflow-hidden rounded-2xl border bg-card card-hover transition-shadow duration-150 ${
+                            isActive ? "border-primary ring-2 ring-primary/40" : "border-border"
+                          }`}
                           style={{ animationDelay: `${Math.min(i, 12) * 50}ms` }}
                         >
                           <Link to="/properties/$id" params={{ id: p.id }} className="block">
@@ -448,34 +458,17 @@ function Browse() {
                     })}
                   </div>
                 )}
+
+                <div className="mt-12 border-t border-border pt-10 animate-reveal" style={{ animationDelay: "200ms" }}>
+                  <RecentlyViewed />
+                </div>
               </div>
 
-              {!isLoading && filtered.length > 0 && (
-                <aside className="hidden shrink-0 lg:block lg:w-[460px] xl:w-[560px]">
-                  {/* Sticky below the header (top-24, matching the offset
-                      used elsewhere in the app) so it never covers the
-                      topbar, capped to the remaining viewport height
-                      (max-h) so it never runs past the bottom of the
-                      screen either — it fills the space between the two.
-                      Its own content scrolls internally past that point
-                      instead of pushing the page. */}
-                  <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain">
-                    {previewProperty && (
-                      <BrowsePreviewPanel
-                        property={previewProperty}
-                        isFav={favoriteIds.has(previewProperty.id)}
-                        verified={verifiedCommissionerIds.has(previewProperty.commissioner_id)}
-                        agent={commissionerProfiles.get(previewProperty.commissioner_id)}
-                        onHeart={(e) => handleHeart(e, previewProperty.id)}
-                      />
-                    )}
-                  </div>
-                </aside>
-              )}
-            </div>
-
-            <div className="mt-12 border-t border-border pt-10 animate-reveal" style={{ animationDelay: "200ms" }}>
-              <RecentlyViewed />
+              <aside className="hidden shrink-0 lg:block lg:flex-1">
+                <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border">
+                  <BrowseMap properties={pinnedProperties} hoveredId={hoveredId} onHoverMarker={setHoveredId} />
+                </div>
+              </aside>
             </div>
           </section>
 
@@ -483,207 +476,6 @@ function Browse() {
             <Footer />
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Photo layout for BrowsePreviewPanel, shaped to however many photos the
- * listing actually has — 1 photo fills the whole box, 2 splits it evenly,
- * 3 is one big + two small, and 4+ is a proper big-photo-plus-4-small
- * grid (grid-cols-4, not grid-cols-3 — a 3-col/2-row grid with a 2x2
- * spanning photo only has 2 cells left over, not 4, which is what
- * silently swallowed 2 of the 4 small photos before and left mostly-gray
- * space whenever a listing had fewer than ~6 photos). The heart/favorite
- * button rides on top of whichever shape renders, positioned against this
- * component's own `relative` wrapper rather than any one tile.
- */
-function PreviewPhotoGrid({ images, isFav, onHeart }: { images: string[]; isFav: boolean; onHeart: (e: React.MouseEvent) => void }) {
-  const HeartButton = (
-    <button
-      onClick={onHeart}
-      className="btn-bounce absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 shadow transition hover:scale-110"
-      aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
-    >
-      <Heart className={`h-4 w-4 transition ${isFav ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
-    </button>
-  );
-
-  if (images.length === 0) {
-    return (
-      <div className="relative grid aspect-[16/10] place-items-center bg-muted font-display text-3xl text-muted-foreground">
-        H
-        {HeartButton}
-      </div>
-    );
-  }
-
-  if (images.length === 1) {
-    return (
-      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-        <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        {HeartButton}
-      </div>
-    );
-  }
-
-  if (images.length === 2) {
-    return (
-      <div className="relative grid aspect-[16/10] grid-cols-2 gap-0.5 overflow-hidden bg-muted">
-        {images.map((src, i) => (
-          <div key={i} className="relative overflow-hidden">
-            <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-        ))}
-        {HeartButton}
-      </div>
-    );
-  }
-
-  if (images.length === 3) {
-    return (
-      <div className="relative grid aspect-[16/10] grid-cols-3 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
-        <div className="relative col-span-2 row-span-2 overflow-hidden">
-          <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        </div>
-        {images.slice(1, 3).map((src, i) => (
-          <div key={i} className="relative overflow-hidden">
-            <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-        ))}
-        {HeartButton}
-      </div>
-    );
-  }
-
-  // 4 or more — grid-cols-4 (not 3) so the 2x2 big photo leaves exactly 4
-  // cells for the small ones, filling the shape completely.
-  return (
-    <div className="relative grid aspect-[16/10] grid-cols-4 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
-      <div className="relative col-span-2 row-span-2 overflow-hidden">
-        <img src={images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      </div>
-      {images.slice(1, 5).map((src, i) => (
-        <div key={i} className="relative overflow-hidden">
-          <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        </div>
-      ))}
-      {HeartButton}
-    </div>
-  );
-}
-
-/**
- * Right-rail preview card on the Browse page — shows whichever listing is
- * currently hovered in the grid (or the first result, before any hover has
- * happened yet). Deliberately a fuller preview than the compact grid card
- * (Zillow-style photo grid, a specs row, a description excerpt) but still
- * a PREVIEW, not the full listing page — only the title is a link through
- * to /properties/$id. Photos, specs, and the description are all plain
- * (non-clickable), so hovering/reading around the panel never accidentally
- * navigates away while someone's still comparing listings in the grid.
- */
-function BrowsePreviewPanel({
-  property, isFav, verified, agent, onHeart,
-}: {
-  property: Property;
-  isFav: boolean;
-  verified: boolean;
-  agent?: { full_name: string | null; avatar_url: string | null };
-  onHeart: (e: React.MouseEvent) => void;
-}) {
-  const images = (property.images ?? []).filter(Boolean);
-  const specs = [
-    property.bedrooms != null && { label: "Beds", value: String(property.bedrooms) },
-    property.bathrooms != null && { label: "Baths", value: String(property.bathrooms) },
-    property.area_sqm != null && { label: "Sqm", value: String(property.area_sqm) },
-  ].filter(Boolean) as { label: string; value: string }[];
-
-  return (
-    <div key={property.id} className="animate-fade-in overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      {/* Photo layout adapts to how many photos actually exist, so the
-          panel is never left showing large blank/gray placeholder tiles
-          for photos that don't exist. Previously this was a fixed
-          grid-cols-3 grid-rows-2 with the big photo spanning 2x2 — but
-          that shape only has 2 REMAINING cells (col 3, both rows), not 4,
-          so with fewer than ~2 extra photos most of the right-hand column
-          rendered as solid gray. A single-photo listing (the common case
-          while testing) showed the photo filling only ~66% of the width
-          with an empty gray block beside it. */}
-      <PreviewPhotoGrid images={images} onHeart={onHeart} isFav={isFav} />
-
-      <div className="p-5">
-        <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
-          <span>{typeLabel(property.property_type)}</span>
-          <div className="flex gap-1.5">
-            {property.is_owner_listed && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">FSBO</span>}
-            {property.status === "rented" && <span className="rounded-full bg-purple-100 px-2 py-0.5 text-purple-700">Rented</span>}
-            {property.for_rent && property.status !== "rented" && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-gold-foreground">For Rent</span>}
-          </div>
-        </div>
-
-        <p className="mt-2 font-display text-3xl font-semibold text-primary">
-          {formatPrice(property.price)}
-          {property.for_rent && <span className="text-base font-normal text-muted-foreground"> /mo</span>}
-        </p>
-
-        {/* The ONLY clickable path into the full listing from this panel. */}
-        <Link
-          to="/properties/$id"
-          params={{ id: property.id }}
-          className="mt-1 flex items-center gap-1.5 hover:text-primary hover:underline"
-        >
-          <h3 className="truncate font-display text-lg font-semibold leading-tight">{property.title}</h3>
-          <VerifiedBadge verified={verified} size="icon" />
-        </Link>
-        <p className="mt-0.5 text-sm text-muted-foreground">{property.location ?? "Location TBD"}</p>
-
-        {specs.length > 0 && (
-          <div className="mt-4 flex divide-x divide-border border-y border-border py-3">
-            {specs.map((s) => (
-              <div key={s.label} className="flex-1 text-center">
-                <p className="font-display text-lg font-bold">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {property.description && (
-          <p className="mt-4 line-clamp-4 text-sm text-foreground/80">{property.description}</p>
-        )}
-
-        {/* Listed by — links through to the agent's own profile page, a
-            separate destination from the title's /properties/$id link
-            above, so it doesn't conflict with "only the title navigates
-            to the full listing." */}
-        <div className="mt-5 border-t border-border pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Listed by</p>
-          <Link
-            to="/agents/$id"
-            params={{ id: property.commissioner_id }}
-            className="mt-2 flex items-center gap-3 rounded-lg -mx-2 p-2 transition hover:bg-accent"
-          >
-            <Avatar className="h-10 w-10 border border-border">
-              {agent?.avatar_url && <AvatarImage src={agent.avatar_url} alt={agent.full_name ?? "Agent"} />}
-              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 font-display text-sm font-semibold text-primary-foreground">
-                {(agent?.full_name ?? "A").slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-                <span className="truncate">{agent?.full_name ?? "One Higala commissioner"}</span>
-                <VerifiedBadge verified={verified} size="icon" />
-              </p>
-              <p className="text-xs text-muted-foreground">View agent profile →</p>
-            </div>
-          </Link>
-        </div>
-
-        <Button asChild className="mt-5 w-full rounded-full">
-          <Link to="/properties/$id" params={{ id: property.id }}>View full details</Link>
-        </Button>
       </div>
     </div>
   );
