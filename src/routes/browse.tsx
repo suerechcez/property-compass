@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Footer } from "@/components/Footer";
-import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { BrowseMap, type MapProperty } from "@/components/BrowseMap";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
@@ -51,8 +50,6 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
 });
 
-const HERO_BROWSE_URL = "/hero-browse.png";
-
 function Browse() {
   const { filter: urlFilter, q: urlQ } = Route.useSearch();
   const { user } = useAuth();
@@ -61,7 +58,6 @@ function Browse() {
   const [type, setType] = useState<PropertyTypeValue | "all">("all");
   const [q, setQ] = useState(urlQ);
   const [listingFilter, setListingFilter] = useState<ListingFilter>(urlFilter);
-  const [heroImageOk, setHeroImageOk] = useState(true);
   const [listingSelectOpen, setListingSelectOpen] = useState(false);
   const [typeSelectOpen, setTypeSelectOpen] = useState(false);
   // Price range — free-form user input (not preset buckets), so visitors
@@ -169,52 +165,11 @@ function Browse() {
       ? `Up to ${formatPrice(maxPriceNum)}`
       : "Price range";
 
-  const heading = listingFilter === "rent" ? "For rent" : listingFilter === "sale" ? "For sale" : "Browse listings";
-
   return (
     <div className="min-h-screen site-page bg-background">
       <Nav />
       <div className="flex flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Header — hero-browse.png as the backdrop, with a dark-to-light
-              gradient scrim (plus text-shadow on the heading/subtitle) so
-              white text stays legible over any part of the photo,
-              regardless of how light or dark that patch of image is.
-              Heading, subtitle, and the search bar are all centered
-              (text-center + mx-auto on the max-w-xl blocks) rather than
-              left-aligned, so the hero reads as a single centered focal
-              point instead of hugging the left edge. */}
-          <section className="relative overflow-hidden">
-            {heroImageOk && (
-              <img
-                src={HERO_BROWSE_URL}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover"
-                onError={() => setHeroImageOk(false)}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/35 to-black/10" />
-            <div className="relative px-6 py-8 text-center sm:py-10">
-              <h1
-                className="font-display text-2xl font-semibold text-white sm:text-3xl animate-reveal"
-                style={{ textShadow: "0 1px 10px rgba(0,0,0,0.5)" }}
-              >
-                {heading}
-              </h1>
-              <p
-                className="mx-auto mt-1 max-w-xl text-sm text-white/90 sm:text-base animate-reveal"
-                style={{ animationDelay: "80ms", textShadow: "0 1px 8px rgba(0,0,0,0.45)" }}
-              >
-                Condos, hotels, raw land, and resell properties across Cagayan de Oro City.
-              </p>
-              <div className="mx-auto mt-5 flex max-w-xl items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal" style={{ animationDelay: "160ms" }}>
-                <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
-              </div>
-            </div>
-          </section>
-
           {/* Filter dropdowns — "All listings" / "All types" (same
               phone-UI-style dropdowns everywhere), plus a user-typed
               price range popover (not a preset list of buckets, so any
@@ -229,7 +184,8 @@ function Browse() {
               — just the glyph in its accent color with a hover scale-up. */}
           <section className="relative z-30 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
-              <div className="flex max-w-3xl gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex max-w-3xl gap-3">
                 <div
                   className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     listingSelectOpen
@@ -369,6 +325,15 @@ function Browse() {
                     </div>
                   )}
                 </div>
+                </div>
+
+                {/* Search — moved here from the old hero section (now
+                    removed), sitting to the right of the filter dropdowns
+                    instead of centered above them. */}
+                <div className="flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal lg:w-80 lg:shrink-0" style={{ animationDelay: "160ms" }}>
+                  <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
+                </div>
               </div>
             </div>
           </section>
@@ -458,10 +423,6 @@ function Browse() {
                     })}
                   </div>
                 )}
-
-                <div className="mt-12 border-t border-border pt-10 animate-reveal" style={{ animationDelay: "200ms" }}>
-                  <RecentlyViewed />
-                </div>
               </div>
 
               <aside className="hidden shrink-0 lg:block lg:flex-1">
