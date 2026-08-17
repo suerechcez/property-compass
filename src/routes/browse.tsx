@@ -169,31 +169,31 @@ function Browse() {
       <Nav />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {/* Filter dropdowns — "All listings" / "All types" (same
-              phone-UI-style dropdowns everywhere), plus a user-typed
-              price range popover (not a preset list of buckets, so any
-              budget fits). relative + z-30 here so the whole filter bar
-              (including the price popover, which otherwise only gets an
-              implicit stacking context from its own entrance-animation
-              transform) stacks above the listings section below, whose
-              cards get their own transform-based stacking contexts from
-              animate-reveal and would otherwise paint over the popover.
-              Filter icons (SlidersHorizontal/Home/Banknote) are bare — no
-              colored circle behind them, matching the Browse mega-dropdown
-              — just the glyph in its accent color with a hover scale-up. */}
+          {/* Filter dropdowns — "All listings" / "All types" / "Price range"
+              now fill the whole top row as three equal-width, shorter
+              sections (instead of sharing the row with the search bar),
+              so each one gets more room to breathe. relative + z-30 here
+              so the whole filter bar (including the price popover, which
+              otherwise only gets an implicit stacking context from its
+              own entrance-animation transform) stacks above the listings
+              section below, whose cards get their own transform-based
+              stacking contexts from animate-reveal and would otherwise
+              paint over the popover. Filter icons (SlidersHorizontal/
+              Home/Banknote) are bare — no colored circle behind them,
+              matching the Browse mega-dropdown — just the glyph in its
+              accent color with a hover scale-up. */}
           <section className="relative z-30 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex max-w-3xl gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div
-                  className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                  className={`group relative animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     listingSelectOpen
                       ? "border-primary shadow-md ring-2 ring-primary/15"
                       : "border-border hover:-translate-y-0.5 hover:shadow-md"
                   }`}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
                       listingSelectOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
@@ -204,21 +204,21 @@ function Browse() {
                     onChange={(e) => setListingFilter(e.target.value as ListingFilter)}
                     onFocus={() => setListingSelectOpen(true)}
                     onBlur={() => setListingSelectOpen(false)}
-                    className="h-12 w-full appearance-none truncate bg-transparent pl-11 pr-9 text-sm font-medium text-foreground focus:outline-none"
+                    className="h-10 w-full appearance-none truncate bg-transparent pl-9 pr-8 text-sm font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">All listings</option>
                     <option value="sale">For Sale</option>
                     <option value="rent">For Rent</option>
                   </select>
                   <ChevronDown
-                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
                       listingSelectOpen ? "rotate-180 text-primary" : "text-muted-foreground"
                     }`}
                   />
                 </div>
 
                 <div
-                  className={`group relative flex-1 animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                  className={`group relative animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     typeSelectOpen
                       ? "border-primary shadow-md ring-2 ring-primary/15"
                       : "border-border hover:-translate-y-0.5 hover:shadow-md"
@@ -226,7 +226,7 @@ function Browse() {
                   style={{ animationDelay: "60ms" }}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-gold transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-gold transition-transform duration-200 ${
                       typeSelectOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
@@ -237,7 +237,7 @@ function Browse() {
                     onChange={(e) => setType(e.target.value as PropertyTypeValue | "all")}
                     onFocus={() => setTypeSelectOpen(true)}
                     onBlur={() => setTypeSelectOpen(false)}
-                    className="h-12 w-full appearance-none truncate bg-transparent pl-11 pr-9 text-sm font-medium text-foreground focus:outline-none"
+                    className="h-10 w-full appearance-none truncate bg-transparent pl-9 pr-8 text-sm font-medium text-foreground focus:outline-none"
                   >
                     <option value="all">All types</option>
                     {PROPERTY_TYPES.map((t) => (
@@ -245,7 +245,7 @@ function Browse() {
                     ))}
                   </select>
                   <ChevronDown
-                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
                       typeSelectOpen ? "rotate-180 text-primary" : "text-muted-foreground"
                     }`}
                   />
@@ -257,7 +257,7 @@ function Browse() {
                     values rather than picking from preset buckets. */}
                 <div
                   ref={priceRef}
-                  className={`group relative flex-1 animate-reveal rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
+                  className={`group relative animate-reveal rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     priceOpen
                       ? "border-primary shadow-md ring-2 ring-primary/15"
                       : "border-border hover:-translate-y-0.5 hover:shadow-md"
@@ -265,7 +265,7 @@ function Browse() {
                   style={{ animationDelay: "120ms" }}
                 >
                   <div
-                    className={`pointer-events-none absolute left-2 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
+                    className={`pointer-events-none absolute left-2 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-primary transition-transform duration-200 ${
                       priceOpen ? "scale-110" : "group-hover:scale-110"
                     }`}
                   >
@@ -274,12 +274,12 @@ function Browse() {
                   <button
                     type="button"
                     onClick={() => setPriceOpen((o) => !o)}
-                    className="h-12 w-full truncate pl-11 pr-9 text-left text-sm font-medium text-foreground"
+                    className="h-10 w-full truncate pl-9 pr-8 text-left text-sm font-medium text-foreground"
                   >
                     {priceLabel}
                   </button>
                   <ChevronDown
-                    className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
+                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-transform duration-200 ${
                       priceOpen ? "rotate-180 text-primary" : "text-muted-foreground"
                     }`}
                   />
@@ -324,15 +324,6 @@ function Browse() {
                     </div>
                   )}
                 </div>
-                </div>
-
-                {/* Search — moved here from the old hero section (now
-                    removed), sitting to the right of the filter dropdowns
-                    instead of centered above them. */}
-                <div className="flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal lg:w-[420px] lg:shrink-0" style={{ animationDelay: "160ms" }}>
-                  <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
-                </div>
               </div>
             </div>
           </section>
@@ -349,6 +340,16 @@ function Browse() {
           <section className="min-h-0 flex-1 overflow-hidden px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
             <div className="flex h-full flex-col gap-6 lg:flex-row lg:gap-6">
               <div className="min-w-0 flex-1 overflow-y-auto lg:max-w-2xl lg:h-full">
+                {/* Search — moved here so it sits to the left of the map,
+                    above the card list, instead of sharing the filter row
+                    above with the three dropdowns. */}
+                <div
+                  className="mb-4 flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal"
+                  style={{ animationDelay: "160ms" }}
+                >
+                  <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
+                </div>
                 {isLoading ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {Array.from({ length: 8 }).map((_, i) => (
