@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nav } from "@/components/Nav";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
-import { Footer } from "@/components/Footer";
 import { BrowseMap, type MapProperty } from "@/components/BrowseMap";
 import { PROPERTY_TYPES, typeLabel, formatPrice, type PropertyTypeValue } from "@/lib/property-types";
 import { Input } from "@/components/ui/input";
@@ -166,10 +165,10 @@ function Browse() {
       : "Price range";
 
   return (
-    <div className="min-h-screen site-page bg-background">
+    <div className="h-screen overflow-hidden site-page bg-background flex flex-col">
       <Nav />
-      <div className="flex flex-1">
-        <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Filter dropdowns — "All listings" / "All types" (same
               phone-UI-style dropdowns everywhere), plus a user-typed
               price range popover (not a preset list of buckets, so any
@@ -182,7 +181,7 @@ function Browse() {
               Filter icons (SlidersHorizontal/Home/Banknote) are bare — no
               colored circle behind them, matching the Browse mega-dropdown
               — just the glyph in its accent color with a hover scale-up. */}
-          <section className="relative z-30 animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <section className="relative z-30 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex max-w-3xl gap-3">
@@ -330,7 +329,7 @@ function Browse() {
                 {/* Search — moved here from the old hero section (now
                     removed), sitting to the right of the filter dropdowns
                     instead of centered above them. */}
-                <div className="flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal lg:w-80 lg:shrink-0" style={{ animationDelay: "160ms" }}>
+                <div className="flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal lg:w-[420px] lg:shrink-0" style={{ animationDelay: "160ms" }}>
                   <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
                   <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
                 </div>
@@ -347,9 +346,9 @@ function Browse() {
               hovering/clicking a pin highlights its card — both driven by
               the shared `hoveredId` state. Map is desktop-only (lg+); on
               mobile the list alone fills the page, same as before. */}
-          <section className="px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
-            <div className="flex flex-col gap-6 lg:flex-row lg:gap-6">
-              <div className="min-w-0 flex-1 lg:max-w-2xl">
+          <section className="min-h-0 flex-1 overflow-hidden px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
+            <div className="flex h-full flex-col gap-6 lg:flex-row lg:gap-6">
+              <div className="min-w-0 flex-1 overflow-y-auto lg:max-w-2xl lg:h-full">
                 {isLoading ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {Array.from({ length: 8 }).map((_, i) => (
@@ -425,17 +424,14 @@ function Browse() {
                 )}
               </div>
 
-              <aside className="hidden shrink-0 lg:block lg:flex-1">
-                <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border">
+              <aside className="hidden shrink-0 lg:block lg:h-full lg:flex-1">
+                <div className="lg:h-full lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border">
                   <BrowseMap properties={pinnedProperties} hoveredId={hoveredId} onHoverMarker={setHoveredId} />
                 </div>
               </aside>
             </div>
           </section>
 
-          <div className="mt-auto">
-            <Footer />
-          </div>
         </div>
       </div>
     </div>
