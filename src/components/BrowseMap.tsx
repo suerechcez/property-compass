@@ -38,10 +38,15 @@ function signatureOf(properties: MapProperty[]): string {
   return properties.map((p) => `${p.id}:${p.latitude}:${p.longitude}:${p.price}`).join("|");
 }
 
+// Price pins are always rendered in red — filled red when highlighted
+// (hovered card / hovered pin), outlined red on white otherwise — so
+// listing prices read clearly against the map at a glance.
+const PIN_RED = "#DC2626";
+
 function pinIcon(L: any, label: string, highlighted: boolean) {
-  const bg = highlighted ? "var(--primary)" : "#fff";
-  const fg = highlighted ? "#fff" : "var(--foreground)";
-  const border = highlighted ? "var(--primary)" : "var(--border)";
+  const bg = highlighted ? PIN_RED : "#fff";
+  const fg = highlighted ? "#fff" : PIN_RED;
+  const border = PIN_RED;
   // iconSize/iconAnchor left at [0,0] and centering done via the inline
   // transform instead — Leaflet's own anchor math assumes a fixed-size
   // icon, but this pill's width varies with the price label.
@@ -142,15 +147,21 @@ export function BrowseMap({
       marker.__label = label;
 
       const thumb = p.images?.[0];
+      // Preview popup — a bigger photo across the top, then the listing
+      // name, then the price below it (in that order), so clicking a
+      // price pin gives a proper at-a-glance preview instead of a small
+      // side-by-side thumbnail.
       marker.bindPopup(
-        `<a href="/properties/${p.id}" style="display:flex;gap:8px;align-items:center;text-decoration:none;color:inherit;min-width:200px;">
-          ${thumb ? `<img src="${escapeHtml(thumb)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;" />` : ""}
-          <span>
-            <span style="display:block;font-weight:700;font-size:14px;">${formatPin(p.price)}${p.for_rent ? "/mo" : ""}</span>
-            <span style="display:block;font-size:12px;color:#666;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.title)}</span>
-          </span>
+        `<a href="/properties/${p.id}" style="display:block;width:220px;text-decoration:none;color:inherit;">
+          ${thumb
+            ? `<img src="${escapeHtml(thumb)}" style="width:100%;height:140px;object-fit:cover;border-radius:8px;display:block;" />`
+            : `<div style="width:100%;height:140px;border-radius:8px;background:#f1f1f1;"></div>`}
+          <div style="padding-top:8px;">
+            <span style="display:block;font-weight:700;font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.title)}</span>
+            <span style="display:block;font-weight:700;font-size:15px;color:${PIN_RED};margin-top:2px;">${formatPin(p.price)}${p.for_rent ? "/mo" : ""}</span>
+          </div>
         </a>`,
-        { closeButton: true, maxWidth: 260 }
+        { closeButton: true, maxWidth: 240, minWidth: 220 }
       );
 
       marker.on("mouseover", () => onHoverMarkerRef.current(p.id));
