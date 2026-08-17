@@ -170,21 +170,23 @@ function Browse() {
       <div className="flex min-h-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Filter dropdowns — "All listings" / "All types" / "Price range"
-              now fill the whole top row as three equal-width, shorter
-              sections (instead of sharing the row with the search bar),
-              so each one gets more room to breathe. relative + z-30 here
-              so the whole filter bar (including the price popover, which
-              otherwise only gets an implicit stacking context from its
-              own entrance-animation transform) stacks above the listings
-              section below, whose cards get their own transform-based
-              stacking contexts from animate-reveal and would otherwise
-              paint over the popover. Filter icons (SlidersHorizontal/
-              Home/Banknote) are bare — no colored circle behind them,
-              matching the Browse mega-dropdown — just the glyph in its
-              accent color with a hover scale-up. */}
+              — plus the search bar, all on one row. The whole row is
+              capped at lg:max-w-2xl so it lines up exactly with the card
+              list's width below and stops before the map starts, instead
+              of stretching across the map's column too. relative + z-30
+              here so the whole filter bar (including the price popover,
+              which otherwise only gets an implicit stacking context from
+              its own entrance-animation transform) stacks above the
+              listings section below, whose cards get their own
+              transform-based stacking contexts from animate-reveal and
+              would otherwise paint over the popover. Filter icons
+              (SlidersHorizontal/Home/Banknote) are bare — no colored
+              circle behind them, matching the Browse mega-dropdown —
+              just the glyph in its accent color with a hover scale-up. */}
           <section className="relative z-30 shrink-0 animate-fade-in" style={{ animationDelay: "80ms" }}>
             <div className="px-6 pb-2 pt-4 sm:pb-3 sm:pt-5">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-3 lg:max-w-2xl lg:flex-row lg:items-center">
+              <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
                 <div
                   className={`group relative animate-reveal overflow-hidden rounded-2xl border bg-gradient-to-br from-card to-surface shadow-sm transition-all duration-200 ${
                     listingSelectOpen
@@ -325,6 +327,18 @@ function Browse() {
                   )}
                 </div>
               </div>
+
+              {/* Search — sits to the right of the three filters, still
+                  within the lg:max-w-2xl row so it stops before the map,
+                  matching the card list's boundary below. */}
+              <div
+                className="flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal lg:w-56 lg:shrink-0"
+                style={{ animationDelay: "160ms" }}
+              >
+                <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
+              </div>
+              </div>
             </div>
           </section>
 
@@ -340,16 +354,6 @@ function Browse() {
           <section className="min-h-0 flex-1 overflow-hidden px-6 pb-6 pt-2 sm:pb-12 sm:pt-4">
             <div className="flex h-full flex-col gap-6 lg:flex-row lg:gap-6">
               <div className="min-w-0 flex-1 overflow-y-auto lg:max-w-2xl lg:h-full">
-                {/* Search — moved here so it sits to the left of the map,
-                    above the card list, instead of sharing the filter row
-                    above with the three dropdowns. */}
-                <div
-                  className="mb-4 flex items-center gap-0 overflow-hidden rounded-full border border-border bg-card shadow-sm animate-reveal"
-                  style={{ animationDelay: "160ms" }}
-                >
-                  <Search className="ml-4 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by neighborhood, subdivision, or title…" className="flex-1 rounded-none border-0 bg-transparent text-sm focus-visible:ring-0" />
-                </div>
                 {isLoading ? (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {Array.from({ length: 8 }).map((_, i) => (
