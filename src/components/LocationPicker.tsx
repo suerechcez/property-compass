@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadLeaflet, geocodeAddress } from "@/lib/leaflet";
+import { loadLeaflet, geocodeAddress, reverseGeocode } from "@/lib/leaflet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,11 +31,16 @@ type ViewMode = "map" | "satellite";
  * place is instead of just the general neighborhood.
  */
 export function LocationPicker({
-  latitude, longitude, onChange,
+  latitude, longitude, onChange, onAddressChange,
 }: {
   latitude: number | null;
   longitude: number | null;
   onChange: (lat: number, lng: number) => void;
+  // Optional — when provided, clicking/dragging the pin or searching an
+  // address reverse-geocodes the dropped point and fills the caller's
+  // free-text Location field automatically, so the agent doesn't have to
+  // separately type the address after pinpointing it on the map.
+  onAddressChange?: (address: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -44,12 +49,26 @@ export function LocationPicker({
   const satelliteLayerRef = useRef<any>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onAddressChangeRef = useRef(onAddressChange);
+  onAddressChangeRef.current = onAddressChange;
 
   const [ready, setReady] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Reverse-geocodes a dropped point and hands the address to the caller.
+  // Best-effort: a lookup failure (offline, rate-limited, no result for a
+  // remote/undeveloped area) just leaves the Location field as it was
+  // rather than blocking pin placement or showing an error, since the
+  // precise pin itself is what actually matters for the listing.
+  function fillAddress(lat: number, lng: number) {
+    if (!onAddressChangeRef.current) return;
+    reverseGeocode(lat, lng)
+      .then((address) => { if (address) onAddressChangeRef.current?.(address); })
+      .catch(() => {});
+  }
 
   // Initialize the map once on mount. Intentionally NOT re-run when
   // latitude/longitude change afterward — the map shouldn't jump around
@@ -77,7 +96,7 @@ export function LocationPicker({
       satelliteLayerRef.current = L.tileLayer(SATELLITE_TILE_URL, { attribution: "", maxZoom: 19 });
       streetLayerRef.current.addTo(map);
 
-      function placeMarker(lat: number, lng: number) {
+      function placeMarker(lat: number, lng: number, geocode: boolean) {
         if (markerRef.current) {
           markerRef.current.setLatLng([lat, lng]);
         } else {
@@ -85,14 +104,19 @@ export function LocationPicker({
           markerRef.current.on("dragend", () => {
             const pos = markerRef.current.getLatLng();
             onChangeRef.current(pos.lat, pos.lng);
+            fillAddress(pos.lat, pos.lng);
           });
         }
         onChangeRef.current(lat, lng);
+        if (geocode) fillAddress(lat, lng);
       }
 
-      if (latitude != null && longitude != null) placeMarker(latitude, longitude);
+      // false: don't re-geocode coordinates the listing already had on
+      // load (editing an existing listing) — only newly-dropped/moved
+      // pins should overwrite the Location field.
+      if (latitude != null && longitude != null) placeMarker(latitude, longitude, false);
 
-      map.on("click", (e: any) => placeMarker(e.latlng.lat, e.latlng.lng));
+      map.on("click", (e: any) => placeMarker(e.latlng.lat, e.latlng.lng, true));
 
       mapRef.current = map;
       setReady(true);
@@ -142,9 +166,13 @@ export function LocationPicker({
         markerRef.current.on("dragend", () => {
           const pos = markerRef.current.getLatLng();
           onChangeRef.current(pos.lat, pos.lng);
+          fillAddress(pos.lat, pos.lng);
         });
       }
       onChangeRef.current(result.lat, result.lng);
+      // The search result already carries its own address (displayName)
+      // — use that directly instead of a redundant reverse-geocode call.
+      onAddressChangeRef.current?.(result.displayName);
     } catch {
       setSearchError("Search failed — please try again.");
     } finally {
@@ -158,7 +186,7 @@ export function LocationPicker({
     <div>
       <Label>Pinpoint on map</Label>
       <p className="mt-1 text-sm text-muted-foreground">
-        Search an address to jump nearby, then click exactly on the map (or drag the pin) to mark the precise spot buyers will see.
+        Search an address to jump nearby, then click exactly on the map (or drag the pin) to mark the precise spot buyers will see — the Location field above fills in automatically.
       </p>
 
       {/*
