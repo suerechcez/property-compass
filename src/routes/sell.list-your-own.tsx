@@ -161,7 +161,7 @@ function ListYourOwn() {
           title,
           description: description || null,
           property_type: type,
-          status: "published",
+          status: "pending",
           price: Number(price) || 0,
           location: location || null,
           latitude,
@@ -181,7 +181,7 @@ function ListYourOwn() {
         .select("id")
         .single();
       if (error) throw error;
-      toast.success("Your listing is live!");
+      toast.success("Listing submitted for admin review!");
       navigate({ to: "/properties/$id", params: { id: data.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to post listing");
@@ -212,6 +212,9 @@ function ListYourOwn() {
           </h1>
           <p className="mt-3 text-white/80">
             List your property yourself — no commissioner or agent role required.
+          </p>
+          <p className="mt-1 text-sm text-white/70">
+            Your listing will be reviewed by an admin before it goes live.
           </p>
         </div>
       </section>
@@ -405,7 +408,7 @@ function ListYourOwn() {
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => navigate({ to: "/sell" })}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Posting…" : "Post listing"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Submitting…" : "Submit for review"}</Button>
           </div>
         </form>
       </section>
