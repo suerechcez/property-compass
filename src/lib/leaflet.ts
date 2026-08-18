@@ -73,3 +73,18 @@ export async function geocodeAddress(query: string): Promise<{ lat: number; lng:
   const first = results[0];
   return { lat: parseFloat(first.lat), lng: parseFloat(first.lon), displayName: first.display_name };
 }
+
+/**
+ * Reverse-geocodes a dropped pin's coordinates back into a readable
+ * address using OpenStreetMap's free Nominatim API (no API key needed) —
+ * used so clicking or dragging a pin on LocationPicker can fill the
+ * free-text Location field automatically instead of leaving the agent to
+ * type the address by hand.
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) return null;
+  const result = await res.json();
+  return result?.display_name ?? null;
+}
