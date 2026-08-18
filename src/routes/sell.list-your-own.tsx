@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker } from "@/components/LocationPicker";
 import { PROPERTY_TYPES, ROOM_LABEL_PRESETS, type PropertyTypeValue, type ImageSection } from "@/lib/property-types";
 import { uploadPropertyImage } from "@/lib/storage";
 import { toast } from "sonner";
@@ -29,6 +30,12 @@ function ListYourOwn() {
   const [type, setType] = useState<PropertyTypeValue>("condo");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
+  // Precise pinpoint — same as the commissioner/agent listing form
+  // (src/routes/listings.new.tsx). Letting owners drop an exact pin (via
+  // LocationPicker) is what powers the exact-location map on the
+  // property page, instead of just a neighborhood-level address search.
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [bedrooms, setBedrooms] = useState("");
   const [bathrooms, setBathrooms] = useState("");
   const [area, setArea] = useState("");
@@ -49,6 +56,17 @@ function ListYourOwn() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [saving, setSaving] = useState(false);
+
+  /** LocationPicker reports NaN/NaN to mean "the pin was cleared". */
+  function handleLocationChange(lat: number, lng: number) {
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      setLatitude(null);
+      setLongitude(null);
+      return;
+    }
+    setLatitude(lat);
+    setLongitude(lng);
+  }
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -146,6 +164,8 @@ function ListYourOwn() {
           status: "published",
           price: Number(price) || 0,
           location: location || null,
+          latitude,
+          longitude,
           bedrooms: bedrooms ? Number(bedrooms) : null,
           bathrooms: bathrooms ? Number(bathrooms) : null,
           area_sqm: area ? Number(area) : null,
@@ -343,7 +363,17 @@ function ListYourOwn() {
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="House no., Barangay, Street, City"
                 />
+                <p className="mt-1.5 text-xs text-muted-foreground">A free-text address shown on the listing. Use the map below to also mark the exact spot.</p>
               </Field>
+
+              {/* Precise pinpoint — same as the commissioner/agent listing
+                  form. This is what powers the exact-location map on the
+                  listing page, instead of just a neighborhood-level
+                  address search. */}
+              <Field label="" full>
+                <LocationPicker latitude={latitude} longitude={longitude} onChange={handleLocationChange} />
+              </Field>
+
               <Field label="Bedrooms"><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} /></Field>
               <Field label="Bathrooms"><Input type="number" min="0" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} /></Field>
               <Field label="Area (m²)"><Input type="number" min="0" value={area} onChange={(e) => setArea(e.target.value)} /></Field>
